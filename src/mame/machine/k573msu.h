@@ -9,7 +9,14 @@
 
 #pragma once
 
-
+#include "cpu/mips/mips1.h"
+#include "bus/ata/ataintf.h"
+#include "bus/ata/atapicdr.h"
+#include "bus/ata/idehd.h"
+#include "machine/ds2401.h"
+#include "machine/ins8250.h"
+#include "machine/ram.h"
+#include "machine/timekpr.h"
 
 DECLARE_DEVICE_TYPE(KONAMI_573_MULTI_SESSION_UNIT, k573msu_device)
 
@@ -20,8 +27,44 @@ public:
 
 protected:
 	virtual void device_start() override;
+	virtual void device_reset() override;
+	virtual void device_add_mconfig(machine_config &config) override;
 
-	virtual const tiny_rom_entry *device_rom_region() const override;
+	template<unsigned N> void ata_interrupt(int state);
+	template<unsigned N> void serial_interrupt(int state);
+	template<unsigned N> void dsp_interrupt(int state);
+	void timer_interrupt(int state);
+
+	void amap(address_map& map);
+
+	virtual const tiny_rom_entry* device_rom_region() const override;
+	virtual ioport_constructor device_input_ports() const override;
+
+private:
+	required_device<ds2401_device> digital_id;
+	required_device<tx3927_device> m_maincpu;
+	required_device<ram_device> m_ram;
+	required_device_array<pc16552_device, 2> m_duart_com;
+	required_device<ata_interface_device> m_ata_cdrom;
+
+	uint16_t fpgasoft_read(offs_t offset, uint16_t mem_mask);
+	void fpgasoft_write(offs_t offset, uint16_t data, uint16_t mem_mask);
+
+	uint16_t fpga_read(offs_t offset, uint16_t mem_mask);
+	void fpga_write(offs_t offset, uint16_t data, uint16_t mem_mask);
+
+	uint16_t ata_command_r(offs_t offset, uint16_t mem_mask = ~0);
+	void ata_command_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
+
+	uint16_t ata_control_r(offs_t offset, uint16_t mem_mask = ~0);
+	void ata_control_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
+
+	template <unsigned N>
+	uint16_t duart_read(offs_t offset, uint16_t mem_mask = ~0);
+	template <unsigned N>
+	void duart_write(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
+
+	uint32_t dsp_data_cnt = 0;
 };
 
 #endif // MAME_MACHINE_K573MSU_H

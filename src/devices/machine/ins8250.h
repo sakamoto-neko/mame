@@ -126,9 +126,9 @@ protected:
 private:
 	void set_timer() { m_timeout->adjust(attotime::from_hz((clock()*4*8)/(m_regs.dl*16))); }
 	int m_rintlvl;
-	u8 m_rfifo[0x100];
-	u8 m_efifo[0x100];
-	u8 m_tfifo[0x100];
+	u8 m_rfifo[32];
+	u8 m_efifo[32];
+	u8 m_tfifo[32];
 	int m_rhead, m_rtail, m_rnum;
 	int m_thead, m_ttail;
 	emu_timer *m_timeout;
