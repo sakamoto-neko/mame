@@ -41227,18 +41227,21 @@ twincobru                       // B30 / TP-011 (c) 1987 Taito America Corporati
 bmiidx                          //
 bmiidx2                         //
 bmiidx3                         //
+bmiidx3b                        //
 bmiidx3a                        //
 bmiidx4                         //
 bmiidx5                         //
 bmiidx6                         //
 bmiidx6a                        //
 bmiidx7                         //
+bmiidx7a                        //
 bmiidx8                         //
 bmiidxa                         //
 bmiidxc                         //
 bmiidxc2                        //
 bmiidxca                        //
 bmiidxs                         //
+bmiidxsa                        //
 gq863                           //
 
 @source:twins.cpp
