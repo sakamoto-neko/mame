@@ -382,6 +382,11 @@ struct IBUTTON
 static void firebeat_ata_devices(device_slot_interface &device)
 {
 	device.option_add("cdrom", ATAPI_FIXED_CDROM);
+}
+
+static void firebeat_ata_spu_devices(device_slot_interface &device)
+{
+	device.option_add("cdrom", ATAPI_FIXED_DVDROM);
 	device.option_add("hdd", IDE_HARDDISK);
 }
 
@@ -393,7 +398,7 @@ static void cdrom_config(device_t *device)
 
 static void dvdrom_config(device_t *device)
 {
-	downcast<atapi_cdrom_device &>(*device).set_ultra_dma_mode(0x0102);
+	downcast<atapi_dvdrom_device &>(*device).set_ultra_dma_mode(0x0102);
 }
 
 /*****************************************************************************/
@@ -1450,7 +1455,7 @@ void firebeat_bm3_state::firebeat_bm3(machine_config &config)
 	screen->set_size(640, 480);
 	screen->set_visarea(0, 639, 0, 479);
 
-	ATA_INTERFACE(config, m_spuata).options(firebeat_ata_devices, "hdd", nullptr, true);
+	ATA_INTERFACE(config, m_spuata).options(firebeat_ata_spu_devices, "hdd", nullptr, true);
 	m_spuata->irq_handler().set(FUNC(firebeat_bm3_state::spu_ata_interrupt));
 	m_spuata->dmarq_handler().set(FUNC(firebeat_bm3_state::spu_ata_dmarq));
 	m_spuata->slot(0).set_fixed(true);
@@ -1554,7 +1559,7 @@ void firebeat_popn_state::firebeat_popn(machine_config &config)
 {
 	firebeat_spu_base(config);
 
-	ATA_INTERFACE(config, m_spuata).options(firebeat_ata_devices, "cdrom", nullptr, true);
+	ATA_INTERFACE(config, m_spuata).options(firebeat_ata_spu_devices, "cdrom", nullptr, true);
 	m_spuata->irq_handler().set(FUNC(firebeat_popn_state::spu_ata_interrupt));
 	m_spuata->dmarq_handler().set(FUNC(firebeat_popn_state::spu_ata_dmarq));
 	m_spuata->slot(0).set_option_machine_config("cdrom", dvdrom_config);
