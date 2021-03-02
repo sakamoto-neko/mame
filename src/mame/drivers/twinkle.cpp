@@ -940,8 +940,7 @@ void twinkle_state::sound_map(address_map &map)
 	map(0x260000, 0x260001).w(FUNC(twinkle_state::spu_wavebank_w)).nopr();
 	map(0x280000, 0x2807ff).rw(m_dpram, FUNC(cy7c131_device::left_r), FUNC(cy7c131_device::left_w)).umask16(0x00ff);
 	map(0x300000, 0x30000f).rw(m_ata, FUNC(ata_interface_device::cs0_r), FUNC(ata_interface_device::cs0_w));
-	// 34000E = ???
-	map(0x34000e, 0x34000f).nopw();
+	map(0x340000, 0x34000f).rw(m_ata, FUNC(ata_interface_device::cs1_r), FUNC(ata_interface_device::cs1_w));
 	map(0x400000, 0x400fff).rw("rfsnd", FUNC(rf5c400_device::rf5c400_r), FUNC(rf5c400_device::rf5c400_w));
 	map(0x800000, 0xffffff).rw(FUNC(twinkle_state::twinkle_waveram_r), FUNC(twinkle_state::twinkle_waveram_w));
 }
@@ -1048,7 +1047,6 @@ void twinkle_state::twinkle(machine_config &config)
 	M68000(config, m_audiocpu, 32000000/2);    /* 16.000 MHz */
 	m_audiocpu->set_addrmap(AS_PROGRAM, &twinkle_state::sound_map);
 	m_audiocpu->set_periodic_int(FUNC(twinkle_state::irq1_line_assert), attotime::from_hz(60));
-	m_audiocpu->set_periodic_int(FUNC(twinkle_state::irq2_line_assert), attotime::from_hz(60));
 
 	WATCHDOG_TIMER(config, "watchdog").set_time(attotime::from_msec(1200)); /* check TD pin on LTC1232 */
 
@@ -1098,13 +1096,13 @@ void twinkle_state::twinkle(machine_config &config)
 	SPEAKER(config, "speakerright").front_right();
 
 	spu_device &spu(SPU(config, "spu", XTAL(67'737'600)/2, subdevice<psxcpu_device>("maincpu")));
-	spu.add_route(0, "speakerleft", 0.75);
-	spu.add_route(1, "speakerright", 0.75);
+	spu.add_route(0, "speakerleft", 1.0);
+	spu.add_route(1, "speakerright", 1.0);
 
 	rf5c400_device &rf5c400(RF5C400(config, "rfsnd", XTAL(33'868'800)/2));
 	rf5c400.set_addrmap(0, &twinkle_state::rf5c400_map);
-	rf5c400.add_route(0, "speakerleft", 1.0);
-	rf5c400.add_route(1, "speakerright", 1.0);
+	rf5c400.add_route(0, "speakerleft", 0.5);
+	rf5c400.add_route(1, "speakerright", 0.5);
 }
 
 void twinkle_state::twinklex(machine_config &config)

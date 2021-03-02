@@ -34,6 +34,16 @@ const uint32_t CD_TRACK_PADDING = 4;
 
 #define CD_METADATA_WORDS       (1+(CD_MAX_TRACKS * 6))
 
+#define DVD_FRAME_SIZE          2048
+
+enum
+{
+	CD_MEDIA_UNKNOWN = 0,
+	CD_MEDIA_DATA,
+	CD_MEDIA_AUDIO,
+	CD_MEDIA_MIXED // CD_MEDIA_DATA | CD_MEDIA_AUDIO
+};
+
 enum
 {
 	CD_TRACK_MODE1 = 0,         /* mode 1 2048 bytes/sector */
@@ -43,9 +53,10 @@ enum
 	CD_TRACK_MODE2_FORM2,       /* mode 2 2324 bytes/sector */
 	CD_TRACK_MODE2_FORM_MIX,    /* mode 2 2336 bytes/sector */
 	CD_TRACK_MODE2_RAW,         /* mode 2 2352 bytes / sector */
-	CD_TRACK_AUDIO,         /* redbook audio track 2352 bytes/sector (588 samples) */
+	CD_TRACK_AUDIO,             /* redbook audio track 2352 bytes/sector (588 samples) */
 
-	CD_TRACK_RAW_DONTCARE       /* special flag for cdrom_read_data: just return me whatever is there */
+	CD_TRACK_RAW_DONTCARE,      /* special flag for cdrom_read_data: just return me whatever is there */
+	CD_TRACK_RAW_DVD            /* Raw DVDs are stored as HDD CHDs. Similar to CD_TRACK_RAW_DONTCARE but generates a fake TOC */
 };
 
 enum
@@ -109,6 +120,7 @@ struct cdrom_toc
 
 /* base functionality */
 cdrom_file *cdrom_open(chd_file *chd);
+cdrom_file *cdrom_open_raw(chd_file *chd);
 void cdrom_close(cdrom_file *file);
 
 cdrom_file *cdrom_open(const char *inputfile);
@@ -127,6 +139,7 @@ chd_file *cdrom_get_chd(cdrom_file *file);
 int cdrom_get_last_track(cdrom_file *file);
 int cdrom_get_adr_control(cdrom_file *file, int track);
 int cdrom_get_track_type(cdrom_file *file, int track);
+int cdrom_get_media_type(cdrom_file *file);
 const cdrom_toc *cdrom_get_toc(cdrom_file *file);
 
 /* extra utilities */
