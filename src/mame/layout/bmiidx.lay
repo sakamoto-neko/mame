@@ -53,6 +53,12 @@ license:CC0
 	<element name="spu_led6"><text string="spu 7" state="1"/></element>
 	<element name="spu_led7"><text string="spu 8" state="1"/></element>
 
+	<element name="static_black">
+		<rect>
+			<color red="0.0" green="0.0" blue="0.0" />
+		</rect>
+	</element>
+
 	<element name="led">
 		<led16seg>
 			<color red="1.0" green="0.1" blue="0.15" />
@@ -61,9 +67,41 @@ license:CC0
 
 	<view name="Lamps">
 		<screen index="0">
-			<bounds left="0" top="0" right="426" bottom="240"/>
+			<bounds left="0" top="0" right="640" bottom="240"/>
 		</screen>
 
+		<element name="led0" ref="led" state="0">
+			<bounds x="176" y="272" width="32" height="64"/>
+		</element>
+		<element name="led1" ref="led" state="0">
+			<bounds x="208" y="272" width="32" height="64"/>
+		</element>
+		<element name="led2" ref="led" state="0">
+			<bounds x="240" y="272" width="32" height="64"/>
+		</element>
+		<element name="led3" ref="led" state="0">
+			<bounds x="272" y="272" width="32" height="64"/>
+		</element>
+		<element name="led4" ref="led" state="0">
+			<bounds x="304" y="272" width="32" height="64"/>
+		</element>
+		<element name="led5" ref="led" state="0">
+			<bounds x="336" y="272" width="32" height="64"/>
+		</element>
+		<element name="led6" ref="led" state="0">
+			<bounds x="368" y="272" width="32" height="64"/>
+		</element>
+		<element name="led7" ref="led" state="0">
+			<bounds x="400" y="272" width="32" height="64"/>
+		</element>
+		<element name="led8" ref="led" state="0">
+			<bounds x="432" y="272" width="32" height="64"/>
+		</element>
+		<element name="led-padding" ref="static_black">
+			<bounds x="0" y="336" width="640" height="32"/>
+		</element>
+
+<!--
 		<element name="1p" ref="1p"><bounds x="0" y="240" width="48" height="16"/></element>
 		<element name="2p" ref="2p"><bounds x="0" y="256" width="48" height="16"/></element>
 		<element name="effect" ref="effect"><bounds x="0" y="272" width="48" height="16"/></element>
@@ -83,34 +121,6 @@ license:CC0
 		<element name="spotlight5" ref="spotlight5"><bounds x="192" y="256" width="48" height="16"/></element>
 		<element name="spotlight6" ref="spotlight6"><bounds x="192" y="272" width="48" height="16"/></element>
 		<element name="spotlight7" ref="spotlight7"><bounds x="192" y="288" width="48" height="16"/></element>
-
-		<element name="led0" ref="led" state="0">
-			<bounds x="0" y="304" width="32" height="64"/>
-		</element>
-		<element name="led1" ref="led" state="0">
-			<bounds x="32" y="304" width="32" height="64"/>
-		</element>
-		<element name="led2" ref="led" state="0">
-			<bounds x="64" y="304" width="32" height="64"/>
-		</element>
-		<element name="led3" ref="led" state="0">
-			<bounds x="96" y="304" width="32" height="64"/>
-		</element>
-		<element name="led4" ref="led" state="0">
-			<bounds x="128" y="304" width="32" height="64"/>
-		</element>
-		<element name="led5" ref="led" state="0">
-			<bounds x="160" y="304" width="32" height="64"/>
-		</element>
-		<element name="led6" ref="led" state="0">
-			<bounds x="192" y="304" width="32" height="64"/>
-		</element>
-		<element name="led7" ref="led" state="0">
-			<bounds x="224" y="304" width="32" height="64"/>
-		</element>
-		<element name="led8" ref="led" state="0">
-			<bounds x="256" y="304" width="32" height="64"/>
-		</element>
 
 		<element name="key1-1" ref="key1-1"><bounds x="0" y="368" width="48" height="16"/></element>
 		<element name="key1-2" ref="key1-2"><bounds x="0" y="384" width="48" height="16"/></element>
@@ -150,5 +160,6 @@ license:CC0
 		<element name="spu_led5" ref="spu_led5"><bounds x="160" y="448" width="24" height="16"/></element>
 		<element name="spu_led6" ref="spu_led6"><bounds x="192" y="448" width="24" height="16"/></element>
 		<element name="spu_led7" ref="spu_led7"><bounds x="224" y="448" width="24" height="16"/></element>
+-->
 	</view>
 </mamelayout>
