@@ -1479,7 +1479,13 @@ void firebeat_bm3_state::firebeat_bm3(machine_config &config)
 
 	PC16552D(config, m_duart_midi, 0);
 	NS16550(config, "duart_midi:chan0", XTAL(24'000'000));
-	NS16550(config, "duart_midi:chan1", XTAL(24'000'000)).out_int_callback().set(FUNC(firebeat_bm3_state::midi_st224_irq_callback));
+
+	auto &midi_chan1(NS16550(config, "duart_midi:chan1", XTAL(24'000'000)));
+	midi_chan1.out_int_callback().set(FUNC(firebeat_bm3_state::midi_st224_irq_callback));
+	midi_chan1.out_tx_callback().set("mdout", FUNC(midi_port_device::write_txd));
+
+	auto &mdout(MIDI_PORT(config, "mdout"));
+	midiout_slot(mdout);
 
 	// Effects audio channel, routed to ST-224's audio input
 	m_rf5c400->add_route(2, "lspeaker", 0.5);
@@ -1870,12 +1876,10 @@ void firebeat_kbm_state::firebeat_kbm(machine_config &config)
 	// On the extend board
 	PC16552D(config, m_duart_midi, 0);
 	auto &midi_chan1(NS16550(config, "duart_midi:chan1", XTAL(24'000'000)));
-	MIDI_KBD(config, m_kbd[0], 31250).tx_callback().set(midi_chan1, FUNC(ins8250_uart_device::rx_w));
 	midi_chan1.out_int_callback().set(FUNC(firebeat_kbm_state::midi_keyboard_left_irq_callback));
 	midi_chan1.out_tx_callback().set("mdout", FUNC(midi_port_device::write_txd));
 
 	auto &midi_chan0(NS16550(config, "duart_midi:chan0", XTAL(24'000'000)));
-	MIDI_KBD(config, m_kbd[1], 31250).tx_callback().set(midi_chan0, FUNC(ins8250_uart_device::rx_w));
 	midi_chan0.out_int_callback().set(FUNC(firebeat_kbm_state::midi_keyboard_right_irq_callback));
 	midi_chan0.out_tx_callback().set("mdout", FUNC(midi_port_device::write_txd));
 
