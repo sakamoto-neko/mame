@@ -302,6 +302,7 @@ private:
 	void spu_wavebank_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
 	DECLARE_WRITE_LINE_MEMBER(spu_ata_irq);
 	DECLARE_WRITE_LINE_MEMBER(spu_ata_dmarq);
+	TIMER_CALLBACK_MEMBER(spu_dma_callback);
 	void scsi_dma_read( uint32_t *p_n_psxram, uint32_t n_address, int32_t n_size );
 	void scsi_dma_write( uint32_t *p_n_psxram, uint32_t n_address, int32_t n_size );
 
@@ -340,6 +341,8 @@ private:
 	int m_output_bits;
 	int m_output_cs;
 	int m_output_clock;
+
+	emu_timer *m_dma_timer;
 
 	static void cdrom_config(device_t *device);
 };
@@ -534,6 +537,8 @@ void twinkle_state::machine_start()
 	save_item(NAME(m_output_bits));
 	save_item(NAME(m_output_cs));
 	save_item(NAME(m_output_clock));
+
+	m_dma_timer = machine().scheduler().timer_alloc(timer_expired_delegate(FUNC(twinkle_state::spu_dma_callback), this));
 }
 
 void twinkle_state::twinkle_io_w(offs_t offset, uint8_t data)
@@ -882,19 +887,27 @@ WRITE_LINE_MEMBER(twinkle_state::spu_ata_dmarq)
 		if (m_spu_ata_dmarq)
 		{
 			m_ata->write_dmack(ASSERT_LINE);
-
-			while (m_spu_ata_dmarq)
-			{
-				uint16_t data = m_ata->read_dma();
-				//printf("spu_ata_dmarq %08x %04x\n", m_spu_ata_dma * 2, data);
-				m_waveram[m_wave_bank+m_spu_ata_dma] = data; //(data >> 8) | (data << 8);
-				m_spu_ata_dma++;
-				// bp 4a0e ;bmiidx4 checksum
-				// bp 4d62 ;bmiidx4 dma
-			}
-
-			m_ata->write_dmack(CLEAR_LINE);
+			m_dma_timer->adjust(attotime::zero);
 		}
+	}
+}
+
+TIMER_CALLBACK_MEMBER(twinkle_state::spu_dma_callback)
+{
+	uint16_t data = m_ata->read_dma();
+	m_waveram[m_wave_bank+m_spu_ata_dma] = data;
+	m_spu_ata_dma++;
+
+	if (m_spu_ata_dmarq)
+	{
+		// This timer adjust value was picked because
+		// it reduces stuttering issues/performance issues
+		m_dma_timer->adjust(attotime::from_nsec(200));
+	}
+	else
+	{
+		m_ata->write_dmack(CLEAR_LINE);
+		m_dma_timer->enable(false);
 	}
 }
 
