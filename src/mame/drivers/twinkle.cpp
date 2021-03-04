@@ -643,14 +643,19 @@ uint8_t twinkle_state::twinkle_io_r(offs_t offset)
 
 			case 0x1f:
 				data = ioport( "IN3" )->read();
+				output().set_value("vol1", data & 0x0f);
+				output().set_value("vol2", (data >> 4) & 0x0f);
 				break;
 
 			case 0x27:
 				data = ioport( "IN4" )->read();
+				output().set_value("vol3", data & 0x0f);
+				output().set_value("vol4", (data >> 4) & 0x0f);
 				break;
 
 			case 0x2f:
 				data = ioport( "IN5" )->read();
+				output().set_value("vol5", data & 0x0f);
 				break;
 
 			default:
