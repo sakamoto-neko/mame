@@ -141,6 +141,8 @@
 #include "bus/ata/ataintf.h"
 #include "bus/ata/atapicdr.h"
 #include "bus/ata/idehd.h"
+#include "bus/midi/midiinport.h"
+#include "bus/midi/midioutport.h"
 #include "cpu/m68000/m68000.h"
 #include "cpu/powerpc/ppc.h"
 #include "machine/fdc37c665gt.h"
@@ -1870,10 +1872,21 @@ void firebeat_kbm_state::firebeat_kbm(machine_config &config)
 	auto &midi_chan1(NS16550(config, "duart_midi:chan1", XTAL(24'000'000)));
 	MIDI_KBD(config, m_kbd[0], 31250).tx_callback().set(midi_chan1, FUNC(ins8250_uart_device::rx_w));
 	midi_chan1.out_int_callback().set(FUNC(firebeat_kbm_state::midi_keyboard_left_irq_callback));
+	midi_chan1.out_tx_callback().set("mdout", FUNC(midi_port_device::write_txd));
 
 	auto &midi_chan0(NS16550(config, "duart_midi:chan0", XTAL(24'000'000)));
 	MIDI_KBD(config, m_kbd[1], 31250).tx_callback().set(midi_chan0, FUNC(ins8250_uart_device::rx_w));
 	midi_chan0.out_int_callback().set(FUNC(firebeat_kbm_state::midi_keyboard_right_irq_callback));
+	midi_chan0.out_tx_callback().set("mdout", FUNC(midi_port_device::write_txd));
+
+	MIDI_KBD(config, m_kbd[0], 31250).tx_callback().set(midi_chan0, FUNC(ins8250_uart_device::rx_w));
+	MIDI_KBD(config, m_kbd[1], 31250).tx_callback().set(midi_chan1, FUNC(ins8250_uart_device::rx_w));
+
+	MIDI_PORT(config, "mdin_a", midiin_slot, "midiin").rxd_handler().set(midi_chan1, FUNC(ins8250_uart_device::rx_w));
+	MIDI_PORT(config, "mdin_b", midiin_slot, "midiin").rxd_handler().set(midi_chan0, FUNC(ins8250_uart_device::rx_w));
+
+	auto &mdout(MIDI_PORT(config, "mdout"));
+	midiout_slot(mdout);
 }
 
 void firebeat_kbm_state::firebeat_kbm_map(address_map &map)
