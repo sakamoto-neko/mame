@@ -67,38 +67,38 @@ license:CC0
 
 	<view name="Lamps">
 		<screen index="0">
-			<bounds left="0" top="0" right="640" bottom="240"/>
+			<bounds left="0" top="0" right="640" bottom="360"/>
 		</screen>
 
 		<element name="led0" ref="led" state="0">
-			<bounds x="176" y="272" width="32" height="64"/>
+			<bounds x="176" y="392" width="32" height="64"/>
 		</element>
 		<element name="led1" ref="led" state="0">
-			<bounds x="208" y="272" width="32" height="64"/>
+			<bounds x="208" y="392" width="32" height="64"/>
 		</element>
 		<element name="led2" ref="led" state="0">
-			<bounds x="240" y="272" width="32" height="64"/>
+			<bounds x="240" y="392" width="32" height="64"/>
 		</element>
 		<element name="led3" ref="led" state="0">
-			<bounds x="272" y="272" width="32" height="64"/>
+			<bounds x="272" y="392" width="32" height="64"/>
 		</element>
 		<element name="led4" ref="led" state="0">
-			<bounds x="304" y="272" width="32" height="64"/>
+			<bounds x="304" y="392" width="32" height="64"/>
 		</element>
 		<element name="led5" ref="led" state="0">
-			<bounds x="336" y="272" width="32" height="64"/>
+			<bounds x="336" y="392" width="32" height="64"/>
 		</element>
 		<element name="led6" ref="led" state="0">
-			<bounds x="368" y="272" width="32" height="64"/>
+			<bounds x="368" y="392" width="32" height="64"/>
 		</element>
 		<element name="led7" ref="led" state="0">
-			<bounds x="400" y="272" width="32" height="64"/>
+			<bounds x="400" y="392" width="32" height="64"/>
 		</element>
 		<element name="led8" ref="led" state="0">
-			<bounds x="432" y="272" width="32" height="64"/>
+			<bounds x="432" y="392" width="32" height="64"/>
 		</element>
 		<element name="led-padding" ref="static_black">
-			<bounds x="0" y="336" width="640" height="32"/>
+			<bounds x="0" y="456" width="640" height="32"/>
 		</element>
 
 <!--
