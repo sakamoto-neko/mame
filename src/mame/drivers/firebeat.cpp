@@ -160,7 +160,6 @@
 #include "video/k057714.h"
 
 #include "imagedev/floppy.h"
-#include "formats/pc_dsk.h"
 
 #include "emupal.h"
 #include "screen.h"
@@ -227,18 +226,13 @@ void firebeat_extend_spectrum_analyzer_device::device_reset()
 {
 	for (int ch = 0; ch < TOTAL_CHANNELS; ch++)
 	{
-		for (int i = 0; i < TOTAL_BUFFERS; i++) {
+		for (int i = 0; i < TOTAL_BUFFERS; i++)
 			std::fill(std::begin(m_audio_buf[i][ch]), std::end(m_audio_buf[i][ch]), 0);
-		}
 
 		std::fill(std::begin(m_fft_buf[ch]), std::end(m_fft_buf[ch]), 0);
+		std::fill(std::begin(m_bars[ch]), std::end(m_bars[ch]), 0);
 
 		m_audio_count[ch] = 0;
-
-		for (int i = 0; i < TOTAL_BARS; i++)
-		{
-			m_bars[ch][i] = 0;
-		}
 	}
 
 	m_audio_fill_index = 0;
@@ -264,43 +258,40 @@ void firebeat_extend_spectrum_analyzer_device::sound_stream_update(sound_stream 
 	// and does not affect gameplay in any way.
 
 	// Band values taken directly from NJU7507 data sheet.
-	double notches[] = { 95, 240, 600, 1500, 3400, 8200, 18000 };
-	int last_notch = std::end(notches) - std::begin(notches);
+	constexpr double NOTCHES[] = { 95, 240, 600, 1500, 3400, 8200, 18000 };
+	constexpr int LAST_NOTCH = 7;
 
 	auto srate = stream.sample_rate();
 	auto order = WDL_fft_permute_tab(FFT_LENGTH / 2);
-	for (int ch = 0; ch < TOTAL_CHANNELS; ch++) {
+	for (int ch = 0; ch < TOTAL_CHANNELS; ch++)
+	{
 		double notch_max[TOTAL_BARS] = { -1, -1, -1, -1, -1, -1 };
 		int cur_notch = 0;
 
 		for (int i = 0; i <= FFT_LENGTH / 2; i++) {
 			const double freq = (double)i / FFT_LENGTH * srate;
 
-			if (freq < notches[cur_notch]) {
+			if (freq < NOTCHES[cur_notch])
 				continue;
-			}
 
-			if (freq > notches[cur_notch+1]) {
+			if (freq > NOTCHES[cur_notch+1])
 				cur_notch++;
-			}
 
-			if (cur_notch >= last_notch) {
-				// Don't need to calculate anything above this frequency
+			if (cur_notch >= LAST_NOTCH) // Don't need to calculate anything above this frequency
 				break;
-			}
 
-			WDL_FFT_COMPLEX* bin = (WDL_FFT_COMPLEX*)m_fft_buf[ch] + order[i];
+			WDL_FFT_COMPLEX *bin = (WDL_FFT_COMPLEX*)m_fft_buf[ch] + order[i];
 
 			const double re = bin->re;
 			const double im = bin->im;
 			const double mag = sqrt(re*re + im*im);
 
-			if (notch_max[cur_notch] == -1 && freq >= notches[cur_notch] && freq < notches[cur_notch+1]) {
+			if (notch_max[cur_notch] == -1 && freq >= NOTCHES[cur_notch] && freq < NOTCHES[cur_notch+1])
 				notch_max[cur_notch] = mag;
-			}
 		}
 
-		for (int i = 0; i < TOTAL_BARS; i++) {
+		for (int i = 0; i < TOTAL_BARS; i++)
+		{
 			double val = log10(notch_max[i] * 4096) * 20;
 			val = std::max<double>(0, val);
 			m_bars[ch][i] = uint32_t(std::min<double>(val, 255.0f));
@@ -321,12 +312,12 @@ void firebeat_extend_spectrum_analyzer_device::apply_fft(uint32_t buf_index)
 		*buf_r++ = *audio_r++;
 	}
 
-	for (int ch = 0; ch < TOTAL_CHANNELS; ch++) {
-		WDL_real_fft((WDL_FFT_REAL*)m_fft_buf[ch], FFT_LENGTH, 0);
+	for (int ch = 0; ch < TOTAL_CHANNELS; ch++)
+	{
+		WDL_real_fft((WDL_FFT_REAL *)m_fft_buf[ch], FFT_LENGTH, 0);
 
-		for (int i = 0; i < FFT_LENGTH; i++) {
+		for (int i = 0; i < FFT_LENGTH; i++)
 			m_fft_buf[ch][i] /= (WDL_FFT_REAL)FFT_LENGTH;
-		}
 	}
 }
 
@@ -361,11 +352,7 @@ uint8_t firebeat_extend_spectrum_analyzer_device::read(offs_t offset)
 
 	auto val = (ch < TOTAL_CHANNELS && notch >= 0 && notch < TOTAL_BARS) ? m_bars[ch][notch] : 0;
 
-	if (is_upper) {
-		return (val >> 8) & 0xff;
-	}
-
-	return val & 0xff;
+	return (is_upper ? (val >> 8) : val) & 0xff;
 }
 
 DEFINE_DEVICE_TYPE(KONAMI_FIREBEAT_EXTEND_SPECTRUM_ANALYZER, firebeat_extend_spectrum_analyzer_device, "firebeat_spectrum_analyzer", "Firebeat Spectrum Analyzer")
@@ -689,8 +676,6 @@ private:
 	required_ioport_array<7> m_io_effects;
 
 	DECLARE_WRITE_LINE_MEMBER(floppy_irq_callback);
-
-	static void floppy_formats(format_registration &fr);
 };
 
 class firebeat_popn_state : public firebeat_spu_state
@@ -1026,7 +1011,8 @@ void firebeat_state::extend_board_irq_w(offs_t offset, uint8_t data)
 	m_extend_board_irq_active &= ~(data & 0xff);
 	m_extend_board_irq_enable = data & 0xff;
 
-	if (BIT(m_extend_board_irq_enable, 2) != is_fdd_irq_enabled) {
+	if (BIT(m_extend_board_irq_enable, 2) != is_fdd_irq_enabled)
+	{
 		// Clearing the FDD IRQ here helps fix some issues with the FDD getting stuck
 		m_maincpu->set_input_line(INPUT_LINE_IRQ1, CLEAR_LINE);
 	}
@@ -1331,10 +1317,10 @@ void firebeat_spu_state::rf5c400_map(address_map& map)
                 In another part of the program (0x363c for a21jca03.bin) is the following code for determining when to start and stop the DMA:
 
                 start_dma();
-                while (get_dma_timer() < dma_max_timer) {
-                    if (irq6_called_flag) {
+                while (get_dma_timer() < dma_max_timer)
+                {
+                    if (irq6_called_flag)
                         break;
-                    }
                 }
                 end_dma();
 
@@ -1476,12 +1462,6 @@ static void pc_hd_floppies(device_slot_interface &device)
 	device.option_add("35hd", FLOPPY_35_HD);
 }
 
-void firebeat_bm3_state::floppy_formats(format_registration &fr)
-{
-	fr.add_mfm_containers();
-	fr.add(FLOPPY_PC_FORMAT);
-}
-
 WRITE_LINE_MEMBER(firebeat_bm3_state::floppy_irq_callback)
 {
 	if (BIT(m_extend_board_irq_enable, 2) == 0 && state)
@@ -1510,7 +1490,7 @@ void firebeat_bm3_state::firebeat_bm3(machine_config &config)
 	FDC37C665GT(config, m_fdc, 24_MHz_XTAL, upd765_family_device::mode_t::PS2);
 	m_fdc->fintr().set(FUNC(firebeat_bm3_state::floppy_irq_callback));
 
-	FLOPPY_CONNECTOR(config, m_floppy, pc_hd_floppies, "35hd", firebeat_bm3_state::floppy_formats);
+	FLOPPY_CONNECTOR(config, m_floppy, pc_hd_floppies, "35hd", floppy_image_device::default_pc_floppy_formats);
 
 	PC16552D(config, m_duart_midi, 0);
 	NS16550(config, "duart_midi:chan0", XTAL(24'000'000));
@@ -2698,8 +2678,9 @@ GAME( 2000, popnanm,  0,      firebeat_popn, popn, firebeat_popn_state, init_pop
 GAME( 2001, popnanm2, 0,      firebeat_popn, popn, firebeat_popn_state, init_popn_jp, ROT0, "Konami", "Pop'n Music Animelo 2", MACHINE_NOT_WORKING | MACHINE_IMPERFECT_SOUND )
 
 // Requires ST-224 emulation for optional toggleable external effects, but otherwise is fully playable
+// Core Remix and 6th Mix are marked as MACHINE_NOT_WORKING because of missing HDD dumps
 GAME( 2000, bm3,      0, firebeat_bm3, bm3, firebeat_bm3_state, init_bm3, ROT0, "Konami", "Beatmania III", MACHINE_IMPERFECT_SOUND )
-GAME( 2000, bm3core,  0, firebeat_bm3, bm3, firebeat_bm3_state, init_bm3, ROT0, "Konami", "Beatmania III Append Core Remix", MACHINE_IMPERFECT_SOUND )
-GAME( 2001, bm36th,   0, firebeat_bm3, bm3, firebeat_bm3_state, init_bm3, ROT0, "Konami", "Beatmania III Append 6th Mix", MACHINE_IMPERFECT_SOUND )
+GAME( 2000, bm3core,  0, firebeat_bm3, bm3, firebeat_bm3_state, init_bm3, ROT0, "Konami", "Beatmania III Append Core Remix", MACHINE_NOT_WORKING | MACHINE_IMPERFECT_SOUND )
+GAME( 2001, bm36th,   0, firebeat_bm3, bm3, firebeat_bm3_state, init_bm3, ROT0, "Konami", "Beatmania III Append 6th Mix", MACHINE_NOT_WORKING | MACHINE_IMPERFECT_SOUND )
 GAME( 2002, bm37th,   0, firebeat_bm3, bm3, firebeat_bm3_state, init_bm3, ROT0, "Konami", "Beatmania III Append 7th Mix", MACHINE_IMPERFECT_SOUND )
 GAME( 2003, bm3final, 0, firebeat_bm3, bm3, firebeat_bm3_state, init_bm3, ROT0, "Konami", "Beatmania III The Final", MACHINE_IMPERFECT_SOUND )

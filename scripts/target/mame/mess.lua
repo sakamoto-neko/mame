@@ -762,6 +762,7 @@ MACHINES["IWM"] = true
 MACHINES["SWIM1"] = true
 MACHINES["SWIM2"] = true
 MACHINES["SWIM3"] = true
+MACHINES["MAC_VIDEO_SONORA"] = true
 MACHINES["DIABLO_HD"] = true
 MACHINES["TMS1024"] = true
 MACHINES["NSC810"] = true
@@ -1111,7 +1112,7 @@ FORMATS["PPG_DSK"] = true
 FORMATS["PRIMOPTP"] = true
 FORMATS["PYLDIN_DSK"] = true
 FORMATS["QL_DSK"] = true
-FORMATS["RC759"] = true
+FORMATS["RC759_DSK"] = true
 FORMATS["RK_CAS"] = true
 FORMATS["RX50_DSK"] = true
 FORMATS["SC3000_BIT"] = true
@@ -1150,6 +1151,7 @@ FORMATS["X07_CAS"] = true
 FORMATS["X1_TAP"] = true
 FORMATS["XDF_DSK"] = true
 FORMATS["ZX81_P"] = true
+FORMATS["FS_PRODOS"] = true
 
 --------------------------------------------------
 -- this is the list of driver libraries that
@@ -1686,6 +1688,7 @@ files {
 	MAME_DIR .. "src/mame/drivers/akaiax80.cpp",
 	MAME_DIR .. "src/mame/drivers/akaivx600.cpp",
 	MAME_DIR .. "src/mame/drivers/mpc3000.cpp",
+	MAME_DIR .. "src/mame/drivers/mpc60.cpp",
 }
 
 createMESSProjects(_target, _subtarget, "alesis")
@@ -1790,6 +1793,7 @@ files {
 	MAME_DIR .. "src/mame/drivers/lwriter.cpp",
 	MAME_DIR .. "src/mame/drivers/mac128.cpp",
 	MAME_DIR .. "src/mame/drivers/macquadra700.cpp",
+	MAME_DIR .. "src/mame/drivers/macpdm.cpp",
 	MAME_DIR .. "src/mame/drivers/macprtb.cpp",
 	MAME_DIR .. "src/mame/drivers/macpwrbk030.cpp",
 	MAME_DIR .. "src/mame/drivers/mac.cpp",

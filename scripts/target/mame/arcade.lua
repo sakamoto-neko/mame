@@ -709,6 +709,7 @@ MACHINES["STEPPERS"] = true
 --MACHINES["SWIM1"] = true
 --MACHINES["SWIM2"] = true
 --MACHINES["SWIM3"] = true
+--MACHINES["MAC_VIDEO_SONORA"] = true
 --MACHINES["DIABLO_HD"] = true
 MACHINES["PCI9050"] = true
 MACHINES["TMS1024"] = true
@@ -852,6 +853,7 @@ FORMATS["WD177X_DSK"] = true
 FORMATS["NASLITE_DSK"] = true
 FORMATS["BASICDSK"] = true
 FORMATS["IBMXDF_DSK"] = true
+FORMATS["IPF_DSK"] = true
 
 --------------------------------------------------
 -- this is the list of driver libraries that
