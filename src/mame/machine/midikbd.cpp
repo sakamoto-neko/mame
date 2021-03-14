@@ -13,6 +13,7 @@ midi_keyboard_device::midi_keyboard_device(const machine_config &mconfig, const 
 {
 }
 
+static int ctr = 0;
 void midi_keyboard_device::device_timer(emu_timer &timer, device_timer_id id, int param, void *ptr)
 {
 	if(!id)
@@ -47,6 +48,8 @@ void midi_keyboard_device::device_timer(emu_timer &timer, device_timer_id id, in
 
 		int i;
 
+		ctr += 1;
+
 		uint32_t kbstate = m_keyboard->read();
 		if(kbstate != m_keyboard_state)
 		{
@@ -70,9 +73,11 @@ void midi_keyboard_device::device_timer(emu_timer &timer, device_timer_id id, in
 				}
 			}
 		}
-		else
+		else if (ctr >= 25) {
 			// no messages, send Active Sense message instead
 			push_tx(0xfe);
+			ctr = 0;
+		}
 
 		m_keyboard_state = kbstate;
 		if(is_transmit_register_empty())
