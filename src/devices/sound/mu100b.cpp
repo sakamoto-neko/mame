@@ -91,7 +91,7 @@ void mu100b_device::device_add_mconfig(machine_config &config)
 
 	SWP30(config, m_swp30);
 	m_swp30->set_addrmap(0, &mu100b_device::swp30_map);
-	m_swp30->add_route(0, *this, 1.0, AUTO_ALLOC_INPUT, 0);
-	m_swp30->add_route(1, *this, 1.0, AUTO_ALLOC_INPUT, 1);
+	m_swp30->add_route(0, *this, 5.0, AUTO_ALLOC_INPUT, 0);
+	m_swp30->add_route(1, *this, 5.0, AUTO_ALLOC_INPUT, 1);
 }
 

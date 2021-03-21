@@ -1905,8 +1905,8 @@ void firebeat_kbm_state::firebeat_kbm(machine_config &config)
 	// Synth card
 	auto &mu100b(MU100B(config, "mu100b"));
 	midi_chan1.out_tx_callback().set(mu100b, FUNC(mu100b_device::midi_w));
-	mu100b.add_route(0, "lspeaker", 1.0);
-	mu100b.add_route(1, "rspeaker", 1.0);
+	mu100b.add_route(0, "lspeaker", 5.0);
+	mu100b.add_route(1, "rspeaker", 5.0);
 }
 
 void firebeat_kbm_state::firebeat_kbm_map(address_map &map)
