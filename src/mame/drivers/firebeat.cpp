@@ -155,6 +155,7 @@
 #include "machine/rtc65271.h"
 #include "machine/timer.h"
 #include "sound/cdda.h"
+#include "sound/mu100b.h"
 #include "sound/rf5c400.h"
 #include "sound/ymz280b.h"
 #include "video/k057714.h"
@@ -1900,6 +1901,12 @@ void firebeat_kbm_state::firebeat_kbm(machine_config &config)
 
 	auto &mdout(MIDI_PORT(config, "mdout"));
 	midiout_slot(mdout);
+
+	// Synth card
+	auto &mu100b(MU100B(config, "mu100b"));
+	midi_chan1.out_tx_callback().set(mu100b, FUNC(mu100b_device::midi_w));
+	mu100b.add_route(0, "lspeaker", 1.0);
+	mu100b.add_route(1, "rspeaker", 1.0);
 }
 
 void firebeat_kbm_state::firebeat_kbm_map(address_map &map)
