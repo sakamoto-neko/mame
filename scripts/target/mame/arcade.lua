@@ -2480,8 +2480,6 @@ files {
 	MAME_DIR .. "src/mame/includes/finalizr.h",
 	MAME_DIR .. "src/mame/video/finalizr.cpp",
 	MAME_DIR .. "src/mame/drivers/firebeat.cpp",
-	MAME_DIR .. "src/mame/machine/midikbd.cpp",
-	MAME_DIR .. "src/mame/machine/midikbd.h",
 	MAME_DIR .. "src/mame/drivers/flkatck.cpp",
 	MAME_DIR .. "src/mame/includes/flkatck.h",
 	MAME_DIR .. "src/mame/video/flkatck.cpp",
