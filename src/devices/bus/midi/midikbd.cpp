@@ -1,16 +1,31 @@
 // license:BSD-3-Clause
 // copyright-holders:Carl
 #include "emu.h"
-#include "bus/midi/midikbd.h"
+#include "midikbd.h"
 
 DEFINE_DEVICE_TYPE(MIDI_KBD, midi_keyboard_device, "midi_kbd", "Generic MIDI Keyboard")
 
-midi_keyboard_device::midi_keyboard_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock) :
-	device_t(mconfig, MIDI_KBD, tag, owner, clock),
-	device_serial_interface(mconfig, *this),
+midi_keyboard_device::midi_keyboard_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock)
+	: device_t(mconfig, MIDI_KBD, tag, owner, clock),
+	device_midi_port_interface(mconfig, *this),
+	m_midiin(*this, "midiinimg"),
 	m_out_tx_func(*this),
 	m_keyboard(*this, "KEYBOARD")
 {
+}
+
+void midi_keyboard_device::device_add_mconfig(machine_config &config)
+{
+	MIDIIN(config, m_midiin, 0);
+	m_midiin->input_callback().set(FUNC(midi_keyboard_device::read));
+}
+
+void midi_keyboard_device::device_start()
+{
+	m_owner = dynamic_cast<midi_port_device *>(owner());
+	m_out_tx_func.resolve_safe();
+	m_keyboard_timer = timer_alloc();
+	m_keyboard_timer->adjust(attotime::from_msec(10), 0, attotime::from_msec(10));
 }
 
 void midi_keyboard_device::device_timer(emu_timer &timer, device_timer_id id, int param, void *ptr)
@@ -57,50 +72,24 @@ void midi_keyboard_device::device_timer(emu_timer &timer, device_timer_id id, in
 				if ((m_keyboard_state & (1 << i)) != 0 && (kbstate & (1 << i)) == 0)
 				{
 					// key was on, now off -> send Note Off message
-					push_tx(0x80);
-					push_tx(kbnote);
-					push_tx(0x7f);
+					m_midiin->xmit_char(0x80);
+					m_midiin->xmit_char(kbnote);
+					m_midiin->xmit_char(0x7f);
 				}
 				else if ((m_keyboard_state & (1 << i)) == 0 && (kbstate & (1 << i)) != 0)
 				{
 					// key was off, now on -> send Note On message
-					push_tx(0x90);
-					push_tx(kbnote);
-					push_tx(0x7f);
+					m_midiin->xmit_char(0x90);
+					m_midiin->xmit_char(kbnote);
+					m_midiin->xmit_char(0x7f);
 				}
 			}
 		}
 		else
 			// no messages, send Active Sense message instead
-			push_tx(0xfe);
+			m_midiin->xmit_char(0xfe);
 
 		m_keyboard_state = kbstate;
-		if(is_transmit_register_empty())
-			tra_complete();
-	}
-}
-
-void midi_keyboard_device::device_start()
-{
-	set_data_frame(1, 8, PARITY_NONE, STOP_BITS_1); //8N1?
-	set_tra_rate(clock());
-	m_out_tx_func.resolve_safe();
-	m_head = m_tail = 0;
-	m_keyboard_timer = timer_alloc();
-	m_keyboard_timer->adjust(attotime::from_msec(10), 0, attotime::from_msec(10));
-}
-
-void midi_keyboard_device::tra_callback()
-{
-	m_out_tx_func(transmit_register_get_data_bit());
-}
-
-void midi_keyboard_device::tra_complete()
-{
-	if(m_head != m_tail)
-	{
-		transmit_register_setup(m_buffer[m_tail]);
-		++m_tail %= 16;
 	}
 }
 

@@ -590,7 +590,6 @@ public:
 	firebeat_kbm_state(const machine_config &mconfig, device_type type, const char *tag) :
 		firebeat_state(mconfig, type, tag),
 		m_duart_midi(*this, "duart_midi"),
-		m_kbd(*this, "kbd%u", 0),
 		m_lamps(*this, "lamp_%u", 1U),
 		m_cab_led_door_lamp(*this, "door_lamp"),
 		m_cab_led_start1p(*this, "start1p"),
@@ -628,7 +627,6 @@ private:
 //  int m_keyboard_state[2];
 
 	required_device<pc16552_device> m_duart_midi;
-	required_device_array<midi_keyboard_device, 2> m_kbd;
 
 	output_finder<3> m_lamps;
 	output_finder<> m_cab_led_door_lamp;
@@ -1893,11 +1891,8 @@ void firebeat_kbm_state::firebeat_kbm(machine_config &config)
 	midi_chan0.out_int_callback().set(FUNC(firebeat_kbm_state::midi_keyboard_right_irq_callback));
 	midi_chan0.out_tx_callback().set("mdout", FUNC(midi_port_device::write_txd));
 
-	MIDI_KBD(config, m_kbd[0], 31250).tx_callback().set(midi_chan0, FUNC(ins8250_uart_device::rx_w));
-	MIDI_KBD(config, m_kbd[1], 31250).tx_callback().set(midi_chan1, FUNC(ins8250_uart_device::rx_w));
-
-	MIDI_PORT(config, "mdin_a", midiin_slot, "midiin").rxd_handler().set(midi_chan1, FUNC(ins8250_uart_device::rx_w));
-	MIDI_PORT(config, "mdin_b", midiin_slot, "midiin").rxd_handler().set(midi_chan0, FUNC(ins8250_uart_device::rx_w));
+	MIDI_PORT(config, "mdin_a", midiin_slot, "midikbd").rxd_handler().set(midi_chan1, FUNC(ins8250_uart_device::rx_w));
+	MIDI_PORT(config, "mdin_b", midiin_slot, "midikbd").rxd_handler().set(midi_chan0, FUNC(ins8250_uart_device::rx_w));
 
 	auto &mdout(MIDI_PORT(config, "mdout"));
 	midiout_slot(mdout);

@@ -44,6 +44,8 @@ public:
 	virtual const char *file_extensions() const noexcept override { return "mid"; }
 	virtual bool core_opens_image_file() const noexcept override { return false; }
 
+	void xmit_char(uint8_t data);
+
 protected:
 	// device-level overrides
 	virtual void device_start() override;
@@ -57,8 +59,6 @@ protected:
 
 private:
 	static const int XMIT_RING_SIZE = (8192*4*4);
-
-	void xmit_char(uint8_t data);
 
 	std::unique_ptr<osd_midi_device> m_midi;
 	emu_timer *m_timer;
