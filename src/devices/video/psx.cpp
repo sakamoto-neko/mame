@@ -418,48 +418,55 @@ int psxgpu_device::DebugTextureDisplay( bitmap_rgb32 &bitmap )
 void psxgpu_device::updatevisiblearea()
 {
 	rectangle visarea;
-	double refresh;
+	int div = 1;
+
+	int base_height = 263;
+	int base_width = 3413;
 
 	if( ( n_gpustatus & ( 1 << 0x14 ) ) != 0 )
 	{
 		/* pal */
-		refresh = 50; // TODO: it's not exactly 50Hz
+		base_height = 314;
+		base_width = 3406;
+
 		switch( ( n_gpustatus >> 0x13 ) & 1 )
 		{
 		case 0:
-			n_screenheight = 256;
-			break;
+				n_screenheight = 256;
+				break;
 		case 1:
-			n_screenheight = 512;
-			break;
+				n_screenheight = 512;
+				break;
 		}
 	}
 	else
 	{
 		/* ntsc */
-		// refresh rate derived from 53.693175MHz
-		// TODO: emulate display timings at lower level
+		base_height = 263;
+		base_width = 3413;
+
 		switch( ( n_gpustatus >> 0x13 ) & 1 )
 		{
 		case 0:
-			refresh = 59.8260978565;
-			n_screenheight = 240;
-			break;
+				n_screenheight = 240;
+				break;
 		case 1:
-			refresh = 59.9400523286;
-			n_screenheight = 480;
-			break;
+				n_screenheight = 480;
+				break;
 		}
 	}
+
 	switch( ( n_gpustatus >> 0x11 ) & 3 )
 	{
 	case 0:
 		switch( ( n_gpustatus >> 0x10 ) & 1 )
 		{
 		case 0:
+			div = 10;
 			n_screenwidth = 256;
 			break;
 		case 1:
+			div = 7;
 			n_screenwidth = 368;
 			break;
 		}
@@ -468,17 +475,21 @@ void psxgpu_device::updatevisiblearea()
 		switch( ( n_gpustatus >> 0x10 ) & 1 )
 		{
 		case 0:
+			div = 8;
 			n_screenwidth = 320;
 			break;
 		case 1:
+			div = 6;
 			n_screenwidth = 384;
 			break;
 		}
 		break;
 	case 2:
+		div = 5;
 		n_screenwidth = 512;
 		break;
 	case 3:
+		div = 4;
 		n_screenwidth = 640;
 		break;
 	}
@@ -492,7 +503,7 @@ void psxgpu_device::updatevisiblearea()
 #endif
 
 	visarea.set(0, n_screenwidth - 1, 0, n_screenheight - 1);
-	screen().configure(n_screenwidth, n_screenheight, visarea, HZ_TO_ATTOSECONDS(refresh));
+	screen().configure(base_width / div, base_height, visarea, HZ_TO_ATTOSECONDS(clock() / div) * (base_width / div) * base_height);
 }
 
 void psxgpu_device::psx_gpu_init( int n_gputype )

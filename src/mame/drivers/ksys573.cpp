@@ -2412,7 +2412,9 @@ void ksys573_state::konami573(machine_config &config)
 	/* video hardware */
 	CXD8561Q(config, "gpu", XTAL(53'693'175), 0x200000, m_maincpu.target()).set_screen("screen");
 
-	SCREEN(config, "screen", SCREEN_TYPE_RASTER).screen_vblank().set(FUNC(ksys573_state::sys573_vblank));
+	auto &screen(SCREEN(config, "screen", SCREEN_TYPE_RASTER));
+	screen.set_raw(XTAL(53'693'175) / 8, 3413 / 4, 0, 640, 263, 0, 240);
+	screen.screen_vblank().set(FUNC(ksys573_state::sys573_vblank));
 
 	/* sound hardware */
 	SPEAKER(config, "lspeaker").front_left();
