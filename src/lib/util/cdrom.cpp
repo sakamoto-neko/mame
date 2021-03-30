@@ -387,7 +387,7 @@ cdrom_file *cdrom_open(chd_file *chd)
 		chdofs  += file->cdtoc.tracks[i].frames;
 		chdofs  += file->cdtoc.tracks[i].extraframes;
 		logofs  += file->cdtoc.tracks[i].frames;
-
+/*
       printf("Track %02d is format %d subtype %d datasize %d subsize %d frames %d extraframes %d pregap %d pgmode %d presize %d postgap %d logofs %d physofs %d chdofs %d logframes %d\n", i+1,
             file->cdtoc.tracks[i].trktype,
             file->cdtoc.tracks[i].subtype,
@@ -402,7 +402,7 @@ cdrom_file *cdrom_open(chd_file *chd)
             file->cdtoc.tracks[i].logframeofs,
             file->cdtoc.tracks[i].physframeofs,
             file->cdtoc.tracks[i].chdframeofs,
-            file->cdtoc.tracks[i].logframes);
+            file->cdtoc.tracks[i].logframes);*/
 	}
 
 	/* fill out dummy entries for the last track to help our search */

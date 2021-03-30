@@ -418,7 +418,7 @@ int psxgpu_device::DebugTextureDisplay( bitmap_rgb32 &bitmap )
 void psxgpu_device::updatevisiblearea()
 {
 	rectangle visarea;
-	int div = 1;
+	double div = 1;
 
 	int base_height = 263;
 	int base_width = 3413;
