@@ -12,7 +12,7 @@
     Unitron 1024: Brazilian Mac Plus clone.
 
     Driver by R. Belmont and O. Galibert, with thanks to the original Mac
-    driver authors Nathan Woods and Raphael  Nabet.
+    driver authors Nathan Woods and Raphael Nabet.
     Thanks also to SCSI guru Patrick Mackinlay and keyboard/mouse wrangler
     Vas Crabb.
 
@@ -87,7 +87,6 @@ part number 338-6523 (later Macs use a PLCC version which Apple numbered
 #include "bus/scsi/scsihd.h"
 #include "cpu/m68000/m68000.h"
 #include "machine/6522via.h"
-#include "machine/applefdc.h"
 #include "machine/iwm.h"
 #include "machine/swim1.h"
 #include "machine/ncr5380n.h"
@@ -194,6 +193,7 @@ private:
 	uint16_t ram_600000_r(offs_t offset);
 	void ram_600000_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~ 0);
 	void via_sync();
+	void via_sync_end();
 	uint16_t mac_via_r(offs_t offset);
 	void mac_via_w(offs_t offset, uint16_t data);
 	uint16_t mac_autovector_r(offs_t offset);
@@ -207,6 +207,7 @@ private:
 	DECLARE_WRITE_LINE_MEMBER(scsi_irq_w);
 	DECLARE_WRITE_LINE_MEMBER(scsi_drq_w);
 	DECLARE_WRITE_LINE_MEMBER(set_scc_interrupt);
+	DECLARE_WRITE_LINE_MEMBER(vblank_w);
 
 	WRITE_LINE_MEMBER(adb_irq_w) { m_adb_irq_pending = state; }
 
@@ -240,7 +241,7 @@ private:
 
 	uint32_t m_overlay;
 
-	int m_irq_count, m_ca1_data, m_ca2_data;
+	int m_irq_count, m_ca2_data;
 	uint8_t m_mouse_bit[2], m_mouse_last[2];
 	int16_t m_mouse_last_m[2], m_mouse_count[2];
 	int m_screen_buffer;
@@ -276,7 +277,6 @@ void mac128_state::machine_start()
 
 	save_item(NAME(m_overlay));
 	save_item(NAME(m_irq_count));
-	save_item(NAME(m_ca1_data));
 	save_item(NAME(m_ca2_data));
 	save_item(NAME(m_mouse_bit));
 	save_item(NAME(m_mouse_last));
@@ -312,7 +312,6 @@ void mac128_state::machine_reset()
 	m_main_buffer = true;
 	m_snd_vol = 3;
 	m_irq_count = 0;
-	m_ca1_data = 0;
 	m_ca2_data = 0;
 	m_adb_irq_pending = 0;
 	m_drive_select = 0;
@@ -406,9 +405,6 @@ void mac128_state::set_via_interrupt(int value)
 
 void mac128_state::vblank_irq()
 {
-	m_ca1_data ^= 1;
-	m_via->write_ca1(m_ca1_data);
-
 	if (m_macadb)
 	{
 		m_macadb->adb_vblank();
@@ -439,6 +435,11 @@ void mac128_state::update_volume()
 		// sound -> r16 (68k)  -> 4016 (pa2 != 0)
 		m_dac->set_output_gain(ALL_OUTPUTS, 8.0 / (m_snd_vol + 1));
 	}
+}
+
+WRITE_LINE_MEMBER(mac128_state::vblank_w)
+{
+	m_via->write_ca1(state);
 }
 
 TIMER_CALLBACK_MEMBER(mac128_state::mac_scanline)
@@ -692,13 +693,21 @@ void mac128_state::via_sync()
 	// is synced on that clock, so that's at a multiple of 10 in
 	// absolute time
 
-	// - 4 cycles later E goes down and that's the end of the access
+	// - 4 cycles later E goes down and that's the end of the access,
+
+	// We sync on the start of cycle (so that the via timings go ok)
+	// then on the end on via_sync_end()
 
 	uint64_t cur_cycle = m_maincpu->total_cycles();
 	uint64_t vpa_cycle = cur_cycle+2;
 	uint64_t via_start_cycle = (vpa_cycle + 9) / 10;
-	uint64_t end_cycle = via_start_cycle * 10 + 4;
-	m_maincpu->adjust_icount(cur_cycle - end_cycle + 4); // 4 cycles already counted by the core
+	uint64_t m68k_start_cycle = via_start_cycle * 10;
+	m_maincpu->adjust_icount(cur_cycle - m68k_start_cycle); // 4 cycles already counted by the core
+}
+
+void mac128_state::via_sync_end()
+{
+	m_maincpu->adjust_icount(-4);
 }
 
 uint16_t mac128_state::mac_via_r(offs_t offset)
@@ -712,6 +721,7 @@ uint16_t mac128_state::mac_via_r(offs_t offset)
 
 	data = m_via->read(offset);
 
+	via_sync_end();
 	return (data & 0xff) | (data << 8);
 }
 
@@ -723,6 +733,8 @@ void mac128_state::mac_via_w(offs_t offset, uint16_t data)
 	via_sync();
 
 	m_via->write(offset, (data >> 8) & 0xff);
+
+	via_sync_end();
 }
 
 void mac128_state::mac_autovector_w(offs_t offset, uint16_t data)
@@ -1078,6 +1090,7 @@ void mac128_state::mac512ke(machine_config &config)
 	SCREEN(config, m_screen, SCREEN_TYPE_RASTER);
 	m_screen->set_raw(15.6672_MHz_XTAL, MAC_H_TOTAL, 0, MAC_H_VIS, MAC_V_TOTAL, 0, MAC_V_VIS);
 	m_screen->set_screen_update(FUNC(mac128_state::screen_update_mac));
+	m_screen->screen_vblank().set(FUNC(mac128_state::vblank_w));
 	m_screen->set_palette("palette");
 
 	PALETTE(config, "palette", palette_device::MONOCHROME_INVERTED);
@@ -1159,7 +1172,7 @@ void mac128_state::macplus(machine_config &config)
 	NSCSI_CONNECTOR(config, "scsibus:4", mac_scsi_devices, nullptr);
 	NSCSI_CONNECTOR(config, "scsibus:5", mac_scsi_devices, nullptr);
 	NSCSI_CONNECTOR(config, "scsibus:6", mac_scsi_devices, "harddisk");
-	NSCSI_CONNECTOR(config, "scsibus:7").option_set("ncr5380n", NCR5380N).clock(24_MHz_XTAL).machine_config([this](device_t *device) {
+	NSCSI_CONNECTOR(config, "scsibus:7").option_set("ncr5380n", NCR5380N).machine_config([this](device_t *device) {
 		ncr5380n_device &adapter = downcast<ncr5380n_device &>(*device);
 		adapter.irq_handler().set(*this, FUNC(mac128_state::scsi_irq_w));
 		adapter.drq_handler().set(*this, FUNC(mac128_state::scsi_drq_w));
@@ -1402,13 +1415,13 @@ ROM_START( macclasc )
 ROM_END
 
 /*    YEAR  NAME      PARENT   COMPAT  MACHINE   INPUT    CLASS         INIT              COMPANY              FULLNAME */
-//COMP( 1983, mactw,    0,       0,      mac128k,  macplus, mac128_state, mac_driver_init, "Apple Computer",    "Macintosh (4.3T Prototype)",  MACHINE_NOT_WORKING )
-COMP( 1984, mac128k,  0,       0,      mac128k,  macplus, mac128_state, mac_driver_init,  "Apple Computer",    "Macintosh 128k",  MACHINE_NOT_WORKING )
-COMP( 1984, mac512k,  mac128k, 0,      mac512k,  macplus, mac128_state, mac_driver_init,  "Apple Computer",    "Macintosh 512k",  MACHINE_NOT_WORKING )
-COMP( 1986, mac512ke, macplus, 0,      mac512ke, macplus, mac128_state, mac_driver_init,  "Apple Computer",    "Macintosh 512ke", MACHINE_NOT_WORKING )
-COMP( 1985, unitron,  macplus, 0,      mac512ke, macplus, mac128_state, mac_driver_init,  "bootleg (Unitron)", "Mac 512",  MACHINE_NOT_WORKING )
-COMP( 1986, macplus,  0,       0,      macplus,  macplus, mac128_state, mac_driver_init,  "Apple Computer",    "Macintosh Plus",  MACHINE_NOT_WORKING )
-COMP( 1985, utrn1024, macplus, 0,      macplus,  macplus, mac128_state, mac_driver_init,  "bootleg (Unitron)", "Unitron 1024",  MACHINE_NOT_WORKING )
-COMP( 1987, macse,    0,       0,      macse,    macadb, mac128_state,  mac_driver_init,  "Apple Computer",   "Macintosh SE",  MACHINE_NOT_WORKING )
-COMP( 1987, macsefd,  0,       0,      macsefd,  macadb, mac128_state,  mac_driver_init,  "Apple Computer",   "Macintosh SE (FDHD)",  MACHINE_NOT_WORKING )
-COMP( 1990, macclasc, 0,       0,      macclasc, macadb, mac128_state,  mac_driver_init,  "Apple Computer",   "Macintosh Classic",  MACHINE_NOT_WORKING )
+//COMP( 1983, mactw,    0,       0,      mac128k,  macplus, mac128_state, mac_driver_init, "Apple Computer",    "Macintosh (4.3T Prototype)",  MACHINE_SUPPORTS_SAVE )
+COMP( 1984, mac128k,  0,       0,      mac128k,  macplus, mac128_state, mac_driver_init,  "Apple Computer",    "Macintosh 128k",  MACHINE_SUPPORTS_SAVE )
+COMP( 1984, mac512k,  mac128k, 0,      mac512k,  macplus, mac128_state, mac_driver_init,  "Apple Computer",    "Macintosh 512k",  MACHINE_SUPPORTS_SAVE )
+COMP( 1986, mac512ke, macplus, 0,      mac512ke, macplus, mac128_state, mac_driver_init,  "Apple Computer",    "Macintosh 512ke", MACHINE_SUPPORTS_SAVE )
+COMP( 1985, unitron,  macplus, 0,      mac512ke, macplus, mac128_state, mac_driver_init,  "bootleg (Unitron)", "Mac 512",  MACHINE_SUPPORTS_SAVE )
+COMP( 1986, macplus,  0,       0,      macplus,  macplus, mac128_state, mac_driver_init,  "Apple Computer",    "Macintosh Plus",  MACHINE_SUPPORTS_SAVE )
+COMP( 1985, utrn1024, macplus, 0,      macplus,  macplus, mac128_state, mac_driver_init,  "bootleg (Unitron)", "Unitron 1024",  MACHINE_SUPPORTS_SAVE )
+COMP( 1987, macse,    0,       0,      macse,    macadb, mac128_state,  mac_driver_init,  "Apple Computer",   "Macintosh SE",  MACHINE_SUPPORTS_SAVE )
+COMP( 1987, macsefd,  0,       0,      macsefd,  macadb, mac128_state,  mac_driver_init,  "Apple Computer",   "Macintosh SE (FDHD)",  MACHINE_SUPPORTS_SAVE )
+COMP( 1990, macclasc, 0,       0,      macclasc, macadb, mac128_state,  mac_driver_init,  "Apple Computer",   "Macintosh Classic",  MACHINE_SUPPORTS_SAVE )
