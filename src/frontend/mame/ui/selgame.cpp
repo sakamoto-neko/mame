@@ -805,7 +805,7 @@ void menu_select_game::inkey_select(const event *menu_event)
 		media_auditor::summary const summary = auditor.audit_media(AUDIT_VALIDATE_FAST);
 
 		// if everything looks good, schedule the new driver
-		if (audit_passed(summary))
+		if (1 || audit_passed(summary))
 		{
 			if (!select_bios(*driver, false))
 				launch_system(*driver);
@@ -877,7 +877,7 @@ void menu_select_game::inkey_select_favorite(const event *menu_event)
 		media_auditor auditor(enumerator);
 		media_auditor::summary const summary = auditor.audit_media(AUDIT_VALIDATE_FAST);
 
-		if (audit_passed(summary))
+		if (1 || audit_passed(summary))
 		{
 			// if everything looks good, schedule the new driver
 			if (!select_bios(*ui_swinfo->driver, false))
@@ -899,7 +899,7 @@ void menu_select_game::inkey_select_favorite(const event *menu_event)
 		media_auditor auditor(drv);
 		drv.next();
 		media_auditor::summary const sysaudit = auditor.audit_media(AUDIT_VALIDATE_FAST);
-		if (!audit_passed(sysaudit))
+		if (0 && !audit_passed(sysaudit))
 		{
 			set_error(reset_options::REMEMBER_REF, make_system_audit_fail_text(auditor, sysaudit));
 		}
