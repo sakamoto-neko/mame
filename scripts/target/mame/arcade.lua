@@ -754,6 +754,7 @@ MACHINES["VRENDER0"] = true
 --BUSES["ABCKB"] = true
 --BUSES["ADAM"] = true
 --BUSES["ADAMNET"] = true
+--BUSES["ADB"] = true
 --BUSES["APF"] = true
 BUSES["AMIGA_KEYBOARD"] = true
 --BUSES["ARCADIA"] = true
@@ -2555,6 +2556,8 @@ files {
 	MAME_DIR .. "src/mame/machine/k573msu.h",
 	MAME_DIR .. "src/mame/machine/k573npu.cpp",
 	MAME_DIR .. "src/mame/machine/k573npu.h",
+	MAME_DIR .. "src/mame/machine/k007452.cpp",
+	MAME_DIR .. "src/mame/machine/k007452.h",
 	MAME_DIR .. "src/mame/machine/zs01.cpp",
 	MAME_DIR .. "src/mame/machine/zs01.h",
 	MAME_DIR .. "src/mame/drivers/labyrunr.cpp",
@@ -2983,6 +2986,8 @@ files {
 	MAME_DIR .. "src/mame/includes/namcos2.h",
 	MAME_DIR .. "src/mame/machine/namcos2.cpp",
 	MAME_DIR .. "src/mame/video/namcos2.cpp",
+	MAME_DIR .. "src/mame/video/namco_c45road.cpp",
+	MAME_DIR .. "src/mame/video/namco_c45road.h",
 	MAME_DIR .. "src/mame/video/namco_c169roz.cpp",
 	MAME_DIR .. "src/mame/video/namco_c169roz.h",
 	MAME_DIR .. "src/mame/video/namco_c355spr.cpp",
@@ -3080,8 +3085,6 @@ files {
 	MAME_DIR .. "src/mame/audio/namco54.h",
 	MAME_DIR .. "src/mame/video/namco_c116.cpp",
 	MAME_DIR .. "src/mame/video/namco_c116.h",
-	MAME_DIR .. "src/mame/video/c45.cpp",
-	MAME_DIR .. "src/mame/video/c45.h",
 }
 
 createMAMEProjects(_target, _subtarget, "nasco")
