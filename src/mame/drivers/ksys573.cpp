@@ -1068,6 +1068,19 @@ void ksys573_state::machine_reset()
 WRITE_LINE_MEMBER(ksys573_state::sys573_vblank)
 {
 	update_disc();
+
+	if( strcmp( machine().system().name, "ddrexplus" ) == 0 )
+	{
+		uint32_t *p_n_psxram = (uint32_t *) m_ram->pointer();
+
+		// Hack until a proper modboard BIOS can be found.
+		// The install CD checks the last byte of the BIOS checksum
+		// to determine if it's the proper BIOS or not.
+		if( p_n_psxram[ 0x30bc40 / 4 ] == 0x10430005 )
+		{
+			p_n_psxram[ 0x30bc40 / 4 ] = 0x10000005;
+		}
+	}
 }
 
 // H8 check at startup (JVS related)
@@ -3605,6 +3618,22 @@ ROM_START( ddrexproc )
 	DISK_IMAGE_READONLY( "extremepro-version2-clarity-cd", 0, SHA1(b13562f4be169048df4dfa624fe9f212bb924d97) )
 ROM_END
 
+ROM_START( ddrexplus )
+	SYS573_BIOS_A
+
+	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gcc36ja.u1",   0x000000, 0x001014, BAD_DUMP CRC(c1601287) SHA1(929691a78f7bb6dd830f832f301116df0da1619b) )
+
+	ROM_REGION( 0x000008, "cassette:game:id", 0 )
+	ROM_LOAD( "gcc36ja.u6",   0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
+
+	DISK_REGION( "cdrom0" )
+	DISK_IMAGE_READONLY( "ddrexplus_install", 0, SHA1(d49e4a27dc36e6a9614490558a9a7ee7951caf3f) )
+
+	DISK_REGION( "cdrom1" )
+	DISK_IMAGE_READONLY( "ddrexplus_game", 0, SHA1(f58b0418b5fbe29eb1f84af42b55c53226c2e0ad) )
+ROM_END
+
 ROM_START( sys573cd )
 	SYS573_BIOS_A
 
@@ -5794,8 +5823,9 @@ GAME( 2002, gtrfrk8m,  sys573,   gtrfrk7m,   gtrfrks,   ksys573_state, empty_ini
 GAME( 2002, gtrfrk8ma, gtrfrk8m, gtrfrk7m,   gtrfrks,   ksys573_state, empty_init,    ROT0,  "Konami", "Guitar Freaks 8th Mix (G*C08 VER. JAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
 GAME( 2002, dsem2,     sys573,   dsem2,      ddr,       ksys573_state, empty_init,    ROT0,  "Konami", "Dancing Stage Euro Mix 2 (G*C23 VER. EAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
 GAME( 2002, ddrextrm,  sys573,   ddr5m,      ddr,       ksys573_state, empty_init,    ROT0,  "Konami", "Dance Dance Revolution Extreme (G*C36 VER. JAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
-GAME( 2018, ddrexpro,  ddrextrm,   ddr5m,      ddr,       ksys573_state, empty_init,    ROT0,  "hack", "Dance Dance Revolution Extreme Pro (hack, v2)", MACHINE_IMPERFECT_SOUND ) /* BOOT VER 1.95 */
-GAME( 2019, ddrexproc,  ddrextrm,   ddr5m,      ddr,       ksys573_state, empty_init,    ROT0,  "hack", "Dance Dance Revolution Extreme Clarity (hack)", MACHINE_IMPERFECT_SOUND ) /* BOOT VER 1.95 */
+GAME( 2018, ddrexpro,  ddrextrm, ddr5m,      ddr,       ksys573_state, empty_init,    ROT0,  "hack", "Dance Dance Revolution Extreme Pro (hack, v2)", MACHINE_IMPERFECT_SOUND )
+GAME( 2019, ddrexproc, ddrextrm, ddr5m,      ddr,       ksys573_state, empty_init,    ROT0,  "hack", "Dance Dance Revolution Extreme Clarity (hack)", MACHINE_IMPERFECT_SOUND )
+GAME( 2019, ddrexplus, ddrextrm, ddr5m,      ddr,       ksys573_state, empty_init,    ROT0,  "hack", "Dance Dance Revolution Extreme Plus (hack)", MACHINE_IMPERFECT_SOUND )
 GAME( 2003, drmn8m,    sys573,   drmn4m,     drmn,      ksys573_state, empty_init,    ROT0,  "Konami", "DrumMania 8th Mix (G*C07 VER. JAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
 GAME( 2003, gtrfrk9m,  sys573,   gtrfrk7m,   gtrfrks,   ksys573_state, empty_init,    ROT0,  "Konami", "Guitar Freaks 9th Mix (G*C39 VER. JAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
 GAME( 2003, drmn9m,    sys573,   drmn9m,     drmn,      ksys573_state, empty_init,    ROT0,  "Konami", "DrumMania 9th Mix (G*D09 VER. JAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
