@@ -47,6 +47,7 @@ public:
 	void reset_counter();
 
 	void set_audio_offset(u32 offset);
+	void set_playback_speed(u32 speed) { mas3507d->set_playback_speed(speed); }
 
 protected:
 	virtual void device_start() override;

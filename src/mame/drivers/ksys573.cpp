@@ -573,6 +573,10 @@ public:
 	void casszi(machine_config &config);
 	void cassxzi(machine_config &config);
 
+	uint8_t explus_speed_inc1();
+	uint8_t explus_speed_inc2();
+	uint8_t explus_speed_normal();
+
 	void init_serlamp();
 	void init_pnchmn();
 	void init_ddr();
@@ -740,6 +744,8 @@ private:
 	int m_jvs_output_idx_w, m_jvs_output_len_w;
 	uint8_t m_jvs_input_buffer[512];
 	uint8_t m_jvs_output_buffer[512];
+
+	bool is_ddrexplus_init_done;
 
 	required_device<psxcpu_device> m_maincpu;
 	required_device<ram_device> m_ram;
@@ -1052,6 +1058,8 @@ void ksys573_state::machine_reset()
 {
 	update_disc();
 
+	is_ddrexplus_init_done = false;
+
 	m_n_security_control = 0;
 	m_control = 0;
 
@@ -1065,12 +1073,34 @@ void ksys573_state::machine_reset()
 	std::fill_n(m_jvs_output_buffer, sizeof(m_jvs_output_buffer), 0);
 }
 
+uint8_t ksys573_state::explus_speed_inc1() {
+	subdevice<k573dio_device>("k573dio")->explus_speed_inc1();
+	return 0x00;
+}
+
+uint8_t ksys573_state::explus_speed_inc2() {
+	subdevice<k573dio_device>("k573dio")->explus_speed_inc2();
+	return 0x55;
+}
+
+uint8_t ksys573_state::explus_speed_normal() {
+	subdevice<k573dio_device>("k573dio")->explus_speed_normal();
+	return 0xaa;
+}
+
 WRITE_LINE_MEMBER(ksys573_state::sys573_vblank)
 {
 	update_disc();
 
 	if( strcmp( machine().system().name, "ddrexplus" ) == 0 )
 	{
+		if (!is_ddrexplus_init_done) {
+			m_maincpu->m_program->install_read_handler( 0x1fc4080f, 0x1fc40810, read8smo_delegate(*this, FUNC(ksys573_state::explus_speed_inc1)));
+			m_maincpu->m_program->install_read_handler( 0x1fc40ebe, 0x1fc40ebf, read8smo_delegate(*this, FUNC(ksys573_state::explus_speed_normal)));
+			m_maincpu->m_program->install_read_handler( 0x1fc41340, 0x1fc41341, read8smo_delegate(*this, FUNC(ksys573_state::explus_speed_inc2)));
+			is_ddrexplus_init_done = true;
+		}
+
 		uint32_t *p_n_psxram = (uint32_t *) m_ram->pointer();
 
 		// Hack until a proper modboard BIOS can be found.

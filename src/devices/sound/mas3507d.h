@@ -36,6 +36,27 @@ public:
 	void reset_playback();
 	void start_playback();
 
+	void set_playback_speed(u32 speed) {
+		switch (speed) {
+			case 2:
+				playback_speed = 1.1;
+				break;
+
+			case 3:
+				playback_speed = 1.2;
+				break;
+
+			case 1:
+			default:
+				playback_speed = 1.0;
+				break;
+		}
+
+		printf("Setting playback speed to %d (%lfx)\n", speed, playback_speed);
+
+		stream->set_sample_rate(current_rate * playback_speed);
+	}
+
 	bool is_started;
 
 protected:
@@ -100,6 +121,7 @@ private:
 	float gain_ll, gain_rr;
 
 	uint32_t playback_status;
+	double playback_speed;
 };
 
 

@@ -164,6 +164,9 @@ public:
 	void set_disable_rom_berr(bool mode);
 
 	void psxcpu_internal_map(address_map &map);
+
+	address_space *m_program;
+
 protected:
 	static constexpr unsigned ICACHE_ENTRIES = 0x400;
 	static constexpr unsigned DCACHE_ENTRIES = 0x100;
@@ -207,7 +210,6 @@ protected:
 
 	// address spaces
 	const address_space_config m_program_config;
-	address_space *m_program;
 	memory_access<32, 2, 0, ENDIANNESS_LITTLE>::cache m_instruction;
 	memory_access<32, 2, 0, ENDIANNESS_LITTLE>::specific m_data;
 

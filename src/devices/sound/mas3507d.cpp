@@ -51,8 +51,9 @@ mas3507d_device::mas3507d_device(const machine_config &mconfig, const char *tag,
 
 void mas3507d_device::device_start()
 {
+	playback_speed = 1;
 	current_rate = 44100;
-	stream = stream_alloc(0, 2, current_rate);
+	stream = stream_alloc(0, 2, current_rate * playback_speed);
 	cb_sample.resolve();
 
 	save_item(NAME(mp3data));
@@ -438,7 +439,7 @@ void mas3507d_device::fill_buffer()
 
 	if(mp3_info.hz != current_rate) {
 		current_rate = mp3_info.hz;
-		stream->set_sample_rate(current_rate);
+		stream->set_sample_rate(current_rate * playback_speed);
 	}
 
 	decoded_frame_count++;

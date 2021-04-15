@@ -176,6 +176,21 @@ void k573dio_device::device_timer(emu_timer &timer, device_timer_id id, int para
 {
 }
 
+void k573dio_device::explus_speed_normal()
+{
+	k573fpga->set_playback_speed(1);
+}
+
+void k573dio_device::explus_speed_inc1()
+{
+	k573fpga->set_playback_speed(2);
+}
+
+void k573dio_device::explus_speed_inc2()
+{
+	k573fpga->set_playback_speed(3);
+}
+
 uint16_t k573dio_device::a00_r()
 {
 	LOGUNKNOWNREG("%s: a00_r (%s)\n", tag(), machine().describe_context());
