@@ -170,6 +170,7 @@ void k573fpga_device::set_mpeg_ctrl(uint16_t data)
 		mas3507d->set_input_gain(0, 1);
 		mas3507d->set_input_gain(1, 1);
 
+		mas3507d->reset_playback();
 		mas3507d->update_stream();
 		counter_offset = mas3507d->get_samples();
 	}
