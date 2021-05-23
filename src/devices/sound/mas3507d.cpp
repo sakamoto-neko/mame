@@ -421,7 +421,12 @@ void mas3507d_device::run_program(uint32_t adr)
 
 void mas3507d_device::fill_buffer()
 {
-	while(mp3data_count + 2 < mp3data.size()) {
+	if (mp3data_count + 2 > mp3data.size()) {
+		std::copy(mp3data.begin() + 2, mp3data.end(), mp3data.begin());
+		mp3data_count -= 2;
+	}
+
+	while (mp3data_count + 2 <= mp3data.size()) {
 		uint16_t v = cb_sample();
 		mp3data[mp3data_count++] = v >> 8;
 		mp3data[mp3data_count++] = v;
@@ -432,18 +437,31 @@ void mas3507d_device::fill_buffer()
 		decoded_frame_count++;
 	}
 
+	memset(&mp3_info, 0, sizeof(mp3dec_frame_info_t));
 	sample_count = mp3dec_decode_frame(&mp3_dec, static_cast<const uint8_t *>(&mp3data[0]), mp3data_count, static_cast<mp3d_sample_t *>(&samples[0]), &mp3_info);
 	samples_idx = 0;
 
-	if(sample_count == 0)
+	if (mp3_info.channels != 0 && mp3_info.frame_bytes > 0 && sample_count == 0) {
+		// Frame decode failed
+		reset_playback();
 		return;
+	}
 
-	std::copy(mp3data.begin() + mp3_info.frame_bytes, mp3data.end(), mp3data.begin());
-	mp3data_count -= mp3_info.frame_bytes;
+	if (mp3_info.frame_bytes > 0 && mp3_info.frame_bytes != mp3data.size()) {
+		// If sample_count is 0 then the entire frame hasn't been read into buffer yet and frame_bytes points to start of frame.
+		// If sample count is non-0, then frame_bytes will be the start of the frame + frame size.
+		std::copy(mp3data.begin() + mp3_info.frame_bytes, mp3data.end(), mp3data.begin());
+		mp3data_count -= mp3_info.frame_bytes;
+	}
 
-	if(mp3_info.hz != current_rate) {
-		current_rate = mp3_info.hz;
-		stream->set_sample_rate(current_rate * playback_speed);
+	if (sample_count > 0) {
+		if (mp3_info.hz != current_rate) {
+			current_rate = mp3_info.hz;
+			stream->set_sample_rate(current_rate * playback_speed);
+		}
+	}
+	else {
+		reset_playback();
 	}
 }
 
@@ -472,13 +490,13 @@ void mas3507d_device::append_buffer(std::vector<write_stream_view> &outputs, int
 
 void mas3507d_device::reset_playback()
 {
-	if (decoded_samples != 0) {
+	if (decoded_samples > 0) {
 		std::fill(mp3data.begin(), mp3data.end(), 0);
 		std::fill(samples.begin(), samples.end(), 0);
+		mp3data_count = 0;
 	}
 
 	mp3dec_init(&mp3_dec);
-	mp3data_count = 0;
 	sample_count = 0;
 	decoded_frame_count = 0;
 	decoded_samples = 0;
@@ -496,7 +514,6 @@ void mas3507d_device::sound_stream_update(sound_stream &stream, std::vector<read
 
 		if(sample_count <= 0) {
 			// There was an error decoding the MPEG frame which resets the MPEG frame counter
-			reset_playback();
 			outputs[0].fill(0, pos);
 			outputs[1].fill(0, pos);
 			return;
