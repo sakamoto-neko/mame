@@ -472,14 +472,17 @@ void mas3507d_device::append_buffer(std::vector<write_stream_view> &outputs, int
 
 void mas3507d_device::reset_playback()
 {
+	if (decoded_samples != 0) {
+		std::fill(mp3data.begin(), mp3data.end(), 0);
+		std::fill(samples.begin(), samples.end(), 0);
+	}
+
 	mp3dec_init(&mp3_dec);
 	mp3data_count = 0;
 	sample_count = 0;
 	decoded_frame_count = 0;
 	decoded_samples = 0;
 	samples_idx = 0;
-	std::fill(mp3data.begin(), mp3data.end(), 0);
-	std::fill(samples.begin(), samples.end(), 0);
 }
 
 void mas3507d_device::sound_stream_update(sound_stream &stream, std::vector<read_stream_view> const &inputs, std::vector<write_stream_view> &outputs)
