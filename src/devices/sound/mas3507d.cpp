@@ -53,7 +53,7 @@ void mas3507d_device::device_start()
 {
 	playback_speed = 1;
 	current_rate = 44100;
-	stream = stream_alloc(0, 2, current_rate * playback_speed);
+	stream = stream_alloc(0, 2, current_rate * playback_speed, STREAM_SYNCHRONOUS);
 	cb_sample.resolve();
 
 	save_item(NAME(mp3data));
@@ -427,9 +427,13 @@ void mas3507d_device::fill_buffer()
 		mp3data[mp3data_count++] = v;
 	}
 
+	if (decoded_samples > 0) {
+		// Only increase the frame decoded counter when a frame has been fully decoded and played
+		decoded_frame_count++;
+	}
+
 	sample_count = mp3dec_decode_frame(&mp3_dec, static_cast<const uint8_t *>(&mp3data[0]), mp3data_count, static_cast<mp3d_sample_t *>(&samples[0]), &mp3_info);
 	samples_idx = 0;
-	playback_status = PLAYBACK_STATE_BUFFER_FULL;
 
 	if(sample_count == 0)
 		return;
@@ -441,8 +445,6 @@ void mas3507d_device::fill_buffer()
 		current_rate = mp3_info.hz;
 		stream->set_sample_rate(current_rate * playback_speed);
 	}
-
-	decoded_frame_count++;
 }
 
 void mas3507d_device::append_buffer(std::vector<write_stream_view> &outputs, int &pos, int scount)
@@ -452,8 +454,6 @@ void mas3507d_device::append_buffer(std::vector<write_stream_view> &outputs, int
 
 	if(s1 > sample_count)
 		s1 = sample_count;
-
-	playback_status = PLAYBACK_STATE_DEMAND_BUFFER;
 
 	for(int i = 0; i < s1; i++) {
 		outputs[0].put_int(pos, samples[samples_idx * bytes_per_sample], 32768);
@@ -477,17 +477,9 @@ void mas3507d_device::reset_playback()
 	sample_count = 0;
 	decoded_frame_count = 0;
 	decoded_samples = 0;
-	playback_status = PLAYBACK_STATE_IDLE;
-	is_started = false;
 	samples_idx = 0;
 	std::fill(mp3data.begin(), mp3data.end(), 0);
 	std::fill(samples.begin(), samples.end(), 0);
-}
-
-void mas3507d_device::start_playback()
-{
-	reset_playback();
-	is_started = true;
 }
 
 void mas3507d_device::sound_stream_update(sound_stream &stream, std::vector<read_stream_view> const &inputs, std::vector<write_stream_view> &outputs)
@@ -496,13 +488,12 @@ void mas3507d_device::sound_stream_update(sound_stream &stream, std::vector<read
 	int pos = 0;
 
 	while(pos < csamples) {
-		if(is_started && sample_count == 0)
+		if(sample_count == 0)
 			fill_buffer();
 
-		if(!is_started || sample_count <= 0) {
-			playback_status = PLAYBACK_STATE_IDLE;
-			decoded_frame_count = 0;
-			decoded_samples = 0;
+		if(sample_count <= 0) {
+			// There was an error decoding the MPEG frame which resets the MPEG frame counter
+			reset_playback();
 			outputs[0].fill(0, pos);
 			outputs[1].fill(0, pos);
 			return;

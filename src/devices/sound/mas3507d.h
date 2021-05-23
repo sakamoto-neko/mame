@@ -57,8 +57,6 @@ public:
 		stream->set_sample_rate(current_rate * playback_speed);
 	}
 
-	bool is_started;
-
 protected:
 	virtual void device_start() override;
 	virtual void device_reset() override;

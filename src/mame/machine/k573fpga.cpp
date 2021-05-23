@@ -46,6 +46,7 @@ void k573fpga_device::device_start()
 	save_item(NAME(counter_previous));
 	save_item(NAME(counter_current));
 	save_item(NAME(last_playback_status));
+	save_item(NAME(m_mpeg_ctrl));
 }
 
 void k573fpga_device::device_reset()
@@ -63,25 +64,33 @@ void k573fpga_device::device_reset()
 
 	counter_current = counter_previous = counter_offset = 0;
 
+	m_mpeg_ctrl = PLAYBACK_STATE_IDLE;
+
 	mas3507d->reset_playback();
 	last_playback_status = get_mpeg_ctrl();
 }
 
-void k573fpga_device::reset_counter() {
+void k573fpga_device::reset_counter()
+{
 	counter_current = counter_previous = counter_offset = 0;
 	status_update();
 }
 
-void k573fpga_device::status_update() {
+void k573fpga_device::status_update()
+{
 	auto cur_playback_status = get_mpeg_ctrl();
-	is_timer_active = is_streaming() || ((cur_playback_status == last_playback_status && last_playback_status > PLAYBACK_STATE_IDLE) || cur_playback_status > last_playback_status);
 	last_playback_status = cur_playback_status;
 
-	if(!is_timer_active)
+	is_timer_active = is_streaming() || ((cur_playback_status == last_playback_status && last_playback_status > PLAYBACK_STATE_IDLE) || cur_playback_status > last_playback_status);
+
+	if (!is_timer_active) {
 		counter_current = counter_previous = counter_offset = 0;
+		m_mpeg_ctrl = PLAYBACK_STATE_IDLE;
+	}
 }
 
-uint32_t k573fpga_device::get_counter() {
+uint32_t k573fpga_device::get_counter()
+{
 	status_update();
 
 	counter_previous = counter_current;
@@ -94,7 +103,8 @@ uint32_t k573fpga_device::get_counter() {
 	return counter_current;
 }
 
-uint32_t k573fpga_device::get_counter_diff() {
+uint32_t k573fpga_device::get_counter_diff()
+{
 	// Delta playback time since last counter update.
 	// I couldn't find any active usages of this register but it exists in some code paths.
 	// The functionality was tested using custom code running on real hardware.
@@ -122,23 +132,7 @@ void k573fpga_device::mas_i2c_w(uint16_t data)
 
 uint16_t k573fpga_device::get_mpeg_ctrl()
 {
-	switch(mas3507d->get_status()) {
-		case mas3507d_device::PLAYBACK_STATE_IDLE:
-			return PLAYBACK_STATE_IDLE;
-
-		case mas3507d_device::PLAYBACK_STATE_BUFFER_FULL:
-			return PLAYBACK_STATE_BUFFER_FULL;
-
-		case mas3507d_device::PLAYBACK_STATE_DEMAND_BUFFER:
-			return PLAYBACK_STATE_DEMAND_BUFFER;
-	}
-
-	return PLAYBACK_STATE_IDLE;
-}
-
-bool k573fpga_device::is_mp3_playing()
-{
-	return get_mpeg_ctrl() > PLAYBACK_STATE_IDLE;
+	return m_mpeg_ctrl;
 }
 
 uint16_t k573fpga_device::get_fpga_ctrl()
@@ -161,30 +155,23 @@ void k573fpga_device::set_mpeg_ctrl(uint16_t data)
 				data & 0x2000 ? '#' : '.',
 				data);
 
-	mas3507d->reset_playback();
-
 	if(data == 0xa000) {
 		is_stream_active = false;
 		counter_current = counter_previous = 0;
 		status_update();
+
+		mas3507d->set_input_gain(0, 0);
+		mas3507d->set_input_gain(1, 0);
 	} else if(data == 0xe000) {
 		is_stream_active = true;
 		mp3_cur_addr = mp3_start_addr;
-
 		reset_counter();
 
-		if(!mas3507d->is_started) {
-			mas3507d->start_playback();
-			mas3507d->update_stream();
+		mas3507d->set_input_gain(0, 1);
+		mas3507d->set_input_gain(1, 1);
 
-			// Audio should be buffered by this point.
-			// The assumption is that the number of samples actually played can be
-			// calculated by subtracting the base sample count when the song was started
-			// from the current sample count when the counter register is read.
-			// Otherwise, the sample count will always be ahead by the number of samples
-			// that were in the buffered frames.
-			counter_offset = mas3507d->get_samples();
-		}
+		mas3507d->update_stream();
+		counter_offset = mas3507d->get_samples();
 	}
 }
 
@@ -284,12 +271,15 @@ uint16_t k573fpga_device::get_decrypted()
 {
 	if(!is_streaming()) {
 		is_stream_active = false;
+		m_mpeg_ctrl = PLAYBACK_STATE_IDLE;
 		return 0;
 	}
 
 	uint16_t src = ram[mp3_cur_addr >> 1];
 	uint16_t result = use_ddrsbm_fpga ? decrypt_ddrsbm(src) : decrypt_default(src);
 	mp3_cur_addr += 2;
+
+	m_mpeg_ctrl = PLAYBACK_STATE_DEMAND_BUFFER;
 
 	return result;
 }

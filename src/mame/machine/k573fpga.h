@@ -58,7 +58,6 @@ private:
 	uint16_t decrypt_default(uint16_t data);
 	uint16_t decrypt_ddrsbm(uint16_t data);
 
-	bool is_mp3_playing();
 	bool is_streaming();
 
 	enum {
@@ -82,6 +81,8 @@ private:
 	uint32_t counter_previous, counter_offset;
 	int32_t counter_current;
 	uint32_t last_playback_status;
+
+	uint16_t m_mpeg_ctrl;
 };
 
 #endif // MAME_MACHINE_K573FPGA_H
