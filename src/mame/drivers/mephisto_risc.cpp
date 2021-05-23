@@ -5,7 +5,8 @@
 Mephisto Risc 1MB/II (stylized "risc")
 
 The chess engine in Mephisto Risc is also compatible with Tasc's The ChessMachine,
-see ROM defs for details.
+see ROM defs for details. "Main" CPU is slow, but all the chess calculations are
+done with the ARM.
 
 Hardware notes:
 - G65SC02P-4 @ 2.5MHz
@@ -191,7 +192,7 @@ ROM_END
 
 
 /***************************************************************************
-    Game Drivers
+    Drivers
 ***************************************************************************/
 
 /*    YEAR  NAME     PARENT   COMPAT  MACHINE   INPUT  CLASS       INIT        COMPANY                    FULLNAME             FLAGS */

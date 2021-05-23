@@ -76,7 +76,7 @@ Mephisto 4 Turbo Kit 18mhz - (mm4tk)
 
 The MM V prototype was the program that Ed Schroeder participated with as "Rebel" at the
 1989 WMCCC in Portorose. It was used with the TK20 TurboKit.
-http://chesseval.com/ChessEvalJournal/PrototypeMMV.htm
+For more information, see: http://chesseval.com/ChessEvalJournal/PrototypeMMV.htm
 
 MM VI (Saitek, 1994) is on different hardware, H8 CPU.
 
@@ -110,7 +110,6 @@ public:
 		, m_maincpu(*this, "maincpu")
 		, m_outlatch(*this, "outlatch")
 		, m_display(*this, "display")
-		, m_dac(*this, "dac")
 		, m_keys(*this, "KEY.%u", 0)
 	{ }
 
@@ -131,7 +130,6 @@ private:
 	required_device<cpu_device> m_maincpu;
 	required_device<hc259_device> m_outlatch;
 	required_device<mephisto_display1_device> m_display;
-	required_device<dac_bit_interface> m_dac;
 	required_ioport_array<2> m_keys;
 
 	void bup_mem(address_map &map);
@@ -314,7 +312,7 @@ void mm2_state::rebel5(machine_config &config)
 	m_outlatch->q_out_cb<3>().set_output("led103");
 	m_outlatch->q_out_cb<4>().set_output("led104");
 	m_outlatch->q_out_cb<5>().set_output("led105");
-	m_outlatch->q_out_cb<6>().set(m_dac, FUNC(dac_bit_interface::write));
+	m_outlatch->q_out_cb<6>().set("dac", FUNC(dac_1bit_device::write));
 	m_outlatch->q_out_cb<7>().set(m_display, FUNC(mephisto_display1_device::strobe_w)).invert();
 
 	MEPHISTO_SENSORS_BOARD(config, "board");
@@ -323,7 +321,7 @@ void mm2_state::rebel5(machine_config &config)
 
 	/* sound hardware */
 	SPEAKER(config, "speaker").front_center();
-	DAC_1BIT(config, m_dac).add_route(ALL_OUTPUTS, "speaker", 0.25);
+	DAC_1BIT(config, "dac").add_route(ALL_OUTPUTS, "speaker", 0.25);
 }
 
 void mm2_state::mm5p(machine_config &config)
@@ -514,4 +512,4 @@ CONS( 1987, mm4tk,   mm4,    0,      mm4tk,    mm2,   mm2_state, empty_init, "ha
 
 CONS( 1990, mm5,     0,      0,      mm5,      mm2,   mm2_state, empty_init, "Hegener + Glaser", "Mephisto MM V (set 1)", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK )
 CONS( 1990, mm5a,    mm5,    0,      mm5,      mm2,   mm2_state, empty_init, "Hegener + Glaser", "Mephisto MM V (set 2)", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK )
-CONS( 1989, mm5p,    mm5,    0,      mm5p,     mm2,   mm2_state, empty_init, "Hegener + Glaser", "Mephisto MM V (Portorose TM version)", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK | MACHINE_IMPERFECT_TIMING )
+CONS( 1989, mm5p,    mm5,    0,      mm5p,     mm2,   mm2_state, empty_init, "Hegener + Glaser", "Mephisto MM V (Portorose TM version)", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK | MACHINE_IMPERFECT_TIMING ) // aka Rebel

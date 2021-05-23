@@ -389,17 +389,17 @@ void trs80m3_state::port_f4_w(uint8_t data)
 		m_wait = false;
 	}
 
-	m_floppy = nullptr;
+	m_fdd = nullptr;
 
-	if (BIT(data, 0)) m_floppy = m_floppy0->get_device();
-	if (BIT(data, 1)) m_floppy = m_floppy1->get_device();
+	if (BIT(data, 0)) m_fdd = m_floppy[0]->get_device();
+	if (BIT(data, 1)) m_fdd = m_floppy[1]->get_device();
 
-	m_fdc->set_floppy(m_floppy);
+	m_fdc->set_floppy(m_fdd);
 
-	if (m_floppy)
+	if (m_fdd)
 	{
-		m_floppy->mon_w(0);
-		m_floppy->ss_w(BIT(data, 4));
+		m_fdd->mon_w(0);
+		m_fdd->ss_w(BIT(data, 4));
 		m_timeout = 1600;
 	}
 
@@ -443,8 +443,8 @@ INTERRUPT_GEN_MEMBER(trs80m3_state::rtc_interrupt)
 	{
 		m_timeout--;
 		if (m_timeout == 0)
-			if (m_floppy)
-				m_floppy->mon_w(1);  // motor off
+			if (m_fdd)
+				m_fdd->mon_w(1);  // motor off
 	}
 	// Also, if cpu is in wait, unlock it and trigger NMI
 	// Don't, it breaks disk loading
@@ -625,7 +625,7 @@ void trs80m3_state::machine_reset()
 	if (m_model4 & 6)
 		port_84_w(0);    // 4 & 4P - switch in devices
 
-	m_floppy = nullptr;
+	m_fdd = nullptr;
 }
 
 
@@ -675,13 +675,12 @@ QUICKLOAD_LOAD_MEMBER(trs80m3_state::quickload_cb)
 				image.fread( &addr, 2);
 				u16 address = (addr[1] << 8) | addr[0];
 				if (LOG) logerror("/CMD object code block: address %04x length %u\n", address, block_length);
-				// Todo: the below only applies for non-ram
-				if (address < 0x3c00)
+				ptr = program.get_write_ptr(address);
+				if (!ptr)
 				{
 					image.message("Attempting to write outside of RAM");
 					return image_init_result::FAIL;
 				}
-				ptr = program.get_write_ptr(address);
 				image.fread( ptr, block_length);
 			}
 			break;

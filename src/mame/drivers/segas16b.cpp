@@ -157,10 +157,10 @@ Notes:
       Z80      - Zilog Z80B CPU, running at 5.000MHz [10/2]
       YM2151   - Yamaha YM2151 8-channel 4-operator FM sound chip, running at 4.000MHz [8/2]
       D7759    - NEC uPD7759C ADPCM Speech Synthesizer LSI, clock input of 640kHz (DIP40)
-      65256    - Hitachi HM65256 32K x8 SRAM (DIP28)
-      TC5565   - Toshiba TC5565 8K x8 SRAM (DIP28)
-      2015     - Toshiba TMM2015 2K x8 SRAM (DIP24)
-      2018     - Toshiba TMM2018 2K x8 SRAM (DIP24)
+      65256    - Hitachi HM65256 or NEC uPD42832C-12L or Toshiba TC51832-P-85 32K x8 PSRAM (DIP28)
+      TC5565   - Toshiba TC5565 or Sony CXK5864PS-15L or Fujitsu MB8464-12L 8K x8 SRAM (DIP28)
+      2015     - Toshiba TMM2015 or TMM2115BP-10 or UMC UM6116K-2 2K x8 SRAM (DIP24)
+      2018     - Toshiba TMM2018D-45 or TMM2018AP-35 2K x8 SRAM (DIP24)
       D8751H   - Intel D8751H Microcontroller, running at 8.000MHz. Used on some versions of some games.
       315-5213 - National Semiconductor PAL16R6 stamped '315-5213' (DIP20)
       315-5214 - Signetics CK2605 stamped '315-5214' (DIP20)
@@ -3974,6 +3974,8 @@ void segas16b_state::system16b(machine_config &config)
 	m_screen->set_raw(MASTER_CLOCK_25MHz/4, 400, 0, 320, 262, 0, 224);
 	m_screen->set_screen_update(FUNC(segas16b_state::screen_update));
 	m_screen->set_palette(m_palette);
+	// see note in segas16a.cpp, also used here for consistency
+	m_screen->set_video_attributes(VIDEO_UPDATE_AFTER_VBLANK);
 
 	SEGA_SYS16B_SPRITES(config, m_sprites, 0);
 	SEGAIC16VID(config, m_segaic16vid, 0, m_gfxdecode);
@@ -4198,6 +4200,8 @@ void segas16b_state::lockonph(machine_config &config)
 	m_screen->set_raw(MASTER_CLOCK_25MHz/4, 400, 0, 320, 262, 0, 224); // wrong, other XTAL seems to be 17Mhz?
 	m_screen->set_screen_update(FUNC(segas16b_state::screen_update));
 	m_screen->set_palette(m_palette);
+	// see note in segas16a.cpp, also used here for consistency
+	m_screen->set_video_attributes(VIDEO_UPDATE_AFTER_VBLANK);
 
 	SEGA_SYS16B_SPRITES(config, m_sprites, 0);
 	SEGAIC16VID(config, m_segaic16vid, 0, m_gfxdecode);

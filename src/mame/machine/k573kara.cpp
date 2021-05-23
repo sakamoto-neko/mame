@@ -3,12 +3,6 @@
 #include "emu.h"
 #include "k573kara.h"
 
-#define LOG_GENERAL    (1 << 0)
-// #define VERBOSE        (LOG_GENERAL)
-// #define LOG_OUTPUT_STREAM std::cout
-
-#include "logmacro.h"
-
 #include "bus/rs232/rs232.h"
 
 /*
@@ -108,6 +102,7 @@ void k573kara_device::device_add_mconfig(machine_config &config)
 	PC16552D(config, m_duart_com, 0);
 	auto& duart_chan0(NS16550(config, "duart_com:chan0", clock() / 2));
 	auto& rs232_chan0(RS232_PORT(config, "rs232_chan0", default_rs232_devices, nullptr));
+<<<<<<< HEAD
 	rs232_chan0.rxd_handler().set(duart_chan0, FUNC(ins8250_uart_device::rx_w));
 	rs232_chan0.dcd_handler().set(duart_chan0, FUNC(ins8250_uart_device::dcd_w));
 	rs232_chan0.dsr_handler().set(duart_chan0, FUNC(ins8250_uart_device::dsr_w));
@@ -116,6 +111,16 @@ void k573kara_device::device_add_mconfig(machine_config &config)
 	duart_chan0.out_tx_callback().set(rs232_chan0, FUNC(rs232_port_device::write_txd));
 	duart_chan0.out_dtr_callback().set(rs232_chan0, FUNC(rs232_port_device::write_dtr));
 	duart_chan0.out_rts_callback().set(rs232_chan0, FUNC(rs232_port_device::write_rts));
+=======
+	rs232_chan0.rxd_handler().set("duart_com:chan0", FUNC(ins8250_uart_device::rx_w));
+	rs232_chan0.dcd_handler().set("duart_com:chan0", FUNC(ins8250_uart_device::dcd_w));
+	rs232_chan0.dsr_handler().set("duart_com:chan0", FUNC(ins8250_uart_device::dsr_w));
+	rs232_chan0.ri_handler().set("duart_com:chan0", FUNC(ins8250_uart_device::ri_w));
+	rs232_chan0.cts_handler().set("duart_com:chan0", FUNC(ins8250_uart_device::cts_w));
+	duart_chan0.out_tx_callback().set("rs232_chan0", FUNC(rs232_port_device::write_txd));
+	duart_chan0.out_dtr_callback().set("rs232_chan0", FUNC(rs232_port_device::write_dtr));
+	duart_chan0.out_rts_callback().set("rs232_chan0", FUNC(rs232_port_device::write_rts));
+>>>>>>> master
 }
 
 void k573kara_device::device_timer(emu_timer &timer, device_timer_id id, int param, void *ptr)
