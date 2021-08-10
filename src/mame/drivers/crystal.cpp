@@ -186,6 +186,7 @@ private:
 	uint32_t    m_Bank;
 	uint32_t    m_maxbank;
 	uint32_t    m_FlashCmd;
+	std::unique_ptr<uint8_t[]> m_dummy_region;
 
 	uint32_t system_input_r();
 	void Banksw_w(uint32_t data);
@@ -365,15 +366,15 @@ void crystal_state::machine_start()
 	if (m_mainbank)
 	{
 		m_maxbank = (m_flash) ? m_flash.bytes() / 0x1000000 : 0;
-		uint8_t *dummy_region = auto_alloc_array(machine(), uint8_t, 0x1000000);
-		std::fill_n(&dummy_region[0], 0x1000000, 0xff); // 0xff Filled at Unmapped area
-		uint8_t *ROM = (m_flash) ? (uint8_t *)&m_flash[0] : dummy_region;
+		m_dummy_region = std::make_unique<uint8_t[]>(0x1000000);
+		std::fill_n(&m_dummy_region[0], 0x1000000, 0xff); // 0xff Filled at Unmapped area
+		uint8_t *ROM = (m_flash) ? (uint8_t *)&m_flash[0] : &m_dummy_region[0];
 		for (int i = 0; i < 8; i++)
 		{
 			if ((i < m_maxbank))
 				m_mainbank->configure_entry(i, ROM + i * 0x1000000);
 			else
-				m_mainbank->configure_entry(i, dummy_region);
+				m_mainbank->configure_entry(i, m_dummy_region.get());
 		}
 	}
 }
@@ -541,6 +542,18 @@ static INPUT_PORTS_START( urachamu )
 	PORT_BIT( 0x00020000, IP_ACTIVE_LOW, IPT_BUTTON3 ) PORT_PLAYER(3) PORT_NAME("P3 Blue")
 	PORT_BIT( 0x00100000, IP_ACTIVE_LOW, IPT_BUTTON1 ) PORT_PLAYER(1) PORT_NAME("P1 Red")
 	PORT_BIT( 0x00200000, IP_ACTIVE_LOW, IPT_BUTTON1 ) PORT_PLAYER(3) PORT_NAME("P3 Red")
+INPUT_PORTS_END
+
+static INPUT_PORTS_START( wulybuly )
+	PORT_INCLUDE( crystal )
+
+	PORT_MODIFY("DSW")
+	PORT_DIPNAME( 0x40, 0x40, DEF_STR( Test ) )        PORT_DIPLOCATION("DSW:7")
+	PORT_DIPSETTING(    0x40, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+	PORT_DIPNAME( 0x80, 0x80, DEF_STR( Unknown ) )     PORT_DIPLOCATION("DSW:8")
+	PORT_DIPSETTING(    0x80, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
 INPUT_PORTS_END
 
 
@@ -789,5 +802,5 @@ GAME( 2001, officeye, 0,        crystal,  officeye, crystal_state, init_officeye
 GAME( 2001, donghaer, crysbios, crystal,  crystal,  crystal_state, init_donghaer, ROT0, "Danbi",               "Donggul Donggul Haerong", MACHINE_NOT_WORKING | MACHINE_UNEMULATED_PROTECTION ) // 2 players mode has GFX issues, seldomly hangs
 GAME( 2002, urachamu, crysbios, crystal,  urachamu, crystal_state, empty_init,    ROT0, "GamToU",              "Urachacha Mudaeri (Korea)", 0 ) // lamps, verify game timings
 GAME( 2003, topbladv, crysbios, crystal,  topbladv, crystal_state, init_topbladv, ROT0, "SonoKong / Expotato", "Top Blade V", 0 )
-GAME( 200?, wulybuly, crysbios, crystal,  crystal,  crystal_state, empty_init,    ROT0, "<unknown>",           "Wully Bully", MACHINE_NOT_WORKING ) // no actual graphics except offset text, confirmed to have no PIC protection so failing elsewhere
-GAME( 200?, maldaiza, crysbios, crystal,  crystal,  crystal_state, init_maldaiza, ROT0, "<unknown>",           "Maldaliza", MACHINE_NOT_WORKING | MACHINE_UNEMULATED_PROTECTION ) // PIC hookup
+GAME( 200?, wulybuly, crysbios, crystal,  wulybuly, crystal_state, empty_init,    ROT0, "<unknown>",           "Wully Bully", MACHINE_NOT_WORKING ) // no actual graphics except offset text, confirmed to have no PIC protection so failing elsewhere
+GAME( 2002, maldaiza, crysbios, crystal,  crystal,  crystal_state, init_maldaiza, ROT0, "Big A Korea",         "Maldaliza", MACHINE_NOT_WORKING | MACHINE_UNEMULATED_PROTECTION ) // PIC hookup

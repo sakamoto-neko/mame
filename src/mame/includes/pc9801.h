@@ -178,7 +178,7 @@ private:
 	required_shared_ptr<uint16_t> m_video_ram_2;
 	optional_shared_ptr<uint32_t> m_ext_gvram;
 	optional_device<beep_device> m_beeper;
-//	optional_device<dac_1bit_device> m_dac;
+//  optional_device<dac_1bit_device> m_dac;
 	optional_device<speaker_sound_device> m_dac;
 	optional_device<ram_device> m_ram;
 	optional_device<address_map_bank_device> m_ipl;
@@ -446,6 +446,7 @@ private:
 	void m_sdip_write(uint16_t port, uint8_t sdip_offset,uint8_t data);
 	uint16_t egc_do_partial_op(int plane, uint16_t src, uint16_t pat, uint16_t dst) const;
 	uint16_t egc_shift(int plane, uint16_t val);
+	uint16_t egc_color_pat(int plane) const;
 };
 
 #endif // MAME_INCLUDES_PC9801_H

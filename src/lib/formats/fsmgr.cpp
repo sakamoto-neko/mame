@@ -24,7 +24,7 @@ bool fs_refcounted_inner::unref()
 	if(m_ref == 0) {
 		if(m_weak_ref)
 			drop_weak_references();
-		else 
+		else
 			delete this;
 		return true;
 	}
@@ -369,6 +369,12 @@ uint32_t filesystem_t::r32l(const uint8_t *p)
 	return p[0] | (p[1] << 8) | (p[2] << 16) | (p[3] << 24);
 }
 
+std::string filesystem_t::trim_end_spaces(const std::string &str)
+{
+	const auto i = str.find_last_not_of(' ');
+	return str.substr(0, (std::string::npos != i) ? (i + 1) : 0);
+}
+
 filesystem_t::file_t filesystem_t::idir_t::file_create(const fs_meta_data &info)
 {
 	fatalerror("file_create called on a filesystem not supporting write\n");
@@ -413,6 +419,7 @@ std::vector<u8> filesystem_t::ifile_t::rsrc_read_all()
 const char *fs_meta_data::entry_name(fs_meta_name name)
 {
 	switch(name) {
+	case fs_meta_name::basic: return "basic";
 	case fs_meta_name::creation_date: return "creation_date";
 	case fs_meta_name::length: return "length";
 	case fs_meta_name::loading_address: return "loading_address";
