@@ -459,6 +459,8 @@ private:
 	uint8_t m_unk_serial_regs[0x80];
 	uint64_t m_e00008_data;
 
+	TIMER_DEVICE_CALLBACK_MEMBER(spu_timer_callback);
+
 	// MPC8240 EPIC, to be device-ified
 	enum
 	{
@@ -2306,8 +2308,14 @@ INPUT_PORTS_END
 
 /*****************************************************************************/
 
+int vblank_cnt = 0;
 INTERRUPT_GEN_MEMBER(viper_state::viper_vblank)
 {
+	if (vblank_cnt <= 250) {
+		// This is a temporary hack to make sure that it doesn't start sending IRQ3 commands too soon
+		vblank_cnt++;
+	}
+
 	//mpc8240_interrupt(MPC8240_IRQ0);
 	//mpc8240_interrupt(MPC8240_IRQ3);
 }
@@ -2401,6 +2409,13 @@ void viper_state::machine_reset()
 	m_ds2430_unk_status = 1;
 }
 
+
+TIMER_DEVICE_CALLBACK_MEMBER(viper_state::spu_timer_callback)
+{
+	if (vblank_cnt >= 250)
+		mpc8240_interrupt(MPC8240_IRQ3);
+}
+
 void viper_state::viper(machine_config &config)
 {
 	/* basic machine hardware */
@@ -2441,6 +2456,8 @@ void viper_state::viper(machine_config &config)
 	SPEAKER(config, "rspeaker").front_right();
 
 	M48T58(config, "m48t58", 0);
+
+	TIMER(config, "spu_timer").configure_periodic(FUNC(viper_state::spu_timer_callback), attotime::from_hz(ATTOSECONDS_TO_HZ(screen.refresh_attoseconds()) * 3));
 }
 
 void viper_state::viper_ppp(machine_config &config)
