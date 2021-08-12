@@ -20,6 +20,7 @@ public:
 
 	void flush();
 	void transfer(int channel, offs_t channel_spacing, offs_t frame_spacing, offs_t total_frames, int16_t *data);
+	void transfer(int channel, offs_t channel_spacing, offs_t frame_spacing, offs_t total_frames, int32_t *data);
 	void transfer(int channel, offs_t channel_spacing, offs_t frame_spacing, offs_t total_frames, stream_buffer::sample_t *data);
 	void enable(uint8_t enable);
 	void set_frequency(double frequency);

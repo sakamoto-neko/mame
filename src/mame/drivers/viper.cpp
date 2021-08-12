@@ -372,6 +372,7 @@ some other components. It will be documented at a later date.
 #include "machine/lpci.h"
 #include "machine/timekpr.h"
 #include "machine/timer.h"
+#include "sound/dmadac.h"
 #include "video/voodoo_banshee.h"
 #include "emupal.h"
 #include "screen.h"
@@ -402,7 +403,8 @@ public:
 		m_workram(*this, "workram"),
 		m_ds2430_rom(*this, "ds2430"),
 		m_io_ports(*this, "IN%u", 0U),
-		m_io_ppp_sensors(*this, "SENSOR%u", 1U)
+		m_io_ppp_sensors(*this, "SENSOR%u", 1U),
+		m_dmadac(*this, { "dacr", "dacl" })
 	{
 	}
 
@@ -475,6 +477,7 @@ private:
 	uint16_t m_unk_serial_data_r;
 	uint8_t m_unk_serial_regs[0x80];
 	uint64_t m_e00008_data;
+	uint32_t m_sound_buffer_offset;
 
 	TIMER_DEVICE_CALLBACK_MEMBER(spu_timer_callback);
 
@@ -593,6 +596,7 @@ private:
 	required_region_ptr<uint8_t> m_ds2430_rom;
 	required_ioport_array<8> m_io_ports;
 	optional_ioport_array<4> m_io_ppp_sensors;
+	required_device_array<dmadac_sound_device, 2> m_dmadac;
 
 	uint32_t mpc8240_pci_r(int function, int reg, uint32_t mem_mask);
 	void mpc8240_pci_w(int function, int reg, uint32_t data, uint32_t mem_mask);
@@ -2423,14 +2427,39 @@ void viper_state::machine_reset()
 	identify_device[51] = 0x0200;           /* 51: PIO data transfer cycle timing mode */
 	identify_device[67] = 0x00f0;           /* 67: minimum PIO transfer cycle time without flow control */
 
+	m_sound_buffer_offset = 0xfff800; // Swaps between 0xfff000 and 0xfff800, starting with
+
+	for (int i = 0; i < 2; i++) {
+		m_dmadac[i]->enable(1);
+		m_dmadac[i]->set_frequency(44100);
+	}
+
 	m_ds2430_unk_status = 1;
 }
 
-
 TIMER_DEVICE_CALLBACK_MEMBER(viper_state::spu_timer_callback)
 {
-	if (vblank_cnt >= 250)
-		mpc8240_interrupt(MPC8240_IRQ3);
+	if (vblank_cnt <= 250) {
+		m_dmadac[0]->flush();
+		m_dmadac[1]->flush();
+		return;
+	}
+
+	mpc8240_interrupt(MPC8240_IRQ3);
+
+	// Get samples from memory???
+	int32_t* samplePtr = (int32_t*)(m_workram + (m_sound_buffer_offset >> 3));
+	for (int i = 0; i < 2; i++) {
+		m_dmadac[i]->transfer(
+			i,
+			1,
+			2,
+			0x800 / 4 / 2, // Each buffer is 0x800 bytes in size, containing stereo 32-bit audio
+			samplePtr
+		);
+	}
+
+	m_sound_buffer_offset ^= 0x800;
 }
 
 void viper_state::viper(machine_config &config)
@@ -2471,10 +2500,12 @@ void viper_state::viper(machine_config &config)
 	/* sound hardware */
 	SPEAKER(config, "lspeaker").front_left();
 	SPEAKER(config, "rspeaker").front_right();
+	DMADAC(config, "dacl").add_route(ALL_OUTPUTS, "lspeaker", 1.0);
+	DMADAC(config, "dacr").add_route(ALL_OUTPUTS, "rspeaker", 1.0);
 
 	M48T58(config, "m48t58", 0);
 
-	TIMER(config, "spu_timer").configure_periodic(FUNC(viper_state::spu_timer_callback), attotime::from_hz(ATTOSECONDS_TO_HZ(screen.refresh_attoseconds()) * 3));
+	TIMER(config, "spu_timer").configure_periodic(FUNC(viper_state::spu_timer_callback), attotime::from_hz(44100.0 / 256));
 }
 
 void viper_state::viper_ppp(machine_config &config)
