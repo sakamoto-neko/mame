@@ -16,7 +16,7 @@
     IRQ0: ???               (Task 4)
     IRQ1: unused
     IRQ2: ???               Possibly UART? Accesses registers at 0xffe00008...f
-    IRQ3: ???               (Task 5, sound?)
+    IRQ3: Sound             (Task 5)
     IRQ4: Voodoo3           Currently only for User Interrupt Command, maybe a more extensive handler gets installed later?
 
     I2C:  ???               (no task switch) what drives this? network? U13 (ADC838) test fails if I2C doesn't work
@@ -36,6 +36,13 @@
                             0x06-07:    unknown
                             0x08:       unknown mem pointer, task stack pointer?
                             0x0c:       pointer to task PC (also top of stack?)
+
+	Sound:
+	0x00001320:             A flag that's used when sound effects(?) are being played
+	0x00001324:             Pointer to the data cache buffer to be used for loading and mixing BGM/SE.
+	                        Each buffer is 0x800 bytes in size and the game will switch between the two every IRQ3(?).
+	                        The original audio typically seems to be ADPCM which is then decoded and mixed in software.
+	0x00001330:             L/R channel PCM data when a sound effect is played? Seems to be the last result when mixing down buffers.
 
 
     0x00000310:             Global timer 0 IRQ handler
@@ -77,7 +84,7 @@
     - needs a proper way to dump security dongles, anything but p9112 has placeholder ROM for ds2430.
 
     Game status:
-        ppp2nd              Boots in-game, no sound or DVD support, crashes when going into song selection screen
+        ppp2nd              Boots in-game, no sound or DVD support
         boxingm             Goes to attract mode when ran with memory card check. Coins up.
         code1d,b            RTC self check bad
         gticlub2,ea         Attract mode works. Coins up. Hangs in car selection.
@@ -285,6 +292,16 @@ Player 2 gun connects to the same pin numbers on the solder side.
 
 Jurassic Park III also uses 2 additional buttons for escaping left and right. These are wired to buttons on the Jamma
 connector.
+
+Additionally on the 28-WAY connector is...
+Pin 7 parts side       - Serial TX
+Pin 7 solder side      - Serial RX
+Pin 8 solder side      - GND (used by serial)
+
+Pin 9 parts side       - SP_LP (outputs to SP-F, front speaker)
+Pin 9 solder side      - SP_LN
+Pin 9 parts side       - SP_RP (output splits into SP-BL and SP-BR, rear speaker(s))
+Pin 9 solder side      - SP_RN
 
 
 Measurements
@@ -2076,7 +2093,7 @@ void viper_state::viper_map(address_map &map)
 	map(0xffe00008, 0xffe0000f).rw(FUNC(viper_state::e00008_r), FUNC(viper_state::e00008_w));
 	map(0xffe08000, 0xffe08007).noprw();
 	map(0xffe10000, 0xffe10007).r(FUNC(viper_state::input_r));
-	map(0xffe28000, 0xffe28007).nopw(); // ppp2nd lamps
+	map(0xffe28000, 0xffe28007).nopw(); // ppp2nd leds
 	map(0xffe30000, 0xffe31fff).rw("m48t58", FUNC(timekeeper_device::read), FUNC(timekeeper_device::write));
 	map(0xffe40000, 0xffe4000f).noprw();
 	map(0xffe50000, 0xffe50007).w(FUNC(viper_state::unk2_w));
@@ -2092,6 +2109,7 @@ void viper_state::viper_map(address_map &map)
 void viper_state::viper_ppp_map(address_map &map)
 {
 	viper_map(map);
+	map(0xff400108, 0xff40012f).nopw(); // ppp2nd lamps
 	map(0xff400200, 0xff40023f).r(FUNC(viper_state::ppp_sensor_r));
 }
 
@@ -2289,8 +2307,7 @@ INPUT_PORTS_START( p911 )
 	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_BUTTON1 ) PORT_NAME("Gun Trigger")
 
 	PORT_MODIFY("IN5")
-	// one of these is P2 SHT2 (checks and fails serial if pressed)
-	PORT_BIT(0x40, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT(0x40, IP_ACTIVE_LOW, IPT_UNKNOWN ) // P2 SHT2 (checks and fails serial if pressed)
 	PORT_BIT(0x80, IP_ACTIVE_LOW, IPT_UNKNOWN )
 INPUT_PORTS_END
 
