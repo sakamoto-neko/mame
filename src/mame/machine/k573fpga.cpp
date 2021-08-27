@@ -29,6 +29,7 @@ void k573fpga_device::set_audio_offset(u32 offset) {
 void k573fpga_device::device_add_mconfig(machine_config &config)
 {
 	MAS3507D(config, mas3507d);
+	mas3507d->set_stream_flags(STREAM_SYNCHRONOUS);
 	mas3507d->sample_cb().set(*this, FUNC(k573fpga_device::get_decrypted));
 }
 

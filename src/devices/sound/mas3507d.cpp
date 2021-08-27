@@ -44,6 +44,7 @@ mas3507d_device::mas3507d_device(const machine_config &mconfig, const char *tag,
 	, device_sound_interface(mconfig, *this)
 	, cb_sample(*this)
 	, i2c_bus_state(IDLE), i2c_bus_address(UNKNOWN), i2c_subdest(UNDEFINED), i2c_command(CMD_BAD)
+	, stream_flags(STREAM_DEFAULT_FLAGS)
 	, i2c_scli(false), i2c_sclo(false), i2c_sdai(false), i2c_sdao(false)
 	, i2c_bus_curbit(0), i2c_bus_curval(0), i2c_bytecount(0), i2c_io_bank(0), i2c_io_adr(0), i2c_io_count(0), i2c_io_val(0)
 {
@@ -53,7 +54,7 @@ void mas3507d_device::device_start()
 {
 	playback_speed = 1;
 	current_rate = 44100;
-	stream = stream_alloc(0, 2, current_rate * playback_speed, STREAM_SYNCHRONOUS);
+	stream = stream_alloc(0, 2, current_rate * playback_speed, stream_flags);
 	cb_sample.resolve();
 
 	save_item(NAME(mp3data));

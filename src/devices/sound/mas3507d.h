@@ -33,6 +33,8 @@ public:
 
 	void update_stream() { stream->update(); }
 
+	void set_stream_flags(sound_stream_flags new_stream_flags) { stream_flags = new_stream_flags; }
+
 	void reset_playback();
 	void start_playback();
 
@@ -100,6 +102,7 @@ private:
 	mp3dec_frame_info_t mp3_info;
 
 	sound_stream *stream;
+	sound_stream_flags stream_flags;
 
 	std::array<uint8_t, 0xe00> mp3data;
 	std::array<mp3d_sample_t, MINIMP3_MAX_SAMPLES_PER_FRAME> samples;
