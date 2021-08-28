@@ -114,6 +114,7 @@ void mas3507d_device::device_reset()
 	is_muted = false;
 	gain_ll = gain_rr = 0;
 
+	mp3dec_init(&mp3_dec);
 	reset_playback();
 }
 
@@ -497,7 +498,6 @@ void mas3507d_device::reset_playback()
 		mp3data_count = 0;
 	}
 
-	mp3dec_init(&mp3_dec);
 	sample_count = 0;
 	decoded_frame_count = 0;
 	decoded_samples = 0;
