@@ -292,7 +292,7 @@ void psxdma_device::write(offs_t offset, uint32_t data, uint32_t mem_mask)
 				{
 					verboselog( *this, 1, "dma %d write block %08x %08x\n", index, n_address, n_size );
 					dma->fn_write( m_ram, n_address, n_size );
-					dma_finished( index );
+					dma_start_timer(index, 26000); // Hack for Dance Maniax
 				}
 				else if( dma->n_channelcontrol == 0x11050100 &&
 					!dma->fn_write.isnull() )
