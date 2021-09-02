@@ -349,6 +349,7 @@ G: gun mania only, drives air soft gun (this game uses real BB bullet)
 #include "cpu/psx/psx.h"
 #include "bus/ata/ataintf.h"
 #include "bus/ata/cr589.h"
+#include "bus/rs232/rs232.h"
 #include "machine/adc083x.h"
 #include "machine/bankdev.h"
 #include "machine/ds2401.h"
@@ -2484,6 +2485,12 @@ void ksys573_state::konami573(machine_config &config)
 	adc.set_input_callback(FUNC(ksys573_state::analogue_inputs_callback));
 
 	SYS573_JVS_HOST(config, m_sys573_jvs_host, 0);
+
+	rs232_port_device& rs232_sio1(RS232_PORT(config, "rs232_sio1", default_rs232_devices, nullptr));
+	auto sio1 = subdevice<psxsio1_device>("maincpu:sio1");
+	sio1->txd_handler().set(rs232_sio1, FUNC(rs232_port_device::write_txd));
+	sio1->dtr_handler().set(rs232_sio1, FUNC(rs232_port_device::write_dtr));
+	rs232_sio1.rxd_handler().set(*sio1, FUNC(psxsio1_device::write_rxd));
 }
 
 // Variants with additional digital sound board
@@ -2579,6 +2586,8 @@ void ksys573_state::casszi(machine_config &config)
 {
 	subdevice<konami573_cassette_slot_device>("cassette")->option_add( "game", KONAMI573_CASSETTE_ZI );
 	subdevice<konami573_cassette_slot_device>("cassette")->set_default_option( "game" );
+
+	// TODO: Add pin 4 (d7) to RS232 somehow here to separate MSU and card reader traffic
 }
 
 void ksys573_state::cassxzi(machine_config &config)

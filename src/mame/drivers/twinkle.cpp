@@ -265,6 +265,7 @@ Notes:
 #include "bus/ata/ataintf.h"
 #include "bus/scsi/scsi.h"
 #include "bus/scsi/scsicd.h"
+#include "bus/rs232/rs232.h"
 #include "bus/rs232/xvd701.h"
 #include "machine/am53cf96.h"
 #include "machine/fdc37c665gt.h"
@@ -1145,6 +1146,13 @@ void twinkle_state::twinkle(machine_config &config)
 	rf5c400.set_addrmap(0, &twinkle_state::rf5c400_map);
 	rf5c400.add_route(0, "speakerleft", 0.5);
 	rf5c400.add_route(1, "speakerright", 0.5);
+
+	auto sio1 = subdevice<psxsio1_device>("maincpu:sio1");
+	rs232_port_device& rs232_sio1(RS232_PORT(config, "rs232_sio1", default_rs232_devices, nullptr));
+	sio1->txd_handler().set(rs232_sio1, FUNC(rs232_port_device::write_txd));
+	sio1->dtr_handler().set(rs232_sio1, FUNC(rs232_port_device::write_dtr));
+	rs232_sio1.rxd_handler().set(*sio1, FUNC(psxsio1_device::write_rxd));
+	rs232_sio1.dsr_handler().set(*sio1, FUNC(psxsio1_device::write_dsr));
 }
 
 void twinkle_state::twinklex(machine_config &config)
