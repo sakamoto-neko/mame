@@ -166,8 +166,8 @@ void k573dio_device::device_add_mconfig(machine_config &config)
 {
 	KONAMI_573_DIGITAL_FPGA(config, k573fpga);
 	k573fpga->set_ram(ram);
-	k573fpga->add_route(0, ":lspeaker", 1.0);
-	k573fpga->add_route(1, ":rspeaker", 1.0);
+	k573fpga->add_route(0, ":lspeaker", 0.75);
+	k573fpga->add_route(1, ":rspeaker", 0.75);
 
 	DS2401(config, digital_id);
 }
