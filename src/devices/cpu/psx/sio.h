@@ -131,8 +131,6 @@ public:
 	DECLARE_WRITE_LINE_MEMBER(write_rxd);
 	DECLARE_WRITE_LINE_MEMBER(write_cts);
 	DECLARE_WRITE_LINE_MEMBER(write_dsr);
-	DECLARE_WRITE_LINE_MEMBER(write_txc);
-	DECLARE_WRITE_LINE_MEMBER(write_rxc);
 
 protected:
 	psxsio1_device(

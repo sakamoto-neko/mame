@@ -705,6 +705,9 @@ uint16_t psxsio1_device::status_r()
 
 void psxsio1_device::data_w(uint8_t data)
 {
+	if (!BIT(m_control, SIO_CONTROL_BIT_TXEN))
+		return;
+
 	m_tx_data = data;
 
 	m_status &= ~SIO_STATUS_TX_RDY;
@@ -811,6 +814,9 @@ void psxsio1_device::write(offs_t offset, uint32_t data, uint32_t mem_mask)
 
 WRITE_LINE_MEMBER(psxsio1_device::write_rxd)
 {
+	if (!BIT(m_control, SIO_CONTROL_BIT_RXEN))
+		return;
+
 	m_rxd = state;
 	LOGBITS("8251: Presented a %d\n", m_rxd);
 
@@ -841,7 +847,7 @@ WRITE_LINE_MEMBER(psxsio1_device::write_rxd)
 
 WRITE_LINE_MEMBER(psxsio1_device::write_cts)
 {
-	m_cts = state;
+	m_cts = !state;
 
 	if (started())
 	{
