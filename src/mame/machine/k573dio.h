@@ -10,6 +10,7 @@
 #include "imagedev/bitbngr.h"
 #include "machine/k573fpga.h"
 #include "machine/ds2401.h"
+#include "machine/timer.h"
 
 class k573dio_device : public device_t
 {
@@ -94,9 +95,13 @@ private:
 	uint16_t network_id;
 	uint32_t network_next_conn;
 	uint32_t network_buffer_len[2];
-	std::deque<uint8_t> network_buffer[2];
+	std::deque<uint8_t> network_buffer_temp;
+	std::deque<uint8_t> network_buffer_muxed;
+	std::deque<uint8_t> network_buffer_output;
 
 	void output(int offset, uint16_t data);
+
+	TIMER_DEVICE_CALLBACK_MEMBER(network_update_callback);
 
 	bool is_ddrsbm_fpga;
 	u16 crypto_key1;

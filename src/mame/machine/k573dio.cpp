@@ -7,8 +7,8 @@
 #define LOG_FPGA       (1 << 1)
 #define LOG_MP3        (1 << 2)
 #define LOG_UNKNOWNREG (1 << 3)
-#define VERBOSE        (LOG_GENERAL | LOG_FPGA | LOG_MP3 | LOG_UNKNOWNREG)
-#define LOG_OUTPUT_STREAM std::cout
+// #define VERBOSE        (LOG_GENERAL | LOG_FPGA | LOG_MP3 | LOG_UNKNOWNREG)
+// #define LOG_OUTPUT_STREAM std::cout
 
 #include "logmacro.h"
 
@@ -182,6 +182,8 @@ void k573dio_device::device_add_mconfig(machine_config &config)
 
 	BITBANGER(config, m_network[0], 0);
 	BITBANGER(config, m_network[1], 0);
+
+	TIMER(config, "network_update_timer").configure_periodic(FUNC(k573dio_device::network_update_callback), attotime::from_hz(250));
 }
 
 void k573dio_device::device_timer(emu_timer &timer, device_timer_id id, int param, void *ptr)
@@ -468,55 +470,93 @@ uint16_t k573dio_device::network_r()
 {
 	uint16_t val = 0;
 
-	printf("network_r %llx | ", network_buffer[0].size());
+	//printf("network_r %llx | ", network_buffer_muxed.size());
 
-	if (network_buffer[0].size() > 0) {
-		val = network_buffer[0].front();
-		network_buffer[0].pop_front();
+	if (network_buffer_muxed.size() > 0) {
+		val = network_buffer_muxed.front();
+		network_buffer_muxed.pop_front();
 	}
 
-	printf("%04x\n", val);
+	//printf("%04x\n", val);
 
 	return val;
 }
 
+TIMER_DEVICE_CALLBACK_MEMBER(k573dio_device::network_update_callback)
+{
+	uint32_t len = 0;
+
+	// For speed concerns, try to loop multiple times and read data into the buffer
+	do {
+		uint8_t val = 0;
+		len = m_network[network_next_conn]->input(&val, 1);
+
+		if (len > 0 && (val == 0xc0 || (network_buffer_temp.size() > 0 && network_buffer_temp.front() == 0xc0))) {
+			// Found start of packet or continuation of an existing packet
+			network_buffer_temp.push_back(val);
+
+			if (val == 0xc0 && network_buffer_temp.size() > 1 && network_buffer_temp.front() == 0xc0 && network_buffer_temp.back() == 0xc0) {
+				network_next_conn = network_next_conn ? 0 : 1;
+
+				// Found end of packet, push all contents of temp buffer to main buffer
+				auto target_machine = network_buffer_temp.at(1);
+
+				while (network_buffer_temp.size() > 0) {
+					val = network_buffer_temp.front();
+					network_buffer_temp.pop_front();
+
+					if (target_machine != network_id) {
+						// Only give our machine packets that aren't our network ID
+						network_buffer_muxed.push_back(val);
+					}
+
+					// Broadcast everything to packet to other client
+					m_network[network_next_conn]->output(val);
+				}
+
+				break;
+			}
+		}
+		else if (len == 0 && network_buffer_temp.size() == 0) {
+			// Switch to other connection in case the current one isn't actually connected
+			network_next_conn = network_next_conn ? 0 : 1;
+		}
+
+		//printf("network_input_buf_size_r %llx %llx | %04x\n", network_buffer_muxed.size(), network_buffer_temp.size(), val);
+	} while (len > 0);
+}
+
 void k573dio_device::network_w(uint16_t data)
 {
-	printf("network_w: %04x\n", data);
-	m_network[0]->output(data);
-	m_network[1]->output(data);
+	//printf("network_w: %04x\n", data);
+	if (data == 0xc0 || (network_buffer_output.size() > 0 && network_buffer_output.front() == 0xc0)) {
+		network_buffer_output.push_back(data);
+
+		if (data == 0xc0 && network_buffer_output.size() > 1 && network_buffer_output.front() == 0xc0 && network_buffer_output.back() == 0xc0) {
+			// Send all data
+			while (network_buffer_output.size() > 0) {
+				auto val = network_buffer_output.front();
+				network_buffer_output.pop_front();
+
+				for (auto n : m_network) {
+					n->output(val);
+				}
+			}
+		}
+	}
 }
 
 uint16_t k573dio_device::network_output_buf_size_r()
 {
 	// Number of bytes in waiting to be sent
-	uint16_t val = 0;
-	printf("network_output_buf_size_r %04x\n", val);
-	return val;
+	//printf("network_output_buf_size_r\n");
+	return network_buffer_output.size();
 }
 
 uint16_t k573dio_device::network_input_buf_size_r()
 {
 	// Number of bytes waiting to be read
-	uint8_t val = 0;
-	auto len = m_network[0]->input(&val, 1);
-
-	if (len > 0 && val == 0xc0) {
-		// Found start of packet
-		// Read until next 0xc0
-		network_buffer[0].push_back(val);
-
-		do {
-			len = m_network[0]->input(&val, 1);
-			network_buffer[0].push_back(val);
-		} while (val != 0xc0);
-
-		// TODO: Verify checksum?
-	}
-
-	printf("network_input_buf_size_r %llx\n", network_buffer[0].size());
-
-	return network_buffer[0].size();
+	return network_buffer_muxed.size();
 }
 
 void k573dio_device::network_id_w(uint16_t data)
