@@ -156,7 +156,7 @@ void k573dio_device::device_reset()
 	crypto_key1 = 0;
 
 	network_id = 0;
-	network_next_conn = 0;
+	network_read_idx = 0;
 
 	std::fill(std::begin(output_data), std::end(output_data), 0);
 }
@@ -180,10 +180,11 @@ void k573dio_device::device_add_mconfig(machine_config &config)
 
 	DS2401(config, digital_id);
 
-	BITBANGER(config, m_network[0], 0);
-	BITBANGER(config, m_network[1], 0);
+	for (int i = 0; i < m_network.size(); i++) {
+		BITBANGER(config, m_network[i], 0);
+	}
 
-	TIMER(config, "network_update_timer").configure_periodic(FUNC(k573dio_device::network_update_callback), attotime::from_hz(250));
+	TIMER(config, "network_timer").configure_periodic(FUNC(k573dio_device::network_update_callback), attotime::from_hz(300));
 }
 
 void k573dio_device::device_timer(emu_timer &timer, device_timer_id id, int param, void *ptr)
@@ -470,14 +471,10 @@ uint16_t k573dio_device::network_r()
 {
 	uint16_t val = 0;
 
-	//printf("network_r %llx | ", network_buffer_muxed.size());
-
 	if (network_buffer_muxed.size() > 0) {
 		val = network_buffer_muxed.front();
 		network_buffer_muxed.pop_front();
 	}
-
-	//printf("%04x\n", val);
 
 	return val;
 }
@@ -486,54 +483,75 @@ TIMER_DEVICE_CALLBACK_MEMBER(k573dio_device::network_update_callback)
 {
 	uint32_t len = 0;
 
-	// For speed concerns, try to loop multiple times and read data into the buffer
+	if (network_buffer_muxed.size() + 0x20 > 0x200) {
+		return;
+	}
+
+	for (int i = 0; i < m_network.size(); i++) {
+		if (m_network[network_read_idx]->exists()) {
+			break;
+		}
+
+		network_read_idx = (network_read_idx + 1) % m_network.size();
+	}
+
+	if (!m_network[network_read_idx]->exists()) {
+		return;
+	}
+
 	do {
 		uint8_t val = 0;
-		len = m_network[network_next_conn]->input(&val, 1);
+		len = m_network[network_read_idx]->input(&val, 1);
 
 		if (len > 0 && (val == 0xc0 || (network_buffer_temp.size() > 0 && network_buffer_temp.front() == 0xc0))) {
 			// Found start of packet or continuation of an existing packet
 			network_buffer_temp.push_back(val);
 
 			if (val == 0xc0 && network_buffer_temp.size() > 1 && network_buffer_temp.front() == 0xc0 && network_buffer_temp.back() == 0xc0) {
-				network_next_conn = network_next_conn ? 0 : 1;
+				if (network_buffer_temp.size() == 2) {
+					network_buffer_temp.pop_front();
+					continue;
+				}
 
 				// Found end of packet, push all contents of temp buffer to main buffer
 				auto target_machine = network_buffer_temp.at(1);
-
 				while (network_buffer_temp.size() > 0) {
 					val = network_buffer_temp.front();
 					network_buffer_temp.pop_front();
 
-					if (target_machine != network_id) {
-						// Only give our machine packets that aren't our network ID
+					// Broadcast everything to packet to other client
+					if (network_id != target_machine) {
 						network_buffer_muxed.push_back(val);
 					}
 
-					// Broadcast everything to packet to other client
-					m_network[network_next_conn]->output(val);
+					for (auto n : m_network) {
+						if (n == m_network[network_read_idx]) {
+							continue;
+						}
+
+						n->output(val);
+					}
 				}
+
+				network_read_idx = (network_read_idx + 1) % m_network.size();
 
 				break;
 			}
 		}
-		else if (len == 0 && network_buffer_temp.size() == 0) {
-			// Switch to other connection in case the current one isn't actually connected
-			network_next_conn = network_next_conn ? 0 : 1;
-		}
-
-		//printf("network_input_buf_size_r %llx %llx | %04x\n", network_buffer_muxed.size(), network_buffer_temp.size(), val);
 	} while (len > 0);
 }
 
 void k573dio_device::network_w(uint16_t data)
 {
-	//printf("network_w: %04x\n", data);
 	if (data == 0xc0 || (network_buffer_output.size() > 0 && network_buffer_output.front() == 0xc0)) {
 		network_buffer_output.push_back(data);
 
 		if (data == 0xc0 && network_buffer_output.size() > 1 && network_buffer_output.front() == 0xc0 && network_buffer_output.back() == 0xc0) {
-			// Send all data
+			if (network_buffer_output.size() == 2) {
+				network_buffer_output.pop_front();
+				return;
+			}
+
 			while (network_buffer_output.size() > 0) {
 				auto val = network_buffer_output.front();
 				network_buffer_output.pop_front();
@@ -549,13 +567,13 @@ void k573dio_device::network_w(uint16_t data)
 uint16_t k573dio_device::network_output_buf_size_r()
 {
 	// Number of bytes in waiting to be sent
-	//printf("network_output_buf_size_r\n");
 	return network_buffer_output.size();
 }
 
 uint16_t k573dio_device::network_input_buf_size_r()
 {
 	// Number of bytes waiting to be read
+	//network_update_callback();
 	return network_buffer_muxed.size();
 }
 

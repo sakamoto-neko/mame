@@ -93,8 +93,7 @@ private:
 	uint8_t output_data[8];
 
 	uint16_t network_id;
-	uint32_t network_next_conn;
-	uint32_t network_buffer_len[2];
+	int network_read_idx;
 	std::deque<uint8_t> network_buffer_temp;
 	std::deque<uint8_t> network_buffer_muxed;
 	std::deque<uint8_t> network_buffer_output;
