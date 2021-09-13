@@ -7,8 +7,8 @@
 #define LOG_FPGA       (1 << 1)
 #define LOG_MP3        (1 << 2)
 #define LOG_UNKNOWNREG (1 << 3)
-// #define VERBOSE        (LOG_GENERAL | LOG_FPGA | LOG_MP3 | LOG_UNKNOWNREG)
-// #define LOG_OUTPUT_STREAM std::cout
+#define VERBOSE        (LOG_GENERAL | LOG_FPGA | LOG_MP3 | LOG_UNKNOWNREG)
+#define LOG_OUTPUT_STREAM std::cout
 
 #include "logmacro.h"
 
@@ -49,7 +49,7 @@
   | AK4309B   CN18         29.450MHz  MAS3507D    |
   |                                               |
   |                           CN3                 |
-  | HYC24855  RCA-L/R                             |
+  | HYC24855  RCA-1/2                             |
   |-----------------------------------------------|
 
   Notes:
@@ -73,8 +73,8 @@
   CN18        - 6 pin connector
   MAS3507D    - IM MAS3507D D8 9173 51 HM U 072953.000 ES  MPEG 1/2 Layer 2/3 Audio Decoder
   CN3         - Connector joining this PCB to the MAIN PCB
-  HYC24855    - ?
-  RCA-L/R     - RCA connectors for left/right audio output
+  HYC2485S    - ?
+  RCA-1/2     - RCA connectors for network communication
 
 */
 
@@ -89,6 +89,7 @@ void k573dio_device::amap(address_map &map)
 	map(0x0a, 0x0b).r(FUNC(k573dio_device::a0a_r));
 	map(0x10, 0x11).w(FUNC(k573dio_device::a10_w));
 	map(0x80, 0x81).r(FUNC(k573dio_device::a80_r));
+	map(0x90, 0x91).w(FUNC(k573dio_device::network_id_w));
 	map(0xc4, 0xc5).r(FUNC(k573dio_device::ac4_r));
 	map(0xa0, 0xa1).w(FUNC(k573dio_device::mpeg_start_adr_high_w));
 	map(0xa2, 0xa3).w(FUNC(k573dio_device::mpeg_start_adr_low_w));
@@ -103,6 +104,9 @@ void k573dio_device::amap(address_map &map)
 	map(0xb4, 0xb5).rw(FUNC(k573dio_device::ram_r), FUNC(k573dio_device::ram_w));
 	map(0xb6, 0xb7).w(FUNC(k573dio_device::ram_read_adr_high_w));
 	map(0xb8, 0xb9).w(FUNC(k573dio_device::ram_read_adr_low_w));
+	map(0xc0, 0xc1).rw(FUNC(k573dio_device::network_r), FUNC(k573dio_device::network_w));
+	map(0xc2, 0xc3).r(FUNC(k573dio_device::network_output_buf_size_r));
+	map(0xc4, 0xc5).r(FUNC(k573dio_device::network_input_buf_size_r));
 	map(0xca, 0xcb).r(FUNC(k573dio_device::mp3_counter_high_r));
 	map(0xcc, 0xcd).rw(FUNC(k573dio_device::mp3_counter_low_r), FUNC(k573dio_device::mp3_counter_low_w));
 	map(0xce, 0xcf).r(FUNC(k573dio_device::mp3_counter_diff_r));
@@ -126,6 +130,7 @@ k573dio_device::k573dio_device(const machine_config &mconfig, const char *tag, d
 	k573fpga(*this, "k573fpga"),
 	digital_id(*this, "digital_id"),
 	output_cb(*this),
+	m_network(*this, "dio_network%u", 0U),
 	is_ddrsbm_fpga(false)
 {
 }
@@ -141,6 +146,7 @@ void k573dio_device::device_start()
 	save_item(NAME(crypto_key1));
 
 	k573fpga->set_ddrsbm_fpga(is_ddrsbm_fpga);
+
 }
 
 void k573dio_device::device_reset()
@@ -148,6 +154,9 @@ void k573dio_device::device_reset()
 	ram_adr = 0;
 	ram_read_adr = 0;
 	crypto_key1 = 0;
+
+	network_id = 0;
+	network_next_conn = 0;
 
 	std::fill(std::begin(output_data), std::end(output_data), 0);
 }
@@ -170,6 +179,9 @@ void k573dio_device::device_add_mconfig(machine_config &config)
 	k573fpga->add_route(1, ":rspeaker", 0.75);
 
 	DS2401(config, digital_id);
+
+	BITBANGER(config, m_network[0], 0);
+	BITBANGER(config, m_network[1], 0);
 }
 
 void k573dio_device::device_timer(emu_timer &timer, device_timer_id id, int param, void *ptr)
@@ -450,4 +462,64 @@ void k573dio_device::output(int offset, uint16_t data)
 			output_cb(4*offset + i, newbit, 0xff);
 	}
 	output_data[offset] = data;
+}
+
+uint16_t k573dio_device::network_r()
+{
+	uint16_t val = 0;
+
+	printf("network_r %llx | ", network_buffer[0].size());
+
+	if (network_buffer[0].size() > 0) {
+		val = network_buffer[0].front();
+		network_buffer[0].pop_front();
+	}
+
+	printf("%04x\n", val);
+
+	return val;
+}
+
+void k573dio_device::network_w(uint16_t data)
+{
+	printf("network_w: %04x\n", data);
+	m_network[0]->output(data);
+	m_network[1]->output(data);
+}
+
+uint16_t k573dio_device::network_output_buf_size_r()
+{
+	// Number of bytes in waiting to be sent
+	uint16_t val = 0;
+	printf("network_output_buf_size_r %04x\n", val);
+	return val;
+}
+
+uint16_t k573dio_device::network_input_buf_size_r()
+{
+	// Number of bytes waiting to be read
+	uint8_t val = 0;
+	auto len = m_network[0]->input(&val, 1);
+
+	if (len > 0 && val == 0xc0) {
+		// Found start of packet
+		// Read until next 0xc0
+		network_buffer[0].push_back(val);
+
+		do {
+			len = m_network[0]->input(&val, 1);
+			network_buffer[0].push_back(val);
+		} while (val != 0xc0);
+
+		// TODO: Verify checksum?
+	}
+
+	printf("network_input_buf_size_r %llx\n", network_buffer[0].size());
+
+	return network_buffer[0].size();
+}
+
+void k573dio_device::network_id_w(uint16_t data)
+{
+	network_id = data;
 }

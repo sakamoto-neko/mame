@@ -5,6 +5,9 @@
 
 #pragma once
 
+#include <deque>
+
+#include "imagedev/bitbngr.h"
 #include "machine/k573fpga.h"
 #include "machine/ds2401.h"
 
@@ -65,6 +68,11 @@ public:
 	void output_4_w(uint16_t data);
 	void output_2_w(uint16_t data);
 	void output_5_w(uint16_t data);
+	uint16_t network_r();
+	void network_w(uint16_t data);
+	uint16_t network_output_buf_size_r();
+	uint16_t network_input_buf_size_r();
+	void network_id_w(uint16_t data);
 
 protected:
 	virtual void device_start() override;
@@ -78,9 +86,15 @@ private:
 	required_device<k573fpga_device> k573fpga;
 	required_device<ds2401_device> digital_id;
 	devcb_write8 output_cb;
+	required_device_array<bitbanger_device, 2> m_network;
 
 	uint32_t ram_adr, ram_read_adr;
 	uint8_t output_data[8];
+
+	uint16_t network_id;
+	uint32_t network_next_conn;
+	uint32_t network_buffer_len[2];
+	std::deque<uint8_t> network_buffer[2];
 
 	void output(int offset, uint16_t data);
 
