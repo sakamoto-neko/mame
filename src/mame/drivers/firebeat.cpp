@@ -146,6 +146,7 @@
 #include "bus/midi/midiinport.h"
 #include "bus/midi/midioutport.h"
 #include "bus/midi/midikbd.h"
+#include "bus/rs232/rs232.h"
 #include "cpu/m68000/m68000.h"
 #include "cpu/powerpc/ppc.h"
 #include "machine/fdc37c665gt.h"
@@ -433,6 +434,7 @@ protected:
 
 	INTERRUPT_GEN_MEMBER(firebeat_interrupt);
 	DECLARE_WRITE_LINE_MEMBER(ata_interrupt);
+	DECLARE_WRITE_LINE_MEMBER(comm_uart_interrupt);
 	DECLARE_WRITE_LINE_MEMBER(gcu_interrupt);
 	DECLARE_WRITE_LINE_MEMBER(sound_irq_callback);
 
@@ -771,8 +773,8 @@ void firebeat_state::firebeat(machine_config &config)
 	ymz280b_device &ymz(YMZ280B(config, "ymz", 16934400));
 	ymz.irq_handler().set(FUNC(firebeat_state::sound_irq_callback));
 	ymz.set_addrmap(0, &firebeat_state::ymz280b_map);
-	ymz.add_route(1, "lspeaker", 1.0);
-	ymz.add_route(0, "rspeaker", 1.0);
+	ymz.add_route(1, "lspeaker", 0.5);
+	ymz.add_route(0, "rspeaker", 0.5);
 
 	PC16552D(config, "duart_com", 0);
 	NS16550(config, "duart_com:chan0", XTAL(19'660'800));
@@ -1205,6 +1207,11 @@ INTERRUPT_GEN_MEMBER(firebeat_state::firebeat_interrupt)
 WRITE_LINE_MEMBER(firebeat_state::ata_interrupt)
 {
 	m_maincpu->set_input_line(INPUT_LINE_IRQ4, state);
+}
+
+WRITE_LINE_MEMBER(firebeat_state::comm_uart_interrupt)
+{
+	m_maincpu->set_input_line(INPUT_LINE_IRQ2, state);
 }
 
 WRITE_LINE_MEMBER(firebeat_state::gcu_interrupt)
@@ -1873,13 +1880,23 @@ void firebeat_kbm_state::firebeat_kbm(machine_config &config)
 	ymz280b_device &ymz(YMZ280B(config, "ymz", 16934400));
 	ymz.irq_handler().set(FUNC(firebeat_kbm_state::sound_irq_callback));
 	ymz.set_addrmap(0, &firebeat_kbm_state::ymz280b_map);
-	ymz.add_route(1, "lspeaker", 1.0);
-	ymz.add_route(0, "rspeaker", 1.0);
+	ymz.add_route(1, "lspeaker", 0.5);
+	ymz.add_route(0, "rspeaker", 0.5);
 
 	// On the main PCB
 	PC16552D(config, "duart_com", 0);
-	NS16550(config, "duart_com:chan0", XTAL(19'660'800));
 	NS16550(config, "duart_com:chan1", XTAL(19'660'800));
+	auto& duart_chan0(NS16550(config, "duart_com:chan0", XTAL(19'660'800)));
+	auto& rs232_chan0(RS232_PORT(config, "rs232_network", default_rs232_devices, nullptr));
+	rs232_chan0.rxd_handler().set("duart_com:chan0", FUNC(ins8250_uart_device::rx_w));
+	rs232_chan0.dcd_handler().set("duart_com:chan0", FUNC(ins8250_uart_device::dcd_w));
+	rs232_chan0.dsr_handler().set("duart_com:chan0", FUNC(ins8250_uart_device::dsr_w));
+	rs232_chan0.ri_handler().set("duart_com:chan0", FUNC(ins8250_uart_device::ri_w));
+	rs232_chan0.cts_handler().set("duart_com:chan0", FUNC(ins8250_uart_device::cts_w));
+	duart_chan0.out_tx_callback().set("rs232_network", FUNC(rs232_port_device::write_txd));
+	duart_chan0.out_dtr_callback().set("rs232_network", FUNC(rs232_port_device::write_dtr));
+	duart_chan0.out_rts_callback().set("rs232_network", FUNC(rs232_port_device::write_rts));
+	duart_chan0.out_int_callback().set(FUNC(firebeat_kbm_state::comm_uart_interrupt));
 
 	// On the extend board
 	PC16552D(config, m_duart_midi, 0);
@@ -1900,8 +1917,8 @@ void firebeat_kbm_state::firebeat_kbm(machine_config &config)
 	// Synth card
 	auto &xt446(XT446(config, "xt446"));
 	midi_chan1.out_tx_callback().set(xt446, FUNC(xt446_device::midi_w));
-	xt446.add_route(0, "lspeaker", 5.0);
-	xt446.add_route(1, "rspeaker", 5.0);
+	xt446.add_route(0, "lspeaker", 0.5);
+	xt446.add_route(1, "rspeaker", 0.5);
 }
 
 void firebeat_kbm_state::firebeat_kbm_map(address_map &map)
