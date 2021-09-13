@@ -623,6 +623,8 @@ public:
 	DECLARE_WRITE_LINE_MEMBER( hyperbbc_lamp_strobe2 );
 	DECLARE_WRITE_LINE_MEMBER( hyperbbc_lamp_strobe3 );
 
+	DECLARE_WRITE_LINE_MEMBER( toggle_serial );
+
 	DECLARE_WRITE_LINE_MEMBER( h8_clk_w );
 
 	DECLARE_READ_LINE_MEMBER( jvs_rx_r );
@@ -669,6 +671,7 @@ private:
 	void cdrom_dma_write( uint32_t *ram, uint32_t n_address, int32_t n_size );
 	DECLARE_WRITE_LINE_MEMBER( sys573_vblank );
 
+	void zi_cassette_install(device_t* device);
 	void punchmania_cassette_install(device_t *device);
 	void stepchmp_cassette_install(device_t* device);
 	void animechmp_cassette_install(device_t *device);
@@ -2586,8 +2589,20 @@ void ksys573_state::casszi(machine_config &config)
 {
 	subdevice<konami573_cassette_slot_device>("cassette")->option_add( "game", KONAMI573_CASSETTE_ZI );
 	subdevice<konami573_cassette_slot_device>("cassette")->set_default_option( "game" );
+	subdevice<konami573_cassette_slot_device>("cassette")->set_option_machine_config("game", [this](device_t* device) { zi_cassette_install(device); });
+}
 
+void ksys573_state::zi_cassette_install(device_t* device)
+{
 	// TODO: Add pin 4 (d7) to RS232 somehow here to separate MSU and card reader traffic
+	konami573_cassette_zi_device& cassette = downcast<konami573_cassette_zi_device&>(*device);
+	cassette.d7_handler().set(*this, FUNC(ksys573_state::toggle_serial));
+}
+
+WRITE_LINE_MEMBER( ksys573_state::toggle_serial )
+{
+	auto rs232_network = subdevice<rs232_port_device>("rs232_network");
+	rs232_network->set_clock_scale(!state);
 }
 
 void ksys573_state::cassxzi(machine_config &config)

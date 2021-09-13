@@ -292,7 +292,8 @@ konami573_cassette_zi_device::konami573_cassette_zi_device(const machine_config 
 	device_t(mconfig, KONAMI573_CASSETTE_ZI, tag, owner, clock),
 	konami573_cassette_interface(mconfig, *this),
 	m_zs01(*this,"eeprom"),
-	m_ds2401(*this, "id")
+	m_ds2401(*this, "id"),
+	m_d7_handler(*this)
 {
 }
 
@@ -305,6 +306,8 @@ void konami573_cassette_zi_device::device_add_mconfig(machine_config &config)
 void konami573_cassette_zi_device::device_start()
 {
 	output_dsr(0);
+
+	m_d7_handler.resolve_safe();
 }
 
 WRITE_LINE_MEMBER(konami573_cassette_zi_device::write_line_d1)
@@ -340,6 +343,11 @@ READ_LINE_MEMBER(konami573_cassette_zi_device::read_line_ds2401)
 READ_LINE_MEMBER(konami573_cassette_zi_device::read_line_secflash_sda)
 {
 	return m_zs01->read_sda();
+}
+
+WRITE_LINE_MEMBER(konami573_cassette_zi_device::write_line_d7)
+{
+	m_d7_handler(state);
 }
 
 
