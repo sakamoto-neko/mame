@@ -35,9 +35,13 @@ public:
 	uint16_t a80_r();
 	uint16_t ac4_r();
 
+	uint16_t mpeg_start_adr_high_r();
 	void mpeg_start_adr_high_w(uint16_t data);
+	uint16_t mpeg_start_adr_low_r();
 	void mpeg_start_adr_low_w(uint16_t data);
+	uint16_t mpeg_end_adr_high_r();
 	void mpeg_end_adr_high_w(uint16_t data);
+	uint16_t mpeg_end_adr_low_r();
 	void mpeg_end_adr_low_w(uint16_t data);
 	uint16_t mpeg_key_1_r();
 	void mpeg_key_1_w(uint16_t data);
