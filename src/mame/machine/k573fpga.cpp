@@ -12,7 +12,7 @@
 #include "logmacro.h"
 
 // The higher the number, the more the chart/visuals will be delayed
-u32 sample_skip_offset = 0;
+s32 sample_skip_offset = 0;
 
 k573fpga_device::k573fpga_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock) :
 	device_t(mconfig, KONAMI_573_DIGITAL_FPGA, tag, owner, clock),
@@ -22,7 +22,7 @@ k573fpga_device::k573fpga_device(const machine_config &mconfig, const char *tag,
 {
 }
 
-void k573fpga_device::set_audio_offset(u32 offset) {
+void k573fpga_device::set_audio_offset(s32 offset) {
 	sample_skip_offset = offset;
 }
 
