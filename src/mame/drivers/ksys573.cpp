@@ -2503,6 +2503,12 @@ void ksys573_state::k573d(machine_config &config)
 	konami573(config);
 	m_maincpu->set_addrmap(AS_PROGRAM, &ksys573_state::konami573d_map);
 	KONAMI_573_DIGITAL_IO_BOARD(config, "k573dio", XTAL(19'660'800));
+
+	// Set default value so as to clear offset between games when switching via GUI
+	auto fpga = subdevice<k573dio_device>("k573dio")->subdevice<k573fpga_device>("k573fpga");
+	if (fpga != nullptr) {
+		fpga->set_audio_offset(0);
+	}
 }
 
 // Variants with additional karaoke I/O board

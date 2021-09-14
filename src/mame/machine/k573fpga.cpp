@@ -101,7 +101,8 @@ uint32_t k573fpga_device::get_counter()
 		counter_current = mas3507d->get_samples() - counter_offset - sample_skip_offset;
 	}
 
-	return counter_current;
+	// If this is negative then some games will immediately end the song
+	return counter_current >= 0 ? counter_current : 0;
 }
 
 uint32_t k573fpga_device::get_counter_diff()
