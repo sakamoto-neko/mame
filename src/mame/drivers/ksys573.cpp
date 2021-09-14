@@ -2429,8 +2429,8 @@ double ksys573_state::analogue_inputs_callback(uint8_t input)
 
 void ksys573_state::cr589_config(device_t *device)
 {
-	device->subdevice<cdda_device>("cdda")->add_route(0, "^^lspeaker", 0.75);
-	device->subdevice<cdda_device>("cdda")->add_route(1, "^^rspeaker", 0.75);
+	device->subdevice<cdda_device>("cdda")->add_route(0, "^^lspeaker", 0.65);
+	device->subdevice<cdda_device>("cdda")->add_route(1, "^^rspeaker", 0.65);
 	device = device->subdevice("cdda");
 }
 
@@ -2480,8 +2480,8 @@ void ksys573_state::konami573(machine_config &config)
 	SPEAKER(config, "rspeaker").front_right();
 
 	spu_device &spu(SPU(config, "spu", XTAL(67'737'600)/2, m_maincpu.target()));
-	spu.add_route(0, "lspeaker", 0.75);
-	spu.add_route(1, "rspeaker", 0.75);
+	spu.add_route(0, "lspeaker", 0.65);
+	spu.add_route(1, "rspeaker", 0.65);
 
 	M48T58(config, "m48t58", 0);
 
