@@ -47,13 +47,13 @@ mas3507d_device::mas3507d_device(const machine_config &mconfig, const char *tag,
 	, stream_flags(STREAM_DEFAULT_FLAGS)
 	, i2c_scli(false), i2c_sclo(false), i2c_sdai(false), i2c_sdao(false)
 	, i2c_bus_curbit(0), i2c_bus_curval(0), i2c_bytecount(0), i2c_io_bank(0), i2c_io_adr(0), i2c_io_count(0), i2c_io_val(0)
+	, mp3data_count(0), current_rate(44100), decoded_frame_count(0), decoded_samples(0), sample_count(0), samples_idx(0)
+	, is_muted(false), gain_ll(0), gain_rr(0), playback_status(0), playback_speed(1)
 {
 }
 
 void mas3507d_device::device_start()
 {
-	playback_speed = 1;
-	current_rate = 44100;
 	stream = stream_alloc(0, 2, current_rate * playback_speed, stream_flags);
 	cb_sample.resolve();
 
@@ -69,6 +69,13 @@ void mas3507d_device::device_start()
 	save_item(NAME(i2c_sdao));
 	save_item(NAME(i2c_bus_curbit));
 	save_item(NAME(i2c_bus_curval));
+	save_item(NAME(i2c_bytecount));
+	save_item(NAME(i2c_io_bank));
+	save_item(NAME(i2c_io_adr));
+	save_item(NAME(i2c_io_count));
+	save_item(NAME(i2c_io_val));
+	save_item(NAME(i2c_sdao_data));
+
 	save_item(NAME(mp3data_count));
 	save_item(NAME(current_rate));
 	save_item(NAME(decoded_frame_count));
@@ -78,13 +85,8 @@ void mas3507d_device::device_start()
 	save_item(NAME(is_muted));
 	save_item(NAME(gain_ll));
 	save_item(NAME(gain_rr));
-	save_item(NAME(i2c_bytecount));
-	save_item(NAME(i2c_io_bank));
-	save_item(NAME(i2c_io_adr));
-	save_item(NAME(i2c_io_count));
-	save_item(NAME(i2c_io_val));
-	save_item(NAME(i2c_sdao_data));
 	save_item(NAME(playback_status));
+	save_item(NAME(playback_speed));
 
 	// This should be removed in the future if/when native MP3 decoding is implemented in MAME
 	save_item(NAME(mp3_dec.mdct_overlap));
@@ -113,6 +115,13 @@ void mas3507d_device::device_reset()
 
 	is_muted = false;
 	gain_ll = gain_rr = 0;
+
+	playback_status = 0;
+	mp3data_count = 0;
+
+	playback_speed = 1;
+	current_rate = 44100;
+	stream->set_sample_rate(current_rate * playback_speed);
 
 	mp3dec_init(&mp3_dec);
 	reset_playback();
