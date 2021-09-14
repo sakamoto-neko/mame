@@ -270,6 +270,7 @@ Notes:
 #include "machine/mb8421.h"
 #include "machine/ram.h"
 #include "machine/rtc65271.h"
+#include "machine/timer.h"
 #include "machine/watchdog.h"
 #include "machine/x76f041.h"
 #include "sound/spu.h"
@@ -310,6 +311,7 @@ public:
 
 private:
 	virtual void machine_start() override;
+	virtual void machine_reset() override;
 
 	void twinkle_io_w(offs_t offset, uint8_t data);
 	uint8_t twinkle_io_r(offs_t offset);
@@ -327,6 +329,7 @@ private:
 	DECLARE_WRITE_LINE_MEMBER(spu_ata_irq);
 	DECLARE_WRITE_LINE_MEMBER(spu_ata_dmarq);
 	TIMER_CALLBACK_MEMBER(spu_dma_callback);
+	TIMER_DEVICE_CALLBACK_MEMBER(spu_timer_callback);
 	void scsi_dma_read( uint32_t *p_n_psxram, uint32_t n_address, int32_t n_size );
 	void scsi_dma_write( uint32_t *p_n_psxram, uint32_t n_address, int32_t n_size );
 
@@ -351,6 +354,7 @@ private:
 	uint32_t m_spu_ata_dma;
 	int m_spu_ata_dmarq;
 	uint32_t m_wave_bank;
+	bool m_sync_ata_irq;
 
 	int m_io_offset;
 	int m_output_last[ 0x100 ];
@@ -563,6 +567,15 @@ void twinkle_state::machine_start()
 	save_item(NAME(m_output_clock));
 
 	m_dma_timer = machine().scheduler().timer_alloc(timer_expired_delegate(FUNC(twinkle_state::spu_dma_callback), this));
+}
+
+void twinkle_state::machine_reset()
+{
+	m_spu_ctrl = 0;
+	m_spu_ata_dma = 0;
+	m_spu_ata_dmarq = 0;
+	m_wave_bank = 0;
+	m_sync_ata_irq = 0;
 }
 
 void twinkle_state::twinkle_io_w(offs_t offset, uint8_t data)
@@ -852,10 +865,18 @@ void twinkle_state::main_map(address_map &map)
 
 WRITE_LINE_MEMBER(twinkle_state::spu_ata_irq)
 {
-	if ((state) && (m_spu_ctrl & 0x0400))
-	{
-		m_audiocpu->set_input_line(M68K_IRQ_6, ASSERT_LINE);
-	}
+	if (state == 0)
+		m_audiocpu->set_input_line(INPUT_LINE_IRQ1, state);
+
+	m_sync_ata_irq = state;
+}
+
+TIMER_DEVICE_CALLBACK_MEMBER(twinkle_state::spu_timer_callback)
+{
+	if (m_sync_ata_irq)
+		m_audiocpu->set_input_line(INPUT_LINE_IRQ6, ASSERT_LINE);
+	else
+		m_audiocpu->set_input_line(INPUT_LINE_IRQ1, ASSERT_LINE);
 }
 
 /*
@@ -867,26 +888,22 @@ WRITE_LINE_MEMBER(twinkle_state::spu_ata_irq)
     bit 10 = write 0 to ack IRQ 6, write 1 to enable (IRQ 6 is the ATA IRQ)
     bit 11 = watchdog toggle
 
+	0x02
+	0x08
+	0x1000
+
     Other bits unknown.
 */
 void twinkle_state::twinkle_spu_ctrl_w(uint16_t data)
 {
-	if ((!(data & 0x0080)) && (m_spu_ctrl & 0x0080))
-	{
-		m_audiocpu->set_input_line(M68K_IRQ_1, CLEAR_LINE);
-	}
-	else if ((!(data & 0x0100)) && (m_spu_ctrl & 0x0100))
-	{
-		m_audiocpu->set_input_line(M68K_IRQ_2, CLEAR_LINE);
-	}
-	else if ((!(data & 0x0200)) && (m_spu_ctrl & 0x0200))
-	{
-		m_audiocpu->set_input_line(M68K_IRQ_4, CLEAR_LINE);
-	}
-	else if ((!(data & 0x0400)) && (m_spu_ctrl & 0x0400))
-	{
-		m_audiocpu->set_input_line(M68K_IRQ_6, CLEAR_LINE);
-	}
+	if (!BIT(data, 7) && BIT(m_spu_ctrl, 7))
+		m_audiocpu->set_input_line(INPUT_LINE_IRQ1, CLEAR_LINE);
+	if (!BIT(data, 8) && BIT(m_spu_ctrl, 8))
+		m_audiocpu->set_input_line(INPUT_LINE_IRQ2, CLEAR_LINE);
+	if (!BIT(data, 9) && BIT(m_spu_ctrl, 9))
+		m_audiocpu->set_input_line(INPUT_LINE_IRQ4, CLEAR_LINE);
+	if (!BIT(data, 10) && BIT(m_spu_ctrl, 10))
+		m_audiocpu->set_input_line(INPUT_LINE_IRQ6, CLEAR_LINE);
 
 	m_spu_ctrl = data;
 }
@@ -904,7 +921,7 @@ void twinkle_state::spu_ata_dma_high_w(uint16_t data)
 
 WRITE_LINE_MEMBER(twinkle_state::spu_ata_dmarq)
 {
-	if (m_spu_ata_dmarq != state)
+	if (m_ata != nullptr && m_spu_ata_dmarq != state)
 	{
 		m_spu_ata_dmarq = state;
 
@@ -926,7 +943,7 @@ TIMER_CALLBACK_MEMBER(twinkle_state::spu_dma_callback)
 	{
 		// This timer adjust value was picked because
 		// it reduces stuttering issues/performance issues
-		m_dma_timer->adjust(attotime::from_nsec(200));
+		m_dma_timer->adjust(attotime::from_nsec(350));
 	}
 	else
 	{
@@ -976,7 +993,7 @@ void twinkle_state::sound_map(address_map &map)
 	map(0x100000, 0x13ffff).ram();
 	map(0x200000, 0x200001).portr("SPU_DSW");
 	map(0x220000, 0x220001).w(FUNC(twinkle_state::spu_led_w));
-	map(0x230000, 0x230003).w(FUNC(twinkle_state::twinkle_spu_ctrl_w));
+	map(0x230000, 0x230001).w(FUNC(twinkle_state::twinkle_spu_ctrl_w));
 	map(0x240000, 0x240003).w(FUNC(twinkle_state::spu_ata_dma_low_w)).nopr();
 	map(0x250000, 0x250003).w(FUNC(twinkle_state::spu_ata_dma_high_w)).nopr();
 	map(0x260000, 0x260001).w(FUNC(twinkle_state::spu_wavebank_w)).nopr();
@@ -1088,12 +1105,12 @@ void twinkle_state::twinkle_base(machine_config &config, bool isPsxSerialDvdPlay
 
 	M68000(config, m_audiocpu, 32000000/2);    /* 16.000 MHz */
 	m_audiocpu->set_addrmap(AS_PROGRAM, &twinkle_state::sound_map);
-	m_audiocpu->set_periodic_int(FUNC(twinkle_state::irq1_line_assert), attotime::from_hz(60));
 
 	WATCHDOG_TIMER(config, "watchdog").set_time(attotime::from_msec(1200)); /* check TD pin on LTC1232 */
 
 	CY7C131(config, m_dpram); // or IDT7130 at some PCBs
-	m_dpram->intl_callback().set_inputline(m_audiocpu, M68K_IRQ_4);
+	m_dpram->intl_callback().set_inputline(m_audiocpu, INPUT_LINE_IRQ4); // address 0x3fe triggers M68K interrupt
+	// m_dpram->intr_callback().set_inputline(m_maincpu, INPUT_LINE_IRQ3); // address 0x3ff triggers PPC interrupt
 
 	scsi_port_device &scsi(SCSI_PORT(config, "scsi", 0));
 	scsi.set_slot_device(1, "cdrom", SCSICD, DEVICE_INPUT_DEFAULTS_NAME(SCSI_ID_4));
@@ -1106,6 +1123,8 @@ void twinkle_state::twinkle_base(machine_config &config, bool isPsxSerialDvdPlay
 	ATA_INTERFACE(config, m_ata).options(ata_devices, "hdd", nullptr, true);
 	m_ata->irq_handler().set(FUNC(twinkle_state::spu_ata_irq));
 	m_ata->dmarq_handler().set(FUNC(twinkle_state::spu_ata_dmarq));
+
+	TIMER(config, "spu_timer").configure_periodic(FUNC(twinkle_state::spu_timer_callback), attotime::from_hz(60));
 
 	RTC65271(config, "rtc", 0);
 
