@@ -273,6 +273,7 @@ Notes:
 #include "machine/timer.h"
 #include "machine/watchdog.h"
 #include "machine/x76f041.h"
+#include "romload.h"
 #include "sound/spu.h"
 #include "sound/cdda.h"
 #include "sound/rf5c400.h"
@@ -303,19 +304,24 @@ public:
 	{
 	}
 
-	void twinkle_base(machine_config& config, bool isPsxSerialDvdPlayer);
+	void twinkle_base(machine_config& config, bool isPsxSerialDvdPlayer, bool isDvdMedia);
 	void twinklex(machine_config& config);
 	void twinklex2(machine_config& config);
 	void twinklei(machine_config &config);
+	void twinklei2(machine_config &config);
 	void twinkle(machine_config &config);
+
+	bitmap_rgb32 m_video_bitmap;
 
 private:
 	virtual void machine_start() override;
 	virtual void machine_reset() override;
 
+	uint32_t screen_update(screen_device &screen, bitmap_rgb32 &bitmap, const rectangle &cliprect);
+
 	void twinkle_io_w(offs_t offset, uint8_t data);
 	uint8_t twinkle_io_r(offs_t offset);
-	void twinkle_output_w(offs_t offset, uint16_t data);
+	void twinkle_videomixer_w(offs_t offset, uint16_t data);
 	void led_w(uint16_t data);
 	void key_led_w(uint16_t data);
 	void serial_w(uint16_t data);
@@ -371,6 +377,16 @@ private:
 	int m_output_clock;
 
 	emu_timer *m_dma_timer;
+
+	bool m_videomixer_mix_enabled;
+	uint16_t m_videomixer_addr_offset;
+	int16_t m_videomixer_brightness;
+	double m_videomixer_contrast;
+	double m_videomixer_saturation;
+	double m_videomixer_hue;
+	attotime m_videomixer_last_update;
+
+	jvc_xvd701_device *xvd701_player;
 
 	static void cdrom_config(device_t *device);
 };
@@ -566,7 +582,39 @@ void twinkle_state::machine_start()
 	save_item(NAME(m_output_cs));
 	save_item(NAME(m_output_clock));
 
+	save_item(NAME(m_videomixer_mix_enabled));
+	save_item(NAME(m_videomixer_addr_offset));
+	save_item(NAME(m_videomixer_brightness));
+	save_item(NAME(m_videomixer_contrast));
+	save_item(NAME(m_videomixer_saturation));
+	save_item(NAME(m_videomixer_hue));
+
 	m_dma_timer = machine().scheduler().timer_alloc(timer_expired_delegate(FUNC(twinkle_state::spu_dma_callback), this));
+
+	xvd701_player = subdevice<jvc_xvd701_device>("rs232_dvd:xvd701_vcd");
+	if (xvd701_player == nullptr) {
+		xvd701_player = subdevice<jvc_xvd701_device>("rs232_dvd:xvd701_dvd");
+	}
+
+	if (xvd701_player != nullptr) {
+		m_video_bitmap = bitmap_rgb32(640, 240); // IIDX render resolution
+		xvd701_player->set_video_surface(&m_video_bitmap);
+	}
+
+	bool found_cdrom1 = false;
+	for (device_t const &device : device_enumerator(machine().root_device()))
+	{
+		for (const rom_entry *region = rom_first_region(device); region && !found_cdrom1; region = rom_next_region(region))
+		{
+			for (const rom_entry *rom = rom_first_file(region); rom && !found_cdrom1; rom = rom_next_file(rom))
+			{
+				if (region->name() == "cdrom1") {
+					found_cdrom1 = true;
+					xvd701_player->set_data_folder(rom->name().c_str());
+				}
+			}
+		}
+	}
 }
 
 void twinkle_state::machine_reset()
@@ -576,6 +624,186 @@ void twinkle_state::machine_reset()
 	m_spu_ata_dmarq = 0;
 	m_wave_bank = 0;
 	m_sync_ata_irq = 0;
+
+	m_videomixer_mix_enabled = false;
+	m_videomixer_addr_offset = 0;
+	m_videomixer_brightness = 0;
+	m_videomixer_contrast = 0;
+	m_videomixer_saturation = 0;
+	m_videomixer_hue = 0;
+
+	m_videomixer_last_update = machine().scheduler().time();
+}
+
+uint32_t twinkle_state::screen_update(screen_device &screen, bitmap_rgb32 &bitmap, const rectangle &cliprect)
+{
+	auto gpu = subdevice<cxd8561q_device>("gpu");
+
+	bitmap.fill(0xff000000);
+
+	auto cur_update = machine().scheduler().time();
+	auto elapsed_time = cur_update - m_videomixer_last_update;
+	m_videomixer_last_update = cur_update;
+
+	if (xvd701_player != nullptr) {
+		xvd701_player->decode_next_frame(elapsed_time.as_double());
+	}
+
+	if (m_videomixer_mix_enabled && xvd701_player != nullptr)
+	{
+		copybitmap(
+			bitmap,
+			m_video_bitmap,
+			0, 0, 0, 0,
+			rectangle(0, bitmap.width(), 0, bitmap.height())
+		);
+
+		bitmap_rgb32 gpu_bitmap(bitmap.width(), bitmap.height());
+		gpu->update_screen(screen, gpu_bitmap, cliprect);
+		copybitmap_trans(bitmap, gpu_bitmap, 0, 0, 0, 0, rectangle(0, screen.width(), 0, screen.height()), 0);
+	} else {
+		gpu->update_screen(screen, bitmap, cliprect);
+	}
+
+	return 0;
+}
+
+void twinkle_state::twinkle_videomixer_w(offs_t offset, uint16_t data)
+{
+	// Bt812 NTSC/PAL to RGB/YCrCb Decoder chip
+	switch( offset )
+	{
+	case 0x00:
+		/*
+			Address Register offset
+			0x00 Command Register 0, Input Select Register
+			0x01 Reserved
+			0x02 Command Register 2, Status Register
+			0x03 Command Register 3, Output Format Register
+			0x04 Command Register 4, Operation Mode Select Register
+			0x05 Command Register 5, Input Format Register
+			0x06 Command Register 6, Clock Definition Register
+			0x07 Command Register 7, Video Timing Definition Register
+			0x08 Brightness Adjust Register
+			0x09 Contrast Adjust Register
+			0x0a Saturation Adjust Register
+			0x0b Hue Adjust Register
+			0x0c HCLOCK Low Register
+			0x0d HCLOCK High Register
+			0x0e HDELAY Low Register
+			0x0f HDELAY High Register
+			0x10 ACTIVE_PIXELS Low Register
+			0x11 ACTIVE_PIXELS High Register
+			0x12 VDELAY Low Register
+			0x13 VDELAY High Register
+			0x14 ACTIVE_LINES Low Register
+			0x15 ACTIVE_LINES High Register
+			0x16 P (subcarrier freq) Register 0
+			0x17 P (subcarrier freq) Register 1
+			0x18 P (subcarrier freq) Register 2
+			0x19 AGC Delay Register
+			0x1a Burst Delay Register
+			0x1b Sample Rate Conversion Low Register
+			0x1c Sample Rate Conversion High Register
+			0x1d Command Register 1D, Video Timing Polarity Register
+			0x1e-0xfe Reserved
+			0xff Software Reset
+		*/
+		m_videomixer_addr_offset = data;
+		break;
+	case 0x04:
+		/*
+			Register data
+
+			Game initialized values:
+			HCLOCK 853
+			HDELAY 126
+			ACTIVE_PIXELS 706
+			VDELAY 22
+			ACTIVE_LINES 16
+		*/
+		// TODO: At the very least save the brightness/contrast/saturation/hue and use them when mixing the video data
+		// printf("twinkle_videomixer_w reg[%02x] data[%02x]\n", m_videomixer_addr_offset, data);
+
+		switch (m_videomixer_addr_offset) {
+			case 0x08:
+				// -64 to +63
+				m_videomixer_brightness = int16_t(data & 0xfe) / 2;
+				// printf("Video mixer: brightness set to %d (%02x)\n", m_videomixer_brightness, data);
+				break;
+			case 0x09:
+				// 0 to 198.44%
+				m_videomixer_contrast = double(data & 0xfe) / 2 * (100.0 / 64);
+				// printf("Video mixer: contrast set to %lf (%02x)\n", m_videomixer_contrast, data);
+				break;
+			case 0x0a:
+				// 0 to 198.44%
+				m_videomixer_saturation = double(data & 0xfe) / 2 * (100.0 / 64);
+				// printf("Video mixer: saturation set to %lf (%02x)\n", m_videomixer_saturation, data);
+				break;
+			case 0x0b:
+				// -45 to +44.3
+				m_videomixer_hue = double(int16_t(data & 0xfe)) / 2 * (100.0 / 64);
+				// printf("Video mixer: hue set to %lf (%02x)\n", m_videomixer_hue, data);
+				break;
+		}
+
+		break;
+	case 0x08:
+		// Some kind of status flag
+		// Known values:
+		// 0x01 - ?
+		// 0x02 - Perform overlay mixing
+		// 0x08 - ?
+		m_videomixer_mix_enabled = BIT(data, 1) != 0;
+		break;
+	case 0x10:
+		{
+			// Always writes 0x214 and 0x128 here?
+			int clock = (data >> 0) & 1;
+			int _do = (data >> 1) & 1;
+			int cs = (data >> 2) & 1;
+
+			//printf( "output do=%d clock=%d cs=%d (remaining %02x)\n", _do, clock, cs, data & 0xfff8 );
+
+			if (!cs && m_output_cs)
+			{
+				m_output_shift = 0;
+				m_output_bits = 0;
+			}
+
+			if (clock && !m_output_clock && m_output_bits < 8)
+			{
+				m_output_shift <<= 1;
+				m_output_shift |= _do;
+				m_output_bits++;
+
+				if (m_output_bits == 8)
+				{
+					// printf( "output %02x (%d)\n", m_output_shift, m_output_shift );
+
+					m_output_bits = 0;
+					m_output_shift = 0;
+				}
+			}
+
+			m_output_cs = cs;
+			m_output_clock = clock;
+		}
+		break;
+	case 0x18:
+		/* Always 0x69? */
+		break;
+	case 0x30:
+		/* Always 0x10? */
+		break;
+	case 0x48:
+		/*
+			Only one seen value so far:
+			0x20 - Powered on?
+		*/
+		break;
+	}
 }
 
 void twinkle_state::twinkle_io_w(offs_t offset, uint8_t data)
@@ -714,64 +942,6 @@ uint8_t twinkle_state::twinkle_io_r(offs_t offset)
 	return data;
 }
 
-void twinkle_state::twinkle_output_w(offs_t offset, uint16_t data)
-{
-	switch( offset )
-	{
-	case 0x00:
-		/* offset */
-		break;
-	case 0x04:
-		/* data */
-		break;
-	case 0x08:
-		// overlay enable?
-		break;
-	case 0x10:
-		{
-			int clock = (data >> 0) & 1;
-			int _do = (data >> 1) & 1;
-			int cs = (data >> 2) & 1;
-
-			//printf( "output do=%d clock=%d cs=%d (remaining %02x)\n", _do, clock, cs, data & 0xfff8 );
-
-			if (!cs && m_output_cs)
-			{
-				m_output_shift = 0;
-				m_output_bits = 0;
-			}
-
-			if (clock && !m_output_clock && m_output_bits < 8)
-			{
-				m_output_shift <<= 1;
-				m_output_shift |= _do;
-				m_output_bits++;
-
-				if (m_output_bits == 8)
-				{
-					//printf( "output %02x\n", m_output_shift );
-
-					m_output_bits = 0;
-					m_output_shift = 0;
-				}
-			}
-
-			m_output_cs = cs;
-			m_output_clock = clock;
-		}
-		break;
-	case 0x18:
-		/* ?? */
-		break;
-	case 0x30:
-		/* ?? */
-		break;
-	case 0x48:
-		/* ?? */
-		break;
-	}
-}
-
 void twinkle_state::led_w(uint16_t data)
 {
 	m_main_leds[0] = BIT(~data, 0);
@@ -858,7 +1028,7 @@ void twinkle_state::main_map(address_map &map)
 	map(0x1f280000, 0x1f280003).portr("INSEC");
 	map(0x1f290000, 0x1f29007f).rw("rtc", FUNC(rtc65271_device::rtc_r), FUNC(rtc65271_device::rtc_w)).umask32(0x00ff00ff);
 	map(0x1f2a0000, 0x1f2a007f).rw("rtc", FUNC(rtc65271_device::xram_r), FUNC(rtc65271_device::xram_w)).umask32(0x00ff00ff);
-	map(0x1f2b0000, 0x1f2b00ff).w(FUNC(twinkle_state::twinkle_output_w));
+	map(0x1f2b0000, 0x1f2b00ff).w(FUNC(twinkle_state::twinkle_videomixer_w));
 }
 
 /* SPU board */
@@ -1094,7 +1264,7 @@ void twinkle_state::cdrom_config(device_t *device)
 	device->subdevice<cdda_device>("cdda")->add_route(1, "^^speakerright", 1.0);
 }
 
-void twinkle_state::twinkle_base(machine_config &config, bool isPsxSerialDvdPlayer)
+void twinkle_state::twinkle_base(machine_config &config, bool isPsxSerialDvdPlayer, bool isDvdMedia)
 {
 	/* basic machine hardware */
 	CXD8530CQ(config, m_maincpu, XTAL(67'737'600));
@@ -1131,30 +1301,40 @@ void twinkle_state::twinkle_base(machine_config &config, bool isPsxSerialDvdPlay
 	FDC37C665GT(config, "fdc37c665gt", XTAL(24'000'000));
 
 	/* video hardware */
-	CXD8561Q(config, "gpu", XTAL(53'693'175), 0x200000, subdevice<psxcpu_device>("maincpu")).set_screen("screen");
+	auto &gpu(CXD8561Q(config, "gpu", XTAL(53'693'175), 0x200000, subdevice<psxcpu_device>("maincpu")));
+	gpu.set_screen("screen");
+	gpu.set_twinkle_hacks(true);
 
 	screen_device &screen(SCREEN(config, "screen", SCREEN_TYPE_RASTER));
 	//all twinkle cabinets use anamorphic widescreen displays
 	screen.set_physical_aspect(16, 9);
+	screen.set_screen_update(FUNC(twinkle_state::screen_update));
 
 	/* sound hardware */
 	SPEAKER(config, "speakerleft").front_left();
 	SPEAKER(config, "speakerright").front_right();
 
 	spu_device &spu(SPU(config, "spu", XTAL(67'737'600)/2, subdevice<psxcpu_device>("maincpu")));
-	spu.add_route(0, "speakerleft", 1.0);
-	spu.add_route(1, "speakerright", 1.0);
+	spu.add_route(0, "speakerleft", 0.7);
+	spu.add_route(1, "speakerright", 0.7);
 
 	rf5c400_device &rf5c400(RF5C400(config, "rfsnd", XTAL(33'868'800)/2));
 	rf5c400.set_addrmap(0, &twinkle_state::rf5c400_map);
 	rf5c400.add_route(0, "speakerleft", 0.5);
 	rf5c400.add_route(1, "speakerright", 0.5);
 
+	rs232_port_device& rs232(RS232_PORT(config, "rs232_dvd", 0));
+	if (isDvdMedia) {
+		rs232.option_add("xvd701_dvd", JVC_XVD701_DVD);
+		// rs232.option_add("xvs1100", JVC_XVS1100); // 8th mix only
+		rs232.set_default_option("xvd701_dvd");
+	} else {
+		rs232.option_add("xvd701_vcd", JVC_XVD701_VCD);
+		rs232.set_default_option("xvd701_vcd");
+	}
+
 	if (isPsxSerialDvdPlayer) {
 		auto sio1 = subdevice<psxsio1_device>("maincpu:sio1");
-		rs232_port_device& rs232(RS232_PORT(config, "rs232", 0));
-		rs232.option_add("xvd701", JVC_XVD701);
-		rs232.set_default_option("xvd701");
 		rs232.rxd_handler().set(*sio1, FUNC(psxsio1_device::write_rxd));
 		rs232.dsr_handler().set(*sio1, FUNC(psxsio1_device::write_dsr));
 		rs232.cts_handler().set(*sio1, FUNC(psxsio1_device::write_cts));
@@ -1175,10 +1355,6 @@ void twinkle_state::twinkle_base(machine_config &config, bool isPsxSerialDvdPlay
 	}
 	else {
 		ns16550_device& uart(*subdevice<ns16550_device>("fdc37c665gt:uart2"));
-		rs232_port_device& rs232(RS232_PORT(config, "rs232", 0));
-		rs232.option_add("xvd701", JVC_XVD701);
-		//  rs232.option_add("xvs1100", JVC_XVS1100); // 8th mix only
-		rs232.set_default_option("xvd701");
 		rs232.rxd_handler().set(uart, FUNC(ns16550_device::rx_w));
 		rs232.dcd_handler().set(uart, FUNC(ns16550_device::dcd_w));
 		rs232.dsr_handler().set(uart, FUNC(ns16550_device::dsr_w));
@@ -1200,24 +1376,30 @@ void twinkle_state::twinkle_base(machine_config &config, bool isPsxSerialDvdPlay
 
 void twinkle_state::twinkle(machine_config& config)
 {
-	twinkle_base(config, false);
+	twinkle_base(config, false, false);
 }
 
 void twinkle_state::twinklex(machine_config& config)
 {
-	twinkle_base(config, true);
+	twinkle_base(config, true, false);
 	X76F041(config, "security");
 }
 
 void twinkle_state::twinklex2(machine_config& config)
 {
-	twinkle_base(config, false);
+	twinkle_base(config, false, false);
 	X76F041(config, "security");
 }
 
 void twinkle_state::twinklei(machine_config &config)
 {
-	twinkle_base(config, false);
+	twinkle_base(config, false, false);
+	I2C_M24C02(config, "security", 0); // M24C02-W
+}
+
+void twinkle_state::twinklei2(machine_config &config)
+{
+	twinkle_base(config, false, true);
 	I2C_M24C02(config, "security", 0); // M24C02-W
 }
 
@@ -1618,8 +1800,8 @@ GAMEL( 2000, bmiidx3b, bmiidx3, twinklei, twinklei, twinkle_state, empty_init, R
 GAMEL( 2000, bmiidx3a, bmiidx3, twinklei, twinklei, twinkle_state, empty_init, ROT0, "Konami", "beatmania IIDX 3rd style (GC992 JAA)", MACHINE_IMPERFECT_SOUND, layout_bmiidx )
 GAMEL( 2000, bmiidx4,  gq863,   twinklei, twinklei, twinkle_state, empty_init, ROT0, "Konami", "beatmania IIDX 4th style (GCA03 JAA)", MACHINE_IMPERFECT_SOUND, layout_bmiidx )
 GAMEL( 2001, bmiidx5,  gq863,   twinklei, twinklei, twinkle_state, empty_init, ROT0, "Konami", "beatmania IIDX 5th style (GCA17 JAA)", MACHINE_IMPERFECT_SOUND, layout_bmiidx )
-GAMEL( 2001, bmiidx6,  gq863,   twinklei, twinklei, twinkle_state, empty_init, ROT0, "Konami", "beatmania IIDX 6th style (GCB4U JAB)", MACHINE_IMPERFECT_SOUND, layout_bmiidx )
-GAMEL( 2001, bmiidx6a, bmiidx6, twinklei, twinklei, twinkle_state, empty_init, ROT0, "Konami", "beatmania IIDX 6th style (GCB4U JAA)", MACHINE_IMPERFECT_SOUND, layout_bmiidx )
-GAMEL( 2002, bmiidx7,  gq863,   twinklei, twinklei, twinkle_state, empty_init, ROT0, "Konami", "beatmania IIDX 7th style (GCB44 JAB)", MACHINE_IMPERFECT_SOUND, layout_bmiidx )
-GAMEL( 2002, bmiidx7a, bmiidx7, twinklei, twinklei, twinkle_state, empty_init, ROT0, "Konami", "beatmania IIDX 7th style (GCB44 JAA)", MACHINE_IMPERFECT_SOUND, layout_bmiidx )
-GAMEL( 2002, bmiidx8,  gq863,   twinklei, twinklei, twinkle_state, empty_init, ROT0, "Konami", "beatmania IIDX 8th style (GCC44 JAA)", MACHINE_IMPERFECT_SOUND, layout_bmiidx )
+GAMEL( 2001, bmiidx6,  gq863,   twinklei2,twinklei, twinkle_state, empty_init, ROT0, "Konami", "beatmania IIDX 6th style (GCB4U JAB)", MACHINE_IMPERFECT_SOUND, layout_bmiidx )
+GAMEL( 2001, bmiidx6a, bmiidx6, twinklei2,twinklei, twinkle_state, empty_init, ROT0, "Konami", "beatmania IIDX 6th style (GCB4U JAA)", MACHINE_IMPERFECT_SOUND, layout_bmiidx )
+GAMEL( 2002, bmiidx7,  gq863,   twinklei2,twinklei, twinkle_state, empty_init, ROT0, "Konami", "beatmania IIDX 7th style (GCB44 JAB)", MACHINE_IMPERFECT_SOUND, layout_bmiidx )
+GAMEL( 2002, bmiidx7a, bmiidx7, twinklei2,twinklei, twinkle_state, empty_init, ROT0, "Konami", "beatmania IIDX 7th style (GCB44 JAA)", MACHINE_IMPERFECT_SOUND, layout_bmiidx )
+GAMEL( 2002, bmiidx8,  gq863,   twinklei2,twinklei, twinkle_state, empty_init, ROT0, "Konami", "beatmania IIDX 8th style (GCC44 JAA)", MACHINE_IMPERFECT_SOUND, layout_bmiidx )

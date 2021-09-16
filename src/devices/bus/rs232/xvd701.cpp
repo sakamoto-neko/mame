@@ -1,15 +1,72 @@
 // license:BSD-3-Clause
-// copyright-holders:smf
+// copyright-holders:smf, DragonMinded, windyfairy
+
 #include "emu.h"
+#include "rendutil.h"
+
+#define PL_MPEG_IMPLEMENTATION
 #include "xvd701.h"
 
-jvc_xvd701_device::jvc_xvd701_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock)
-	: device_t(mconfig, JVC_XVD701, tag, owner, clock),
-	device_serial_interface(mconfig, *this),
-	device_rs232_port_interface(mconfig, *this),
-	m_response_index(0),
-	m_timer_response(nullptr)
+#define LOG_COMMAND    (1 << 1)
+// #define VERBOSE      (LOG_COMMAND)
+// #define LOG_OUTPUT_STREAM std::cout
+
+#include "logmacro.h"
+
+#define LOGCMD(...)    LOGMASKED(LOG_COMMAND, __VA_ARGS__)
+
+
+void app_on_video(plm_t* mpeg, plm_frame_t* frame, void* user) {
+	jvc_xvd701_device* self = (jvc_xvd701_device*)user;
+	if (self->m_video_bitmap == nullptr) {
+		// No output video surface
+		return;
+	}
+
+	plm_frame_to_bgra(frame, self->m_rgb_data, frame->width * 4);
+
+	bitmap_rgb32 video_frame = bitmap_rgb32(
+		(uint32_t*)self->m_rgb_data,
+		frame->width,
+		frame->height,
+		frame->width
+	);
+
+	copybitmap(
+		*self->m_video_bitmap,
+		video_frame,
+		0, 0, 0, 0,
+		rectangle(0, self->m_video_bitmap->width(), 0, self->m_video_bitmap->height())
+	);
+}
+
+
+jvc_xvd701_device::jvc_xvd701_device(const machine_config &mconfig, device_type type, const char *tag, device_t *owner, uint32_t clock)
+	: device_t(mconfig, type, tag, owner, clock)
+	, device_serial_interface(mconfig, *this)
+	, device_rs232_port_interface(mconfig, *this)
+	, m_data_folder(nullptr)
+	, m_response_index(0)
+	, m_timer_response(nullptr)
 {
+}
+
+
+DEFINE_DEVICE_TYPE(JVC_XVD701_VCD, jvc_xvd701_vcd_device, "xvd701_vcd", "JVC XV-D701 (VCD)")
+DEFINE_DEVICE_TYPE(JVC_XVD701_DVD, jvc_xvd701_dvd_device, "xvd701_dvd", "JVC XV-D701 (DVD)")
+
+
+jvc_xvd701_vcd_device::jvc_xvd701_vcd_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock)
+	: jvc_xvd701_device(mconfig, JVC_XVD701_VCD, tag, owner, clock)
+{
+	m_media_type = JVC_MEDIA_VCD;
+}
+
+
+jvc_xvd701_dvd_device::jvc_xvd701_dvd_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock)
+	: jvc_xvd701_device(mconfig, JVC_XVD701_DVD, tag, owner, clock)
+{
+	m_media_type = JVC_MEDIA_DVD;
 }
 
 void jvc_xvd701_device::device_add_mconfig(machine_config &config)
@@ -48,6 +105,10 @@ void jvc_xvd701_device::device_start()
 	output_cts(0);
 
 	m_timer_response = timer_alloc(TIMER_RESPONSE);
+
+	if (m_data_folder == nullptr) {
+		m_data_folder = "";
+	}
 }
 
 void jvc_xvd701_device::device_reset()
@@ -55,6 +116,13 @@ void jvc_xvd701_device::device_reset()
 	memset(m_command, 0, sizeof(m_command));
 
 	m_response_index = sizeof(m_response);
+
+	m_jlip_id = 33; // Twinkle default
+	m_is_powered = false;
+	m_chapter = 0;
+	m_playback_status = STATUS_STOP;
+	m_plm = nullptr;
+	m_rgb_data = nullptr;
 }
 
 void jvc_xvd701_device::device_timer(emu_timer &timer, device_timer_id id, int param, void *ptr)
@@ -82,12 +150,32 @@ void jvc_xvd701_device::tra_complete()
 
 unsigned char jvc_xvd701_device::sum(unsigned char *buffer, int length)
 {
-	int sum = 0;
+	int sum = 0x80;
 
-	for (int i = 0; i < length; i++)
-		sum += buffer[i];
+	for (int i = 0; i < length - 1; i++)
+		sum -= buffer[i] & 0x7f;
 
 	return sum & 0x7f;
+}
+
+bool jvc_xvd701_device::packet_is_good(unsigned char *buffer)
+{
+	return buffer[0] == 0xff
+		&& buffer[1] == 0xff
+		&& buffer[10] == sum(buffer, sizeof(m_command) - 1);
+}
+
+void jvc_xvd701_device::create_packet(unsigned char status, unsigned char response[6])
+{
+	m_response[0] = 0xfc;
+	m_response[1] = 0xff;
+	m_response[2] = m_jlip_id;
+	m_response[3] = status;
+	memcpy(&m_response[4], response, 6);
+	m_response[10] = sum(m_response, sizeof(m_response) - 1);
+
+	m_response_index = 0;
+	m_timer_response->adjust(attotime::from_msec(100));
 }
 
 void jvc_xvd701_device::send_response()
@@ -99,6 +187,61 @@ void jvc_xvd701_device::send_response()
 	}
 }
 
+void jvc_xvd701_device::decode_next_frame(double elapsed_time) {
+	if (m_plm != nullptr && m_playback_status == STATUS_PLAYING && !plm_has_ended(m_plm)) {
+		plm_decode(m_plm, elapsed_time);
+	} else {
+		m_video_bitmap->fill(0xff000000); // Fill with solid black since nothing should be displaying now
+	}
+}
+
+bool jvc_xvd701_device::seek_chapter(int chapter)
+{
+	if (chapter <= 0) {
+		// Chapters are from 1 and up
+		return false;
+	}
+
+	// printf("Trying to play chapter %d\n", chapter);
+	m_chapter = chapter;
+
+	auto filename_fmt = util::string_format("videos_iidx/%s%strack%d.mpg", m_data_folder ? m_data_folder : "", m_data_folder ? "/" : "", chapter);
+	auto filename = filename_fmt.c_str();
+	m_plm = plm_create_with_filename(filename);
+	// printf("Trying to load %s\n", filename);
+	if (!m_plm) {
+		printf("Couldn't open %s\n", filename);
+		return false;
+	}
+
+	plm_set_audio_enabled(m_plm, false);
+
+	// printf(
+	// 	"Opened %s - framerate: %f, samplerate: %d, duration: %f, resolution: %dx%d\n",
+	// 	filename,
+	// 	plm_get_framerate(m_plm),
+	// 	plm_get_samplerate(m_plm),
+	// 	plm_get_duration(m_plm),
+	// 	plm_get_width(m_plm),
+	// 	plm_get_height(m_plm)
+	// );
+
+	if (m_rgb_data != nullptr) {
+		free(m_rgb_data);
+	}
+
+	int num_pixels = plm_get_width(m_plm) * plm_get_height(m_plm);
+	m_rgb_data = (uint8_t*)malloc(num_pixels * 4);
+	plm_set_video_decode_callback(m_plm, app_on_video, this);
+
+	auto seek_pos = m_media_type == JVC_MEDIA_VCD ? 0.1835 : 0; // Trying to match sync to Mobo Moga on 5th and 8th styles
+	if (seek_pos != 0) {
+		plm_seek(m_plm, seek_pos, true);
+	}
+
+	return true;
+}
+
 void jvc_xvd701_device::rcv_complete()
 {
 	receive_register_extract();
@@ -108,42 +251,179 @@ void jvc_xvd701_device::rcv_complete()
 
 	m_command[sizeof(m_command) - 1] = get_received_char();
 
-	if (m_command[0] == 0xff &&
-		m_command[1] == 0xff &&
-		m_command[2] == 0x21 &&
-		sum(m_command, sizeof(m_command)) == 0)
-	{
-		// printf("xvd701");
+	if (packet_is_good(m_command)) {
+		// printf("xvd701: Found packet! ");
+		// for (int i = 0; i < sizeof(m_command); i++) {
+		// 	printf("%02x ", m_command[i]);
+		// }
+		// printf("\n");
 
-		//for (int i = 0; i < sizeof(m_command); i++)
-		//  printf(" %02x", m_command[i]);
+		if (m_command[3] == 0x0c) {
+			// Media packets
 
-		//printf("\n");
+			// TODO: 0x41 Drive commands
 
-		// FF FF 21 3E 40 70 00 00 00 00 73 DEVICE ON
-		// FF FF 21 3E 40 60 00 00 00 00 03 DEVICE OFF
-		// FF FF 21 0C 44 60 00 00 00 00 31 STOP
-		// FF FF 21 0C 43 75 00 00 00 00 1D PLAY
-		// FF FF 21 0C 43 6D 00 00 00 00 25 PAUSE
-		// FF FF 21 0C 50 20 00 00 00 00 63 SEEK TO SPECIFIC CHAPTER
-		// FF FF 21 0C 50 73 00 00 00 00 12 FF (SEEK TO NEXT CHAPTER)
-		// FF FF 21 0C 50 61 00 00 00 00 24 PREV (SEEK TO PREVIOUS CHAPTER)
+			// 0x43 Playback commands
+			if (m_command[4] == 0x43 && m_command[5] == 0x6d) {
+				// FF FF 21 0C 43 6D 00 00 00 00 25 PAUSE
+				LOGCMD("xvd701: Playback PAUSE\n");
+				m_playback_status = STATUS_PAUSE;
+				create_packet(STATUS_OK, (unsigned char*)NO_RESPONSE);
+			} else if (m_command[4] == 0x43 && m_command[5] == 0x75) {
+				// FF FF 21 0C 43 75 00 00 00 00 1D PLAY
+				LOGCMD("xvd701: Playback PLAY\n");
 
-		m_response[0] = 0xff;
-		m_response[1] = 0xfe;
-		m_response[2] = 0x7f;
-		m_response[3] = 0x7e;
-		m_response[4] = 0x7d;
-		m_response[5] = 0x7c;
-		m_response[6] = 0x7b;
-		m_response[7] = 0x7a;
-		m_response[8] = 0x79;
-		m_response[9] = 0x78;
-		m_response[10] = 0x77;
-		m_response_index = 0;
+				auto status = STATUS_OK;
+				if (m_playback_status == STATUS_STOP) {
+					// Force video to load again if the video was stopped then started again
+					if (!seek_chapter(m_chapter)) {
+						status = STATUS_ERROR;
+					}
+				}
 
-		m_timer_response->adjust(attotime::from_msec(100));
+				if (status == STATUS_OK) {
+					m_playback_status = STATUS_PLAYING;
+				}
+
+				create_packet(status, (unsigned char*)NO_RESPONSE);
+			}
+
+			// 0x44 Stop commands
+			else if (m_command[4] == 0x44 && m_command[5] == 0x60) {
+				// FF FF 21 0C 44 60 00 00 00 00 31 STOP
+				LOGCMD("xvd701: Playback STOP\n");
+
+				if (m_plm != nullptr) {
+					plm_destroy(m_plm);
+					m_plm = nullptr;
+				}
+
+				m_playback_status = STATUS_STOP;
+				create_packet(STATUS_OK, (unsigned char*)NO_RESPONSE);
+			}
+
+			// TODO: 0x4c Disk parameter commands
+
+			// TODO: 0x4e Disk status commands
+
+			// 0x50 Seek commands
+			else if (m_command[4] == 0x50 && m_command[5] == 0x20) {
+				// FF FF 21 0C 50 20 00 00 00 00 63 SEEK TO SPECIFIC CHAPTER
+				auto chapter = ((m_command[6] % 10) * 100) + ((m_command[7] % 10) * 10) + (m_command[8] % 10);
+
+				if (m_media_type == JVC_MEDIA_VCD) {
+					// VCD can only go to 99, so it sicks the data in the first two spots
+                    chapter /= 10;
+				}
+
+				auto status = seek_chapter(chapter);
+
+				LOGCMD("xvd701: Seek chapter %d -> %d\n", chapter, status);
+				create_packet(status ? STATUS_OK : STATUS_ERROR, (unsigned char*)NO_RESPONSE);
+			} else if (m_command[4] == 0x50 && m_command[5] == 0x61) {
+				// FF FF 21 0C 50 61 00 00 00 00 24 PREV (SEEK TO PREVIOUS CHAPTER)
+				auto status = seek_chapter(m_chapter - 1);
+				LOGCMD("xvd701: Seek prev -> %d\n", status);
+				create_packet(status ? STATUS_OK : STATUS_ERROR, (unsigned char*)NO_RESPONSE);
+			} else if (m_command[4] == 0x50 && m_command[5] == 0x73) {
+				// FF FF 21 0C 50 73 00 00 00 00 12 FF (SEEK TO NEXT CHAPTER)
+				auto status = seek_chapter(m_chapter + 1);
+				LOGCMD("xvd701: Seek FF -> %d\n", status);
+				create_packet(status ? STATUS_OK : STATUS_ERROR, (unsigned char*)NO_RESPONSE);
+			}
+		} else if (m_command[3] == 0x3e) {
+			// 0x40 Power commands
+			if (m_command[4] == 0x40 && m_command[5] == 0x60) {
+				// FF FF 21 3E 40 60 00 00 00 00 03 DEVICE OFF
+				LOGCMD("xvd701: Device OFF\n");
+
+				auto status = m_is_powered ? STATUS_OK : STATUS_ERROR;
+				if (m_is_powered) {
+					m_is_powered = false;
+				}
+
+				create_packet(status, (unsigned char*)NO_RESPONSE);
+
+			} else if (m_command[4] == 0x40 && m_command[5] == 0x70) {
+				// FF FF 21 3E 40 70 00 00 00 00 73 DEVICE ON
+				LOGCMD("xvd701: Device ON\n");
+
+				auto status = !m_is_powered ? STATUS_OK : STATUS_ERROR;
+				if (!m_is_powered) {
+					m_is_powered = true;
+				}
+
+				create_packet(status, (unsigned char*)NO_RESPONSE);
+			}
+
+			// TODO: 0x4e Power status commands
+			else if (m_command[4] == 0x4e && m_command[5] == 0x20) {
+				LOGCMD("xvd701: Device power status request\n");
+				unsigned char response[6] = { m_is_powered, 0x20, 0, 0, 0, 0 };
+				create_packet(STATUS_OK, response);
+			}
+		} else if (m_command[3] == 0x7c) {
+			if (m_command[4] == 0x41) {
+				// 0x41 Change JLIP ID request
+				auto new_id = m_command[5];
+				LOGCMD("xvd701: Change JLIP ID to %02x\n", new_id);
+
+				if (new_id > 0 && new_id < 64) {
+					m_jlip_id = new_id;
+					create_packet(STATUS_OK, (unsigned char*)NO_RESPONSE);
+				} else {
+					create_packet(STATUS_ERROR, (unsigned char*)NO_RESPONSE);
+				}
+			}
+
+			else if (m_command[4] == 0x45 && m_command[5] == 0x00) {
+				// 0x45 0x00 Machine code request
+				LOGCMD("xvd701: Machine code request\n");
+
+				unsigned char response[6] = { 0x00, 0x01, 0x03, 0x00, 0x03, 0x01 };
+				create_packet(STATUS_OK, response);
+			}
+
+			else if (m_command[4] == 0x48 && m_command[5] == 0x20) {
+				// 0x48 0x20 Baud rate request
+				LOGCMD("xvd701: Baud rate request\n");
+
+				// Hardcoded to 9600 baud
+				unsigned char response[6] = { 0x20, 0x00, 0x00, 0x00, 0x00, 0x00 };
+				create_packet(STATUS_OK, response);
+			}
+
+			else if (m_command[4] == 0x49 && m_command[5] == 0x00) {
+				// 0x49 0x00 Device code request
+				LOGCMD("xvd701: Device code request\n");
+
+				unsigned char response[6] = { 0x03, 0x0C, 0x7F, 0x7F, 0x7F, 0x7F };
+				create_packet(STATUS_OK, response);
+			}
+
+			else if (m_command[4] == 0x4c && m_command[5] == 0x00) {
+				// 0x4c 0x00 Device name first half request
+				LOGCMD("xvd701: Device name first half request\n");
+
+				unsigned char response[6] = { 'D', 'V', 'D', ' ', 'P', 'L' };
+				create_packet(STATUS_OK, response);
+			}
+
+			else if (m_command[4] == 0x4d && m_command[5] == 0x00) {
+				// 0x4d 0x00 Device name last half request
+				LOGCMD("xvd701: Device name last half request\n");
+
+				unsigned char response[6] = { 'A', 'Y', 'E', 'R', 0x7F, 0x7F };
+				create_packet(STATUS_OK, response);
+			}
+
+			else if (m_command[4] == 0x4e && m_command[5] == 0x20) {
+				// 0x4e 0x00 NOP request?
+				LOGCMD("xvd701: NOP request\n");
+
+				unsigned char response[6] = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00 };
+				create_packet(STATUS_OK, response);
+			}
+		}
 	}
 }
-
-DEFINE_DEVICE_TYPE(JVC_XVD701, jvc_xvd701_device, "xvd701", "JVC XV-D701")

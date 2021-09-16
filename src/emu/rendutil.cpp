@@ -136,8 +136,6 @@ struct jpeg_setjmp_error_mgr : public jpeg_error_mgr
 ***************************************************************************/
 
 /* utilities */
-static void resample_argb_bitmap_average(u32 *dest, u32 drowpixels, u32 dwidth, u32 dheight, const u32 *source, u32 srowpixels, u32 swidth, u32 sheight, const render_color &color, u32 dx, u32 dy);
-static void resample_argb_bitmap_bilinear(u32 *dest, u32 drowpixels, u32 dwidth, u32 dheight, const u32 *source, u32 srowpixels, u32 swidth, u32 sheight, const render_color &color, u32 dx, u32 dy);
 static bool copy_png_alpha_to_bitmap(bitmap_argb32 &bitmap, const util::png_info &png);
 
 
@@ -181,7 +179,7 @@ void render_resample_argb_bitmap_hq(bitmap_argb32 &dest, bitmap_argb32 &source, 
     all contributing pixels
 -------------------------------------------------*/
 
-static void resample_argb_bitmap_average(u32 *dest, u32 drowpixels, u32 dwidth, u32 dheight, const u32 *source, u32 srowpixels, u32 swidth, u32 sheight, const render_color &color, u32 dx, u32 dy)
+void resample_argb_bitmap_average(u32 *dest, u32 drowpixels, u32 dwidth, u32 dheight, const u32 *source, u32 srowpixels, u32 swidth, u32 sheight, const render_color &color, u32 dx, u32 dy)
 {
 	u64 sumscale = u64(dx) * u64(dy);
 	u32 r, g, b, a;
@@ -272,7 +270,7 @@ static void resample_argb_bitmap_average(u32 *dest, u32 drowpixels, u32 dwidth, 
     sampling via a bilinear filter
 -------------------------------------------------*/
 
-static void resample_argb_bitmap_bilinear(u32 *dest, u32 drowpixels, u32 dwidth, u32 dheight, const u32 *source, u32 srowpixels, u32 swidth, u32 sheight, const render_color &color, u32 dx, u32 dy)
+void resample_argb_bitmap_bilinear(u32 *dest, u32 drowpixels, u32 dwidth, u32 dheight, const u32 *source, u32 srowpixels, u32 swidth, u32 sheight, const render_color &color, u32 dx, u32 dy)
 {
 	u32 maxx = swidth << 12, maxy = sheight << 12;
 	u32 r, g, b, a;
