@@ -3218,6 +3218,28 @@ static INPUT_PORTS_START( ddrsolo )
 	PORT_BIT( 0x08000000, IP_ACTIVE_LOW, IPT_UNUSED ) /* P2 BUTTON6 */
 INPUT_PORTS_END
 
+static INPUT_PORTS_START( ddrsolo2 )
+	PORT_INCLUDE( konami573 )
+	PORT_INCLUDE( k573dio )
+
+	PORT_MODIFY( "IN1" )
+	PORT_BIT( 0x02000000, IP_ACTIVE_LOW, IPT_UNUSED )
+
+	PORT_MODIFY( "IN2" )
+	PORT_BIT( 0xffff10fc, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_BIT( 0x00000001, IP_ACTIVE_LOW, IPT_BUTTON3 ) PORT_16WAY PORT_PLAYER( 1 ) PORT_NAME( "Up-Left" )
+	PORT_BIT( 0x00000002, IP_ACTIVE_LOW, IPT_BUTTON4 ) PORT_16WAY PORT_PLAYER( 1 ) PORT_NAME( "Up-Right" )
+	PORT_BIT( 0x00000100, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT ) PORT_16WAY PORT_PLAYER( 1 ) PORT_NAME( "Left" )
+	PORT_BIT( 0x00000200, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT ) PORT_16WAY PORT_PLAYER( 1 ) PORT_NAME( "Right" )
+	PORT_BIT( 0x00000400, IP_ACTIVE_LOW, IPT_JOYSTICK_UP ) PORT_16WAY PORT_PLAYER( 1 ) PORT_NAME( "Up" )
+	PORT_BIT( 0x00000800, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN ) PORT_16WAY PORT_PLAYER( 1 ) PORT_NAME( "Down" )
+	PORT_BIT( 0x00002000, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT ) PORT_16WAY PORT_PLAYER( 1 ) PORT_NAME( "Select L" )
+	PORT_BIT( 0x00004000, IP_ACTIVE_LOW, IPT_BUTTON1) PORT_16WAY PORT_PLAYER( 1 ) PORT_NAME( "Select R" )
+
+	PORT_MODIFY( "IN3" )
+	PORT_BIT( 0xfffffbff, IP_ACTIVE_LOW, IPT_UNUSED )
+INPUT_PORTS_END
+
 static INPUT_PORTS_START( ddrkara )
 	PORT_INCLUDE( konami573 )
 
@@ -6238,6 +6260,7 @@ GAME( 2001, pcnfrk4mk, pcnfrk4m, drmn4m,     drmn,      ksys573_state, empty_ini
 GAME( 2001, drmn4m,    pcnfrk4m, drmn4m,     drmn,      ksys573_state, empty_init,    ROT0,  "Konami", "DrumMania 4th Mix (G*A25 VER. JAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.9 */
 GAME( 2001, gtrfrk5m,  sys573,   gtrfrk5m,   gtrfrks,   ksys573_state, empty_init,    ROT0,  "Konami", "Guitar Freaks 5th Mix (G*A26 VER. JAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.9 */
 GAME( 2001, ddr5m,     sys573,   ddr5m,      ddr,       ksys573_state, empty_init,    ROT0,  "Konami", "Dance Dance Revolution 5th Mix (G*A27 VER. JAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.9 */
+GAME( 2021, ddr5ms,    ddrextrm, ddr5m,      ddrsolo2,  ksys573_state, empty_init,    ROT0,  "hack",   "Dance Dance Revolution 5th Mix Solo (hack)", MACHINE_IMPERFECT_SOUND )
 GAME( 2001, dmx2majp,  sys573,   dmx,        dmx,       ksys573_state, empty_init,    ROT0,  "Konami", "Dance Maniax 2nd Mix Append J-Paradise (G*A38 VER. JAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.9 */
 GAME( 2001, mamboagg,  sys573,   mamboagg,   mamboagg,  ksys573_state, empty_init,    ROT0,  "Konami", "Mambo A Go-Go (GQA40 VER. JAB)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
 GAME( 2001, mamboagga, mamboagg, mamboagga,  mamboagg,  ksys573_state, empty_init,    ROT0,  "Konami", "Mambo A Go-Go e-Amusement (GQA40 VER. JRB)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
@@ -6263,7 +6286,6 @@ GAME( 2018, ddrexpro,  ddrextrm, ddr5m,      ddr,       ksys573_state, empty_ini
 GAME( 2019, ddrexproc, ddrextrm, ddr5m,      ddr,       ksys573_state, empty_init,    ROT0,  "hack",   "Dance Dance Revolution Extreme Clarity (hack)", MACHINE_IMPERFECT_SOUND )
 GAME( 2019, ddrexplus, ddrextrm, ddr5m,      ddr,       ksys573_state, empty_init,    ROT0,  "hack",   "Dance Dance Revolution Extreme Plus (hack)", MACHINE_IMPERFECT_SOUND )
 GAME( 200?, ddrmegamix,ddrextrm, ddr5m,      ddr,       ksys573_state, empty_init,    ROT0,  "hack",   "Dance Dance Revolution Megamix (hack)", MACHINE_IMPERFECT_SOUND )
-GAME( 2021, ddr5ms,    ddrextrm, ddr5m,      ddr,       ksys573_state, empty_init,    ROT0,  "hack",   "Dance Dance Revolution 5th Mix Solo (hack)", MACHINE_IMPERFECT_SOUND )
 GAME( 2003, pcnfrk8m,  sys573,   drmn4m,     drmn,      ksys573_state, empty_init,    ROT0,  "Konami", "Percussion Freaks 8th Mix (G*C38 VER. AAA)", MACHINE_IMPERFECT_SOUND ) /* BOOT VER 1.95 */
 GAME( 2003, drmn8m,    pcnfrk8m, drmn4m,     drmn,      ksys573_state, empty_init,    ROT0,  "Konami", "DrumMania 8th Mix (G*C38 VER. JAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
 GAME( 2003, gtrfrk9m,  sys573,   gtrfrk7m,   gtrfrks,   ksys573_state, empty_init,    ROT0,  "Konami", "Guitar Freaks 9th Mix (G*C39 VER. JAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
