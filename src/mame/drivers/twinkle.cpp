@@ -1103,7 +1103,7 @@ TIMER_CALLBACK_MEMBER(twinkle_state::spu_dma_callback)
 	{
 		// This timer adjust value was picked because
 		// it reduces stuttering issues/performance issues
-		m_dma_timer->adjust(attotime::from_nsec(200));
+		m_dma_timer->adjust(attotime::from_nsec(150));
 	}
 	else
 	{
@@ -1265,7 +1265,12 @@ void twinkle_state::twinkle_base(machine_config &config, bool isPsxSerialDvdPlay
 
 	M68000(config, m_audiocpu, 32000000/2);    /* 16.000 MHz */
 	m_audiocpu->set_addrmap(AS_PROGRAM, &twinkle_state::sound_map);
-	m_audiocpu->set_periodic_int(FUNC(twinkle_state::irq1_line_assert), attotime::from_hz(60));
+
+	// This timer value needs to be adjusted to stop BGMs from loop before DMAs start happening at the end of songs.
+	// If the timer is too high then keysounds will also start to cut off.
+	// There has to be a logical way to derive this timer speed but I have no idea what.
+	// 60.5 loops garbage before DMAs
+	m_audiocpu->set_periodic_int(FUNC(twinkle_state::irq1_line_assert), attotime::from_hz(60.925));
 
 	WATCHDOG_TIMER(config, "watchdog").set_time(attotime::from_msec(1200)); /* check TD pin on LTC1232 */
 
