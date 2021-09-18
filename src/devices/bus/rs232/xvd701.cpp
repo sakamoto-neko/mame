@@ -230,7 +230,7 @@ bool jvc_xvd701_device::seek_chapter(int chapter)
 	m_rgb_data = (uint8_t*)malloc(num_pixels * 4);
 	plm_set_video_decode_callback(m_plm, app_on_video, this);
 
-	m_wait_timer = m_media_type == JVC_MEDIA_VCD ? 0.2 : 0; // Trying to match sync to Mobo Moga on 5th and 8th styles
+	m_wait_timer = 0.2; // Trying to match sync to Mobo Moga on 5th and 8th styles. Adjust if you find it too out of sync.
 
 	if (m_playback_status != STATUS_PAUSE) {
 		m_playback_status = STATUS_PLAYING;
