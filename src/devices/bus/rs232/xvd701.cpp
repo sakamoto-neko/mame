@@ -189,11 +189,11 @@ void jvc_xvd701_device::send_response()
 }
 
 void jvc_xvd701_device::decode_next_frame(double elapsed_time) {
-	if (m_wait_timer > 0) {
+	if (m_playback_status == STATUS_PLAYING && m_wait_timer > 0) {
 		m_wait_timer -= elapsed_time;
 	}
 
-	if (m_wait_timer <= 0 && m_plm != nullptr && !plm_has_ended(m_plm)) {
+	if (m_wait_timer <= 0 &&  m_plm != nullptr && m_playback_status == STATUS_PLAYING && !plm_has_ended(m_plm)) {
 		plm_decode(m_plm, elapsed_time);
 	} else {
 		m_video_bitmap->fill(0xff000000); // Fill with solid black since nothing should be displaying now
@@ -230,7 +230,7 @@ bool jvc_xvd701_device::seek_chapter(int chapter)
 	m_rgb_data = (uint8_t*)malloc(num_pixels * 4);
 	plm_set_video_decode_callback(m_plm, app_on_video, this);
 
-	m_wait_timer = 0; m_media_type == JVC_MEDIA_VCD ? 0.8 : 0; // Trying to match sync to Mobo Moga on 5th and 8th styles
+	m_wait_timer = m_media_type == JVC_MEDIA_VCD ? 0.2 : 0; // Trying to match sync to Mobo Moga on 5th and 8th styles
 
 	if (m_playback_status != STATUS_PAUSE) {
 		m_playback_status = STATUS_PLAYING;
