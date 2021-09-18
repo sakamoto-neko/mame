@@ -123,6 +123,7 @@ void jvc_xvd701_device::device_reset()
 	m_playback_status = STATUS_STOP;
 	m_plm = nullptr;
 	m_rgb_data = nullptr;
+	m_wait_timer = 0;
 }
 
 void jvc_xvd701_device::device_timer(emu_timer &timer, device_timer_id id, int param, void *ptr)
@@ -188,7 +189,11 @@ void jvc_xvd701_device::send_response()
 }
 
 void jvc_xvd701_device::decode_next_frame(double elapsed_time) {
-	if (m_plm != nullptr && m_playback_status == STATUS_PLAYING && !plm_has_ended(m_plm)) {
+	if (m_wait_timer > 0) {
+		m_wait_timer -= elapsed_time;
+	}
+
+	if (m_wait_timer <= 0 && m_plm != nullptr && !plm_has_ended(m_plm)) {
 		plm_decode(m_plm, elapsed_time);
 	} else {
 		m_video_bitmap->fill(0xff000000); // Fill with solid black since nothing should be displaying now
@@ -215,16 +220,7 @@ bool jvc_xvd701_device::seek_chapter(int chapter)
 	}
 
 	plm_set_audio_enabled(m_plm, false);
-
-	// printf(
-	// 	"Opened %s - framerate: %f, samplerate: %d, duration: %f, resolution: %dx%d\n",
-	// 	filename,
-	// 	plm_get_framerate(m_plm),
-	// 	plm_get_samplerate(m_plm),
-	// 	plm_get_duration(m_plm),
-	// 	plm_get_width(m_plm),
-	// 	plm_get_height(m_plm)
-	// );
+	plm_video_set_no_delay(m_plm->video_decoder, true); // The videos are encoded with "-bf 0"
 
 	if (m_rgb_data != nullptr) {
 		free(m_rgb_data);
@@ -234,9 +230,10 @@ bool jvc_xvd701_device::seek_chapter(int chapter)
 	m_rgb_data = (uint8_t*)malloc(num_pixels * 4);
 	plm_set_video_decode_callback(m_plm, app_on_video, this);
 
-	auto seek_pos = m_media_type == JVC_MEDIA_VCD ? 0.1835 : 0; // Trying to match sync to Mobo Moga on 5th and 8th styles
-	if (seek_pos != 0) {
-		plm_seek(m_plm, seek_pos, true);
+	m_wait_timer = 0; m_media_type == JVC_MEDIA_VCD ? 0.8 : 0; // Trying to match sync to Mobo Moga on 5th and 8th styles
+
+	if (m_playback_status != STATUS_PAUSE) {
+		m_playback_status = STATUS_PLAYING;
 	}
 
 	return true;
@@ -317,12 +314,16 @@ void jvc_xvd701_device::rcv_complete()
 				}
 
 				auto status = seek_chapter(chapter);
-
 				LOGCMD("xvd701: Seek chapter %d -> %d\n", chapter, status);
 				create_packet(status ? STATUS_OK : STATUS_ERROR, (unsigned char*)NO_RESPONSE);
 			} else if (m_command[4] == 0x50 && m_command[5] == 0x61) {
 				// FF FF 21 0C 50 61 00 00 00 00 24 PREV (SEEK TO PREVIOUS CHAPTER)
-				auto status = seek_chapter(m_chapter - 1);
+				auto chapter = m_chapter - 1;
+				if (m_playback_status != STATUS_PLAYING && chapter == 0) {
+					chapter = 1;
+				}
+
+				auto status = seek_chapter(chapter);
 				LOGCMD("xvd701: Seek prev -> %d\n", status);
 				create_packet(status ? STATUS_OK : STATUS_ERROR, (unsigned char*)NO_RESPONSE);
 			} else if (m_command[4] == 0x50 && m_command[5] == 0x73) {

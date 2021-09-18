@@ -82,6 +82,7 @@ protected:
 
 	jvc_xvd701_media_type m_media_type;
 	int m_chapter;
+	double m_wait_timer;
 
 	// const unsigned char STATUS_UNKNOWN_COMMAND = 1;
 	const unsigned char STATUS_OK = 3;
