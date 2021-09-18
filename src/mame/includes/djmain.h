@@ -23,7 +23,9 @@ public:
 		, m_ata(*this, "ata")
 		, m_gfxdecode(*this, "gfxdecode")
 		, m_palette(*this, "palette")
-		, m_turntable(*this, "TT%u", 1U)
+		, m_turntable_digital(*this, "TT%u_DIGITAL", 1U)
+		, m_turntable_analog(*this, "TT%u_ANALOG", 1U)
+		, m_turntable_switch(*this, "TURNTABLES")
 		, m_sndram(*this, "sndram")
 		, m_leds(*this, "led%u", 0U)
 	{
@@ -89,7 +91,9 @@ private:
 	required_device<ata_interface_device> m_ata;
 	required_device<gfxdecode_device> m_gfxdecode;
 	required_device<palette_device> m_palette;
-	optional_ioport_array<2> m_turntable;
+	optional_ioport_array<2> m_turntable_digital;
+	optional_ioport_array<2> m_turntable_analog;
+	optional_ioport m_turntable_switch;
 	required_shared_ptr<uint8_t> m_sndram;
 	output_finder<3> m_leds;
 
