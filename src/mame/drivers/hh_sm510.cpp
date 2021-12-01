@@ -115,6 +115,26 @@ The "Mini Classics" keychains are by Nelsonic, not Nintendo.
 Bassmate Computer (BM-501) is on identical hardware as G&W Multi Screen,
 but it's not part of the game series.
 
+****************************************************************************
+
+Regarding Электроника (Elektronika, translated: Electronics): It is not
+actually a company. It was a USSR brand name for consumer electronics,
+produced by factories belonging to the Ministry of Electronic Industry
+(Minelektronprom, МЭП).
+
+The LCD games were produced by: Angstrem, Mikron, Voschod (Russia), Billur
+(Azerbaijan), Kamerton, Evistor (Belarus), Severodonetsk Instrument-Making
+Plant (Ukraine) and more. Their most popular LCD game (Nu, pogodi!), is
+known to be initially produced by Evistor.
+
+Most of the games are marked "bootleg" in MAME, because the ROM contents are
+a 1:1 copy of Nintendo Game & Watch games. Known G&W cloned by Elektronika:
+Fire(FR-27), Octopus, Chef, Egg/Mickey Mouse, Donkey Kong Jr.(CJ-93),
+Spitball Sparky.
+
+The MCUs used were not imported from Sharp, but cloned by USSR, renamed to
+КБ1013ВК1-2 for SM5A and КБ1013ВК4-2 for SM510.
+
 ***************************************************************************/
 
 #include "emu.h"
@@ -635,7 +655,9 @@ static INPUT_PORTS_START( gnw_flagman )
 	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_UNUSED )
 
 	PORT_START("B")
-	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_UNUSED ) // display test?
+	PORT_CONFNAME( 0x01, 0x01, "Infinite Lives (Cheat)") // factory test, unpopulated on PCB -- only works after power-on
+	PORT_CONFSETTING(    0x01, DEF_STR( Off ) )
+	PORT_CONFSETTING(    0x00, DEF_STR( On ) )
 
 	PORT_START("ACL")
 	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_SERVICE1 ) PORT_CHANGED_CB(acl_button) PORT_NAME("ACL")
@@ -830,7 +852,9 @@ static INPUT_PORTS_START( gnw_judge )
 	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_UNUSED )
 
 	PORT_START("B")
-	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_UNUSED ) // display test?
+	PORT_CONFNAME( 0x01, 0x01, "Increase Computer's Operation Time (Cheat)") // factory test, unpopulated on PCB -- only works after power-on
+	PORT_CONFSETTING(    0x01, DEF_STR( Off ) )
+	PORT_CONFSETTING(    0x00, DEF_STR( On ) )
 
 	PORT_START("ACL")
 	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_SERVICE1 ) PORT_CHANGED_CB(acl_button) PORT_NAME("ACL")
@@ -1046,6 +1070,11 @@ static INPUT_PORTS_START( gnw_lion )
 
 	PORT_START("B")
 	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_UNUSED ) // display test?
+
+	PORT_START("BA")
+	PORT_CONFNAME( 0x01, 0x00, "Infinite Lives (Cheat)") // factory test, unpopulated on PCB -- disable after boot
+	PORT_CONFSETTING(    0x00, DEF_STR( On ) )
+	PORT_CONFSETTING(    0x01, DEF_STR( Off ) )
 
 	PORT_START("ACL")
 	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_SERVICE1 ) PORT_CHANGED_CB(acl_button) PORT_NAME("ACL")
@@ -1380,6 +1409,21 @@ ROM_END
   player/CPU roles are reversed. This version is known as Разведчики космоса
   (Razvedchiki kosmosa, export version: Explorers of Space).
 
+  The following Mickey Mouse Elektronika clones are emulated in MAME:
+
+  Model  Title               Transliteration      Export version      Note
+  ---------------------------------------------------------------------------------
+  ИМ-02  Ну, погоди!         Nu, pogodi!          -                   -
+  ИМ-13  Разведчики космоса  Razvedchiki kosmosa  Explorers of Space  Modified ROM (see note above)
+  ИМ-16  Охота               Okhota               Fowling             -
+  ИМ-22  Весёлые футболисты  Vesjolye futbolisty  Monkey Goalkeeper   -
+  ИМ-32  Кот-рыболов         Kot-rybolov          -                   -
+  ИМ-33  Квака-задавака      Kvaka-zadavaka       Frogling            -
+  ИМ-49  Ночные воришки      Nochnye vorishki     Night Burglars      -
+  ИМ-50  Космический полёт   Kosmicheskij poljot  Space Flight        The Model ID is the same as Amusing Arithmetic (not emulated in MAME)
+  ИМ-51  Морская атака       Morskaja ataka       -                   -
+  ИМ-53  Атака астероидов    Ataka asteroidov     -                   Graphics are very similar to ИМ-50
+
 ***************************************************************************/
 
 class gnw_mmouse_state : public hh_sm510_state
@@ -1389,10 +1433,18 @@ public:
 		hh_sm510_state(mconfig, type, tag)
 	{ }
 
-	void exospace(machine_config &config);
-	void nupogodi(machine_config &config);
-	void gnw_egg(machine_config &config);
 	void gnw_mmouse(machine_config &config);
+	void gnw_egg(machine_config &config);
+	void nupogodi(machine_config &config);
+	void exospace(machine_config &config);
+	void fowling(machine_config &config);
+	void monkeygk(machine_config &config);
+	void krybolov(machine_config &config);
+	void frogling(machine_config &config);
+	void nburglar(machine_config &config);
+	void spaceflt(machine_config &config);
+	void morataka(machine_config &config);
+	void atakaast(machine_config &config);
 };
 
 // config
@@ -1449,6 +1501,46 @@ void gnw_mmouse_state::exospace(machine_config &config)
 	kb1013vk12_common(config, 1756, 1080); // R mask option ?
 }
 
+void gnw_mmouse_state::fowling(machine_config &config)
+{
+	kb1013vk12_common(config, 1632, 1080); // R mask option ?
+}
+
+void gnw_mmouse_state::monkeygk(machine_config &config)
+{
+	kb1013vk12_common(config, 1655, 1080); // R mask option ?
+}
+
+void gnw_mmouse_state::krybolov(machine_config &config)
+{
+	kb1013vk12_common(config, 1638, 1080); // R mask option ?
+}
+
+void gnw_mmouse_state::frogling(machine_config &config)
+{
+	kb1013vk12_common(config, 1660, 1080); // R mask option ?
+}
+
+void gnw_mmouse_state::nburglar(machine_config &config)
+{
+	kb1013vk12_common(config, 1641, 1080); // R mask option ?
+}
+
+void gnw_mmouse_state::spaceflt(machine_config &config)
+{
+	kb1013vk12_common(config, 1658, 1080); // R mask option ?
+}
+
+void gnw_mmouse_state::morataka(machine_config &config)
+{
+	kb1013vk12_common(config, 1648, 1080); // R mask option ?
+}
+
+void gnw_mmouse_state::atakaast(machine_config &config)
+{
+	kb1013vk12_common(config, 1620, 1080); // R mask option ?
+}
+
 // roms
 
 ROM_START( gnw_mmouse )
@@ -1481,6 +1573,70 @@ ROM_START( exospace )
 
 	ROM_REGION( 89361, "screen", 0)
 	ROM_LOAD( "exospace.svg", 0, 89361, BAD_DUMP CRC(d61f3bdc) SHA1(932d45dc9302db5550971ce0d295a88e8c507e3f) )
+ROM_END
+
+ROM_START( fowling )
+	ROM_REGION( 0x1000, "maincpu", 0 )
+	ROM_LOAD( "im-16.bin", 0x0000, 0x0740, CRC(cb820c32) SHA1(7e94fc255f32db725d5aa9e196088e490c1a1443) )
+
+	ROM_REGION( 117838, "screen", 0)
+	ROM_LOAD( "fowling.svg", 0, 117838, CRC(7de707c6) SHA1(c876ea16bd8af033086e2e20860d2e1d09296d59) )
+ROM_END
+
+ROM_START( monkeygk )
+	ROM_REGION( 0x1000, "maincpu", 0 )
+	ROM_LOAD( "im-22.bin", 0x0000, 0x0740, CRC(cb820c32) SHA1(7e94fc255f32db725d5aa9e196088e490c1a1443) )
+
+	ROM_REGION( 131901, "screen", 0)
+	ROM_LOAD( "monkeygk.svg", 0, 131901, CRC(85811308) SHA1(288aa41bade08c61e0d346b9c1109179564e34ed) )
+ROM_END
+
+ROM_START( krybolov )
+	ROM_REGION( 0x1000, "maincpu", 0 )
+	ROM_LOAD( "im-32.bin", 0x0000, 0x0740, CRC(cb820c32) SHA1(7e94fc255f32db725d5aa9e196088e490c1a1443) )
+
+	ROM_REGION( 132804, "screen", 0)
+	ROM_LOAD( "krybolov.svg", 0, 132804, CRC(4e3e70d3) SHA1(18f1300afa601deb6ac01dcf7dca88187b7940a3) )
+ROM_END
+
+ROM_START( frogling )
+	ROM_REGION( 0x1000, "maincpu", 0 )
+	ROM_LOAD( "im-33.bin", 0x0000, 0x0740, CRC(cb820c32) SHA1(7e94fc255f32db725d5aa9e196088e490c1a1443) )
+
+	ROM_REGION( 131961, "screen", 0)
+	ROM_LOAD( "frogling.svg", 0, 131961, CRC(37b27420) SHA1(25d9e273f056c10e3a5bc4476ce980bfdb8095e1) )
+ROM_END
+
+ROM_START( nburglar )
+	ROM_REGION( 0x1000, "maincpu", 0 )
+	ROM_LOAD( "im-49.bin", 0x0000, 0x0740, CRC(cb820c32) SHA1(7e94fc255f32db725d5aa9e196088e490c1a1443) )
+
+	ROM_REGION( 136498, "screen", 0)
+	ROM_LOAD( "nburglar.svg", 0, 136498, CRC(24a287cd) SHA1(2d14aa9b55b42c634df141fe4037ae286549b17b) )
+ROM_END
+
+ROM_START( spaceflt )
+	ROM_REGION( 0x1000, "maincpu", 0 )
+	ROM_LOAD( "im-50.bin", 0x0000, 0x0740, CRC(cb820c32) SHA1(7e94fc255f32db725d5aa9e196088e490c1a1443) )
+
+	ROM_REGION( 110214, "screen", 0)
+	ROM_LOAD( "spaceflt.svg", 0, 110214, CRC(ccef6d27) SHA1(71f3cf49a5797ed9296f1e86ec4575ffefab67dd) )
+ROM_END
+
+ROM_START( morataka )
+	ROM_REGION( 0x1000, "maincpu", 0 )
+	ROM_LOAD( "im-51.bin", 0x0000, 0x0740, CRC(cb820c32) SHA1(7e94fc255f32db725d5aa9e196088e490c1a1443) )
+
+	ROM_REGION( 105057, "screen", 0)
+	ROM_LOAD( "morataka.svg", 0, 105057, CRC(c235c56c) SHA1(b6ef74ba7826221683243e23513270d0f0f2cfda) )
+ROM_END
+
+ROM_START( atakaast )
+	ROM_REGION( 0x1000, "maincpu", 0 )
+	ROM_LOAD( "im-53.bin", 0x0000, 0x0740, CRC(cb820c32) SHA1(7e94fc255f32db725d5aa9e196088e490c1a1443) )
+
+	ROM_REGION( 105570, "screen", 0)
+	ROM_LOAD( "atakaast.svg", 0, 105570, CRC(3d79aacc) SHA1(bc25969f4d6fa75b320130c920ac0bdc8fb44cbd) )
 ROM_END
 
 
@@ -9151,7 +9307,7 @@ INPUT_PORTS_END
 
 void trshutvoy_state::trshutvoy(machine_config &config)
 {
-	sm510_common(config, 1496, 1080); // R mask options confirmed
+	sm510_common(config, 1496, 1080); // R mask option confirmed
 }
 
 void trshutvoy_state::tigarden(machine_config &config)
@@ -9183,9 +9339,11 @@ ROM_END
 
 /***************************************************************************
 
-  Tronica Space Rescue (model MG-9)
-  * PCB label MG-9 080492
-  * Sharp SM510 label 0015 224B TRONICA (no decap)
+  Tronica: Space Rescue (model MG-9), Thunder Ball (model FR-23)
+  * PCB labels: SPACE RESCUE MG-9 080492 (MG-9)
+                SPACE RESCUE MG-9 210982 (FR-23)
+  * Sharp SM510 labels (no decap): 0015 224B TRONICA (MG-9)
+                                   0015 236D TRONICA (FR-23)
   * lcd screen with custom segments, 1-bit sound
 
 ***************************************************************************/
@@ -9198,6 +9356,7 @@ public:
 	{ }
 
 	void trsrescue(machine_config &config);
+	void trthuball(machine_config &config);
 };
 
 // config
@@ -9215,13 +9374,23 @@ static INPUT_PORTS_START( trsrescue )
 	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_START1 ) PORT_CHANGED_CB(input_changed) PORT_NAME("Game A")
 	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_SELECT ) PORT_CHANGED_CB(input_changed) PORT_NAME("Time")
 
+	PORT_START("B")
+	PORT_CONFNAME( 0x01, 0x01, "Infinite Lives (Cheat)") // factory test, unpopulated on PCB
+	PORT_CONFSETTING(    0x01, DEF_STR( Off ) )
+	PORT_CONFSETTING(    0x00, DEF_STR( On ) )
+
 	PORT_START("ACL")
 	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_SERVICE1 ) PORT_CHANGED_CB(acl_button) PORT_NAME("ACL")
 INPUT_PORTS_END
 
 void trsrescue_state::trsrescue(machine_config &config)
 {
-	sm510_common(config, 1533, 1080); // R mask options confirmed
+	sm510_common(config, 1533, 1080); // R mask option confirmed
+}
+
+void trsrescue_state::trthuball(machine_config &config)
+{
+	sm510_common(config, 1599, 1080); // R mask option confirmed
 }
 
 // roms
@@ -9232,6 +9401,14 @@ ROM_START( trsrescue )
 
 	ROM_REGION( 178760, "screen", 0)
 	ROM_LOAD( "trsrescue.svg", 0, 178760, CRC(40756fd3) SHA1(9762ebbe4753a3194d7f0844c91addb8e1f8930b) )
+ROM_END
+
+ROM_START( trthuball )
+	ROM_REGION( 0x1000, "maincpu", 0 )
+	ROM_LOAD( "0015_236d", 0x0000, 0x1000, CRC(f58a3832) SHA1(2d843b3520de66463e628cea9344a04015d1f5f1) )
+
+	ROM_REGION( 175018, "screen", 0)
+	ROM_LOAD( "trthuball.svg", 0, 175018, CRC(3404cc1d) SHA1(4cebe3c742c6947c6fddb8a84ae2f7d0cea1b527) )
 ROM_END
 
 
@@ -9510,6 +9687,14 @@ CONS( 1981, gnw_mmouse,   0,           0, gnw_mmouse,   gnw_mmouse,   gnw_mmouse
 CONS( 1981, gnw_egg,      gnw_mmouse,  0, gnw_egg,      gnw_mmouse,   gnw_mmouse_state,   empty_init, "Nintendo", "Game & Watch: Egg", MACHINE_SUPPORTS_SAVE | MACHINE_REQUIRES_ARTWORK )
 CONS( 1984, nupogodi,     gnw_mmouse,  0, nupogodi,     gnw_mmouse,   gnw_mmouse_state,   empty_init, "bootleg (Elektronika)", "Nu, pogodi!", MACHINE_SUPPORTS_SAVE | MACHINE_REQUIRES_ARTWORK )
 CONS( 1989, exospace,     gnw_mmouse,  0, exospace,     exospace,     gnw_mmouse_state,   empty_init, "bootleg (Elektronika)", "Explorers of Space", MACHINE_SUPPORTS_SAVE | MACHINE_REQUIRES_ARTWORK )
+CONS( 1989, fowling,      gnw_mmouse,  0, fowling,      gnw_mmouse,   gnw_mmouse_state,   empty_init, "bootleg (Elektronika)", "Fowling", MACHINE_SUPPORTS_SAVE | MACHINE_REQUIRES_ARTWORK )
+CONS( 1989, monkeygk,     gnw_mmouse,  0, monkeygk,     gnw_mmouse,   gnw_mmouse_state,   empty_init, "bootleg (Elektronika)", "Monkey Goalkeeper", MACHINE_SUPPORTS_SAVE | MACHINE_REQUIRES_ARTWORK )
+CONS( 1989, krybolov,     gnw_mmouse,  0, krybolov,     gnw_mmouse,   gnw_mmouse_state,   empty_init, "bootleg (Elektronika)", "Kot-rybolov (Elektronika)", MACHINE_SUPPORTS_SAVE | MACHINE_REQUIRES_ARTWORK )
+CONS( 1989, frogling,     gnw_mmouse,  0, frogling,     gnw_mmouse,   gnw_mmouse_state,   empty_init, "bootleg (Elektronika)", "Frogling", MACHINE_SUPPORTS_SAVE | MACHINE_REQUIRES_ARTWORK )
+CONS( 19??, nburglar,     gnw_mmouse,  0, nburglar,     gnw_mmouse,   gnw_mmouse_state,   empty_init, "bootleg (Elektronika)", "Night Burglars", MACHINE_SUPPORTS_SAVE | MACHINE_REQUIRES_ARTWORK )
+CONS( 19??, spaceflt,     gnw_mmouse,  0, spaceflt,     gnw_mmouse,   gnw_mmouse_state,   empty_init, "bootleg (Elektronika)", "Space Flight", MACHINE_SUPPORTS_SAVE | MACHINE_REQUIRES_ARTWORK )
+CONS( 19??, morataka,     gnw_mmouse,  0, morataka,     gnw_mmouse,   gnw_mmouse_state,   empty_init, "bootleg (Elektronika)", "Morskaja ataka", MACHINE_SUPPORTS_SAVE | MACHINE_REQUIRES_ARTWORK )
+CONS( 1992, atakaast,     gnw_mmouse,  0, atakaast,     gnw_mmouse,   gnw_mmouse_state,   empty_init, "bootleg (Elektronika)", "Ataka asteroidov", MACHINE_SUPPORTS_SAVE | MACHINE_REQUIRES_ARTWORK )
 CONS( 1981, gnw_fire,     0,           0, gnw_fire,     gnw_fire,     gnw_fire_state,     empty_init, "Nintendo", "Game & Watch: Fire (Wide Screen)", MACHINE_SUPPORTS_SAVE | MACHINE_REQUIRES_ARTWORK )
 CONS( 1989, spacebridge,  gnw_fire,    0, spacebridge,  gnw_fire,     gnw_fire_state,     empty_init, "bootleg (Elektronika)", "Space Bridge", MACHINE_SUPPORTS_SAVE | MACHINE_REQUIRES_ARTWORK )
 CONS( 1982, gnw_tbridge,  0,           0, gnw_tbridge,  gnw_tbridge,  gnw_tbridge_state,  empty_init, "Nintendo", "Game & Watch: Turtle Bridge", MACHINE_SUPPORTS_SAVE | MACHINE_REQUIRES_ARTWORK )
@@ -9638,6 +9823,7 @@ CONS( 1992, tbatmana,     0,           0, tbatmana,     tbatmana,     tbatmana_s
 CONS( 1983, trshutvoy,    0,           0, trshutvoy,    trshutvoy,    trshutvoy_state,    empty_init, "Tronica", "Shuttle Voyage", MACHINE_SUPPORTS_SAVE | MACHINE_REQUIRES_ARTWORK )
 CONS( 1983, tigarden,     trshutvoy,   0, tigarden,     trshutvoy,    trshutvoy_state,    empty_init, "Tronica", "Thief in Garden", MACHINE_SUPPORTS_SAVE | MACHINE_REQUIRES_ARTWORK )
 CONS( 1982, trsrescue,    0,           0, trsrescue,    trsrescue,    trsrescue_state,    empty_init, "Tronica", "Space Rescue", MACHINE_SUPPORTS_SAVE | MACHINE_REQUIRES_ARTWORK )
+CONS( 1983, trthuball,    trsrescue,   0, trthuball,    trsrescue,    trsrescue_state,    empty_init, "Tronica", "Thunder Ball", MACHINE_SUPPORTS_SAVE | MACHINE_REQUIRES_ARTWORK )
 CONS( 1982, trspacmis,    0,           0, trspacmis,    trspacmis,    trspacmis_state,    empty_init, "Tronica", "Space Mission (Tronica)", MACHINE_SUPPORTS_SAVE | MACHINE_REQUIRES_ARTWORK )
 CONS( 1982, trspider,     trspacmis,   0, trspider,     trspacmis,    trspacmis_state,    empty_init, "Tronica", "Spider (Tronica)", MACHINE_SUPPORTS_SAVE | MACHINE_REQUIRES_ARTWORK )
 

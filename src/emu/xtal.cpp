@@ -364,7 +364,7 @@ const double XTAL::known_xtals[] = {
 	 27'562'000, /* 27.562_MHz_XTAL        Visual 220 */
 	 27'720'000, /* 27.72_MHz_XTAL         AT&T 610 132-column display clock */
 	 27'956'000, /* 27.956_MHz_XTAL        CIT-101e 132-column display clock */
-	 28'000'000, /* 28_MHz_XTAL            Sega System H1 SH2 clock */
+	 28'000'000, /* 28_MHz_XTAL            Sega System H1 SH2 clock, Kyukyoku Tiger / Twin Cobra */
 	 28'224'000, /* 28.224_MHz_XTAL        Roland JD-800 */
 	 28'322'000, /* 28.322_MHz_XTAL        Saitek RISC 2500, Mephisto Montreux */
 	 28'375'160, /* 28.37516_MHz_XTAL      Amiga PAL systems */
@@ -467,6 +467,7 @@ const double XTAL::known_xtals[] = {
 	 80'000'000, /* 80_MHz_XTAL            ARM710 */
 	 87'183'360, /* 87.18336_MHz_XTAL      AT&T 630 MTG */
 	 92'940'500, /* 92.9405_MHz_XTAL       Sun cgthree */
+	 96'000'000, /* 96_MHz_XTAL            Acorn A680 */
 	 99'522'000, /* 99.522_MHz_XTAL        Radius Two Page Display */
 	100'000'000, /* 100_MHz_XTAL           PSX-based Namco System 12, Vegas, Sony ZN1-2-based */
 	101'491'200, /* 101.4912_MHz_XTAL      PSX-based Namco System 10 */

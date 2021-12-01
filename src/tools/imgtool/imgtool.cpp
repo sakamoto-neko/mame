@@ -9,13 +9,18 @@
 ***************************************************************************/
 
 #include "imgtool.h"
+#include "charconv.h"
+#include "filter.h"
 #include "library.h"
 #include "modules.h"
 
 #include "formats/imageutl.h"
 
 #include "corefile.h"
+#include "corestr.h"
+#include "opresolv.h"
 
+#include <cstdio>
 #include <cstring>
 #include <cctype>
 #include <iostream>
@@ -897,7 +902,7 @@ bool imgtool_validitychecks(void)
 			if ((!module->createimage_optguide && !module->createimage_optspec.empty())
 				|| (module->createimage_optguide && module->createimage_optspec.empty()))
 			{
-				util::stream_format(std::wcerr, L"imgtool module %s does has partially incomplete creation options\n", wstring_from_utf8(module->name));
+				util::stream_format(std::wcerr, L"imgtool module %s has partially incomplete creation options\n", wstring_from_utf8(module->name));
 				error = true;
 			}
 
