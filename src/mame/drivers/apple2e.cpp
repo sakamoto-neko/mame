@@ -173,6 +173,7 @@ MIG RAM page 2 $CE02 is the speaker/slot bitfield and $CE03 is the paddle/accele
 #include "bus/a2bus/a2videoterm.h"
 #include "bus/a2bus/a2vulcan.h"
 #include "bus/a2bus/a2zipdrive.h"
+#include "bus/a2bus/ace2x00.h"
 #include "bus/a2bus/booti.h"
 #include "bus/a2bus/byte8251.h"
 #include "bus/a2bus/cmsscsi.h"
@@ -302,6 +303,8 @@ public:
 		m_iscecm = false;
 		m_iscec2000 = false;
 		m_isace500 = false;
+		m_isace2200 = false;
+		m_ace2200_axxx_bank = false;
 		m_pal = false;
 #if IICP_NEW_IWM
 		m_cur_floppy = nullptr;
@@ -327,17 +330,17 @@ public:
 	required_ioport m_sysconfig;
 	required_device<speaker_sound_device> m_speaker;
 	optional_device<cassette_image_device> m_cassette;
-	required_device<address_map_bank_device> m_upperbank;
-	required_device<address_map_bank_device> m_0000bank;
-	required_device<address_map_bank_device> m_0200bank;
-	required_device<address_map_bank_device> m_0400bank;
-	required_device<address_map_bank_device> m_0800bank;
-	required_device<address_map_bank_device> m_2000bank;
-	required_device<address_map_bank_device> m_4000bank;
-	required_device<address_map_bank_device> m_c100bank;
-	required_device<address_map_bank_device> m_c300bank;
-	required_device<address_map_bank_device> m_c400bank;
-	required_device<address_map_bank_device> m_c800bank;
+	memory_view m_upperbank;
+	memory_view m_0000bank;
+	memory_view m_0200bank;
+	memory_view m_0400bank;
+	memory_view m_0800bank;
+	memory_view m_2000bank;
+	memory_view m_4000bank;
+	memory_view m_c100bank;
+	memory_view m_c300bank;
+	memory_view m_c400bank;
+	memory_view m_c800bank;
 	required_device<address_map_bank_device> m_lcbank;
 	optional_device<mos6551_device> m_acia1, m_acia2;
 	optional_device<applefdc_base_device> m_laserudc;
@@ -377,6 +380,7 @@ public:
 	u8 ram2000_r(offs_t offset);
 	void ram2000_w(offs_t offset, u8 data);
 	u8 ram4000_r(offs_t offset);
+	u8 ram4000_ace2200_r(offs_t offset);
 	void ram4000_w(offs_t offset, u8 data);
 	u8 cec4000_r(offs_t offset);
 	u8 cec8000_r(offs_t offset);
@@ -457,6 +461,7 @@ public:
 	void laser128o(machine_config &config);
 	void laser128ex2(machine_config &config);
 	void ace500(machine_config &config);
+	void ace2200(machine_config &config);
 	void apple2c_iwm(machine_config &config);
 	void apple2c_mem(machine_config &config);
 	void cec(machine_config &config);
@@ -470,26 +475,17 @@ public:
 	void apple2eepal(machine_config &config);
 	void apple2c_map(address_map &map);
 	void apple2c_memexp_map(address_map &map);
-	void apple2e_map(address_map &map);
-	void c100bank_map(address_map &map);
-	void c300bank_map(address_map &map);
-	void c400bank_map(address_map &map);
-	void c800bank_map(address_map &map);
-	void inhbank_map(address_map &map);
+	void base_map(address_map &map);
 	void laser128_map(address_map &map);
 	void ace500_map(address_map &map);
+	void ace2200_map(address_map &map);
 	void lcbank_map(address_map &map);
-	void r0000bank_map(address_map &map);
-	void r0200bank_map(address_map &map);
-	void r0400bank_map(address_map &map);
-	void r0800bank_map(address_map &map);
-	void r2000bank_map(address_map &map);
-	void r4000bank_map(address_map &map);
 	void spectred_keyb_map(address_map &map);
 	void init_laser128();
 	void init_128ex();
 	void init_pal();
 	void init_ace500();
+	void init_ace2200();
 
 	bool m_35sel, m_hdsel, m_intdrive;
 
@@ -530,7 +526,7 @@ private:
 	u8 m_migram[0x800];
 	u16 m_migpage;
 
-	bool m_isace500, m_ace_cnxx_bank;
+	bool m_isace500, m_isace2200, m_ace_cnxx_bank, m_ace2200_axxx_bank;
 	u16 m_ace500rombank;
 
 	bool m_accel_unlocked;
@@ -837,7 +833,7 @@ WRITE_LINE_MEMBER(apple2e_state::a2bus_inh_w)
 					{
 						if (m_inh_bank != 1)
 						{
-							m_upperbank->set_bank(1);
+							m_upperbank.select(1);
 							m_inh_bank = 1;
 						}
 					}
@@ -845,7 +841,7 @@ WRITE_LINE_MEMBER(apple2e_state::a2bus_inh_w)
 					{
 						if (m_inh_bank != 0)
 						{
-							m_upperbank->set_bank(0);
+							m_upperbank.select(0);
 							m_inh_bank = 0;
 						}
 					}
@@ -859,7 +855,7 @@ WRITE_LINE_MEMBER(apple2e_state::a2bus_inh_w)
 		// if no slots are inhibiting, make sure ROM is fully switched in
 		if ((m_inh_slot == -1) && (m_inh_bank != 0))
 		{
-			m_upperbank->set_bank(0);
+			m_upperbank.select(0);
 			m_inh_bank = 0;
 		}
 	}
@@ -969,14 +965,14 @@ void apple2e_state::machine_start()
 	{
 		m_cassette->output(-1.0f);
 	}
-	m_upperbank->set_bank(0);
+	m_upperbank.select(0);
 	m_lcbank->set_bank(0);
-	m_0000bank->set_bank(0);
-	m_0200bank->set_bank(0);
-	m_0400bank->set_bank(0);
-	m_0800bank->set_bank(0);
-	m_2000bank->set_bank(0);
-	m_4000bank->set_bank(0);
+	m_0000bank.select(0);
+	m_0200bank.select(0);
+	m_0400bank.select(0);
+	m_0800bank.select(0);
+	m_2000bank.select(0);
+	m_4000bank.select(0);
 	m_inh_bank = 0;
 
 	m_migpage = 0;
@@ -1041,10 +1037,10 @@ void apple2e_state::machine_start()
 
 	for (int adr = 0; adr < ram_size; adr += 2)
 	{
-		// invert the fill pattern order on the ACE 500, as it interacts with
+		// invert the fill pattern order on the ACE 500 and 2200, as it interacts with
 		// Franklin's monitor not returning the same values as Apple's plus some
 		// bugs in DOS 3.3.
-		if (m_isace500)
+		if ((m_isace500) || (m_isace2200))
 		{
 			m_ram_ptr[adr] = 0xff;
 			m_ram_ptr[adr+1] = 0;
@@ -1114,7 +1110,7 @@ void apple2e_state::machine_start()
 		m_iscec2000 = false;
 	}
 
-	if ((m_has_laser_mouse) || (m_isace500))
+	if ((m_has_laser_mouse) || (m_isace500) || (m_isace2200))
 	{
 		m_strobe_timer = machine().scheduler().timer_alloc(timer_expired_delegate(FUNC(apple2e_state::update_laserprn_strobe), this));
 		m_next_strobe = 1U;
@@ -1194,6 +1190,8 @@ void apple2e_state::machine_start()
 	save_item(NAME(m_next_strobe));
 	save_item(NAME(m_centronics_busy));
 	save_item(NAME(m_ace500rombank));
+	save_item(NAME(m_ace_cnxx_bank));
+	save_item(NAME(m_ace2200_axxx_bank));
 }
 
 void apple2e_state::machine_reset()
@@ -1243,7 +1241,10 @@ void apple2e_state::machine_reset()
 	{
 		m_intcxrom = true;
 		m_slotc3rom = false;
-		m_isiic = true;
+		if (!m_isace500)
+		{
+			m_isiic = true;
+		}
 
 		if (m_rom_ptr[0x3bbf] == 0x05)
 		{
@@ -1328,6 +1329,11 @@ void apple2e_state::init_ace500()
 	m_ace_cnxx_bank = false;
 }
 
+void apple2e_state::init_ace2200()
+{
+	m_isace2200 = true;
+}
+
 void apple2e_state::init_pal()
 {
 	m_pal = true;
@@ -1384,7 +1390,7 @@ TIMER_DEVICE_CALLBACK_MEMBER(apple2e_state::apple2_interrupt)
 			m_maincpu->reset();
 
 			// reset intcxrom to default
-			if (m_isiic)
+			if ((m_isiic) || (m_isace500))
 			{
 				m_intcxrom = true;
 			}
@@ -1517,54 +1523,54 @@ void apple2e_state::auxbank_update()
 
 	if (!m_iscec)   // real Apple II
 	{
-		m_0000bank->set_bank(m_altzp ? 1 : 0);
-		m_0200bank->set_bank(ramwr);
+		m_0000bank.select(m_altzp ? 1 : 0);
+		m_0200bank.select(ramwr);
 
 		if (m_80store)
 		{
 			if (m_page2)
 			{
-				m_0400bank->set_bank(3);
+				m_0400bank.select(3);
 			}
 			else
 			{
-				m_0400bank->set_bank(0);
+				m_0400bank.select(0);
 			}
 		}
 		else
 		{
-			m_0400bank->set_bank(ramwr);
+			m_0400bank.select(ramwr);
 		}
 
-		m_0800bank->set_bank(ramwr);
+		m_0800bank.select(ramwr);
 
 		if ((m_80store) && (m_video->m_hires))
 		{
 			if (m_page2)
 			{
-				m_2000bank->set_bank(3);
+				m_2000bank.select(3);
 			}
 			else
 			{
-				m_2000bank->set_bank(0);
+				m_2000bank.select(0);
 			}
 		}
 		else
 		{
-			m_2000bank->set_bank(ramwr);
+			m_2000bank.select(ramwr);
 		}
 
-		m_4000bank->set_bank(ramwr);
+		m_4000bank.select(ramwr);
 	}
 	else    // CEC
 	{
 		if (m_ramrd)
 		{
-			m_4000bank->set_bank(4);    // read CEC bank, write normal RAM
+			m_4000bank.select(4);    // read CEC bank, write normal RAM
 		}
 		else
 		{
-			m_4000bank->set_bank(0);    // read/write RAM
+			m_4000bank.select(0);    // read/write RAM
 		}
 	}
 }
@@ -1577,7 +1583,7 @@ void apple2e_state::update_slotrom_banks()
 
 		// IIc and IIc+ have working (readable) INTCXROM/SLOTC3ROM switches, but
 		// internal ROM is always present in the slots.
-		if ((m_intcxrom) || (m_isiic))
+		if ((m_intcxrom) || (m_isiic) || (m_isace500))
 		{
 			if (m_romswitch)
 			{
@@ -1589,64 +1595,64 @@ void apple2e_state::update_slotrom_banks()
 			}
 		}
 
-		m_c100bank->set_bank(cxswitch);
-		m_c400bank->set_bank(cxswitch);
+		m_c100bank.select(cxswitch);
+		m_c400bank.select(cxswitch);
 
 		//printf("intcxrom %d intc8rom %d cnxx_slot %d isiic %d romswitch %d\n", m_intcxrom, m_intc8rom, m_cnxx_slot, m_isiic, m_romswitch);
 		if ((m_intcxrom) || (m_intc8rom) || (m_isiic))
 		{
 			if (m_romswitch)
 			{
-				m_c800bank->set_bank(2);
+				m_c800bank.select(2);
 			}
 			else
 			{
-				m_c800bank->set_bank(1);
+				m_c800bank.select(1);
 			}
 		}
 		else
 		{
-			m_c800bank->set_bank(0);
+			m_c800bank.select(0);
 		}
 
 		if ((m_intcxrom) || (!m_slotc3rom) || (m_isiic))
 		{
 			if (m_romswitch)
 			{
-				m_c300bank->set_bank(2);
+				m_c300bank.select(2);
 			}
 			else
 			{
-				m_c300bank->set_bank(1);
+				m_c300bank.select(1);
 			}
 		}
 		else
 		{
-			m_c300bank->set_bank(0);
+			m_c300bank.select(0);
 		}
 	}
 	else    // CEC has only ROM here
 	{
 		if (!m_intcxrom)
 		{
-			m_c100bank->set_bank(3);
-			m_c400bank->set_bank(3);
-			m_c800bank->set_bank(3);
+			m_c100bank.select(3);
+			m_c400bank.select(3);
+			m_c800bank.select(3);
 		}
 		else
 		{
-			m_c100bank->set_bank(4);
-			m_c400bank->set_bank(4);
-			m_c800bank->set_bank(4);
+			m_c100bank.select(4);
+			m_c400bank.select(4);
+			m_c800bank.select(4);
 		}
 
 		if ((m_intcxrom) || (!m_slotc3rom))
 		{
-			m_c300bank->set_bank(4);
+			m_c300bank.select(4);
 		}
 		else
 		{
-			m_c300bank->set_bank(3);
+			m_c300bank.select(3);
 		}
 	}
 }
@@ -1768,7 +1774,7 @@ void apple2e_state::do_io(int offset, bool is_iic)
 	if ((offset & 0x58) == 0x58)
 	{
 		// IIc-specific switches
-		if (((m_isiic) && (!m_accel_unlocked)) && (!m_ioudis))
+		if (((m_isiic || m_isace500) && (!m_accel_unlocked)) && (!m_ioudis))
 		{
 			switch (offset)
 			{
@@ -2074,6 +2080,13 @@ u8 apple2e_state::c000_r(offs_t offset)
 
 		case 0x1f:  // read 80COL
 			return (m_video->m_80col ? 0x80 : 0x00) | m_transchar;
+
+		case 0x26:  // Ace 2x00 DIP switches
+			if (m_isace2200)
+			{
+				return (m_sysconfig->read() & 0x80) | uFloatingBus7;
+			}
+			break;
 
 		case 0x60: // cassette in
 		case 0x68:
@@ -2391,6 +2404,17 @@ void apple2e_state::c000_w(offs_t offset, u8 data)
 
 		case 0x70: case 0x71: case 0x72: case 0x73: case 0x74: case 0x75: case 0x76: case 0x77:
 		case 0x78: case 0x79: case 0x7a: case 0x7b: case 0x7c: case 0x7d:
+			if (m_isace2200)
+			{
+				if (offset == 0x78)
+				{
+					m_ace2200_axxx_bank = false;
+				}
+				else if (offset == 0x79)
+				{
+					m_ace2200_axxx_bank = true;
+				}
+			}
 			if (m_auxslotdevice)
 			{
 				m_auxslotdevice->write_c07x(offset & 0xf, data);
@@ -2669,6 +2693,16 @@ void apple2e_state::c000_iic_w(offs_t offset, u8 data)
 				m_accel_slotspk = data;
 			}
 			break;
+
+		case 0x70: case 0x71: case 0x72: case 0x73: case 0x74: case 0x75: case 0x76: case 0x77:
+				if (m_auxslotdevice)
+				{
+					m_auxslotdevice->write_c07x(offset & 0xf, data);
+
+					// card may have banked auxram; get a new bank pointer
+					m_aux_bank_ptr = m_auxslotdevice->get_auxbank_ptr();
+				}
+				break;
 
 		case 0x78:  // IIc mirror of SETIOUDIS used by the mouse firmware
 		case 0x7a:
@@ -3152,6 +3186,14 @@ u8 apple2e_state::ace500_c0bx_r(offs_t offset)
 {
 	switch (offset)
 	{
+		// Printer "auto-LF" DIP switch in bit 7
+		case 0x0:
+			return (m_sysconfig->read() & 0x80);
+
+		// Alt key status (0=pressed).  Reads as pressed for function keys.
+		case 0x4:
+			return 0xff;
+
 		// Used by the IRQ handler.  Appears to return altzp status in bit 7, same as $C016.
 		case 0xc:
 			return (m_altzp ? 0x80 : 0x00);
@@ -3532,6 +3574,15 @@ u8   apple2e_state::ram4000_r(offs_t offset)          { return m_ram_ptr[offset+
 void apple2e_state::ram4000_w(offs_t offset, u8 data) { m_ram_ptr[offset+0x4000] = data; }
 void apple2e_state::ram8000_w(offs_t offset, u8 data) { m_ram_ptr[offset+0x8000] = data; }
 
+u8 apple2e_state::ram4000_ace2200_r(offs_t offset)
+{
+	if ((offset >= 0x6000) && (m_ace2200_axxx_bank))
+	{
+		return m_rom_ptr[0x4000 + (offset - 0x6000)];
+	}
+	return m_ram_ptr[offset+0x4000];
+}
+
 u8 apple2e_state::cec4000_r(offs_t offset)
 {
 	//printf("cec4000_r: ofs %x\n", offset);
@@ -3564,196 +3615,129 @@ void apple2e_state::auxram2000_w(offs_t offset, u8 data) { if (m_aux_bank_ptr) {
 u8   apple2e_state::auxram4000_r(offs_t offset)          { if (m_aux_bank_ptr) { return m_aux_bank_ptr[offset+0x4000]; } else { return read_floatingbus(); } }
 void apple2e_state::auxram4000_w(offs_t offset, u8 data) { if (m_aux_bank_ptr) { m_aux_bank_ptr[offset+0x4000] = data; } }
 
-void apple2e_state::apple2e_map(address_map &map)
+void apple2e_state::base_map(address_map &map)
 {
-	map(0x0000, 0x01ff).m(m_0000bank, FUNC(address_map_bank_device::amap8));
-	map(0x0200, 0x03ff).m(m_0200bank, FUNC(address_map_bank_device::amap8));
-	map(0x0400, 0x07ff).m(m_0400bank, FUNC(address_map_bank_device::amap8));
-	map(0x0800, 0x1fff).m(m_0800bank, FUNC(address_map_bank_device::amap8));
-	map(0x2000, 0x3fff).m(m_2000bank, FUNC(address_map_bank_device::amap8));
-	map(0x4000, 0xbfff).m(m_4000bank, FUNC(address_map_bank_device::amap8));
+	map(0x0000, 0x01ff).view(m_0000bank);
+	m_0000bank[0](0x0000, 0x01ff).rw(FUNC(apple2e_state::ram0000_r), FUNC(apple2e_state::ram0000_w));
+	m_0000bank[1](0x0000, 0x01ff).rw(FUNC(apple2e_state::auxram0000_r), FUNC(apple2e_state::auxram0000_w));
+
+	map(0x0200, 0x03ff).view(m_0200bank);
+	m_0200bank[0](0x0200, 0x03ff).rw(FUNC(apple2e_state::ram0200_r), FUNC(apple2e_state::ram0200_w));         // wr 0 rd 0
+	m_0200bank[1](0x0200, 0x03ff).rw(FUNC(apple2e_state::auxram0200_r), FUNC(apple2e_state::ram0200_w));      // wr 0 rd 1
+	m_0200bank[2](0x0200, 0x03ff).rw(FUNC(apple2e_state::ram0200_r), FUNC(apple2e_state::auxram0200_w));      // wr 1 rd 0
+	m_0200bank[3](0x0200, 0x03ff).rw(FUNC(apple2e_state::auxram0200_r), FUNC(apple2e_state::auxram0200_w)); // wr 1 rd 1
+
+	map(0x0400, 0x07ff).view(m_0400bank);
+	m_0400bank[0](0x0400, 0x07ff).rw(FUNC(apple2e_state::ram0400_r), FUNC(apple2e_state::ram0400_w));         // wr 0 rd 0
+	m_0400bank[1](0x0400, 0x07ff).rw(FUNC(apple2e_state::auxram0400_r), FUNC(apple2e_state::ram0400_w));      // wr 0 rd 1
+	m_0400bank[2](0x0400, 0x07ff).rw(FUNC(apple2e_state::ram0400_r), FUNC(apple2e_state::auxram0400_w));      // wr 1 rd 0
+	m_0400bank[3](0x0400, 0x07ff).rw(FUNC(apple2e_state::auxram0400_r), FUNC(apple2e_state::auxram0400_w)); // wr 1 rd 1
+
+	map(0x0800, 0x1fff).view(m_0800bank);
+	m_0800bank[0](0x0800, 0x1fff).rw(FUNC(apple2e_state::ram0800_r), FUNC(apple2e_state::ram0800_w));
+	m_0800bank[1](0x0800, 0x1fff).rw(FUNC(apple2e_state::auxram0800_r), FUNC(apple2e_state::ram0800_w));
+	m_0800bank[2](0x0800, 0x1fff).rw(FUNC(apple2e_state::ram0800_r), FUNC(apple2e_state::auxram0800_w));
+	m_0800bank[3](0x0800, 0x1fff).rw(FUNC(apple2e_state::auxram0800_r), FUNC(apple2e_state::auxram0800_w));
+
+	map(0x2000, 0x3fff).view(m_2000bank);
+	m_2000bank[0](0x2000, 0x3fff).rw(FUNC(apple2e_state::ram2000_r), FUNC(apple2e_state::ram2000_w));
+	m_2000bank[1](0x2000, 0x3fff).rw(FUNC(apple2e_state::auxram2000_r), FUNC(apple2e_state::ram2000_w));
+	m_2000bank[2](0x2000, 0x3fff).rw(FUNC(apple2e_state::ram2000_r), FUNC(apple2e_state::auxram2000_w));
+	m_2000bank[3](0x2000, 0x3fff).rw(FUNC(apple2e_state::auxram2000_r), FUNC(apple2e_state::auxram2000_w));
+
+	map(0x4000, 0xbfff).view(m_4000bank);
+	m_4000bank[0](0x4000, 0xbfff).rw(FUNC(apple2e_state::ram4000_r), FUNC(apple2e_state::ram4000_w));
+	m_4000bank[1](0x4000, 0xbfff).rw(FUNC(apple2e_state::auxram4000_r), FUNC(apple2e_state::ram4000_w));
+	m_4000bank[2](0x4000, 0xbfff).rw(FUNC(apple2e_state::ram4000_r), FUNC(apple2e_state::auxram4000_w));
+	m_4000bank[3](0x4000, 0xbfff).rw(FUNC(apple2e_state::auxram4000_r), FUNC(apple2e_state::auxram4000_w));
+	m_4000bank[4](0x4000, 0xbfff).rw(FUNC(apple2e_state::cec4000_r), FUNC(apple2e_state::ram4000_w));
+	m_4000bank[5](0x4000, 0xbfff).rw(FUNC(apple2e_state::cec8000_r), FUNC(apple2e_state::ram8000_w));
+
 	map(0xc000, 0xc07f).rw(FUNC(apple2e_state::c000_r), FUNC(apple2e_state::c000_w));
 	map(0xc080, 0xc0ff).rw(FUNC(apple2e_state::c080_r), FUNC(apple2e_state::c080_w));
-	map(0xc100, 0xc2ff).m(m_c100bank, FUNC(address_map_bank_device::amap8));
-	map(0xc300, 0xc3ff).m(m_c300bank, FUNC(address_map_bank_device::amap8));
-	map(0xc400, 0xc7ff).m(m_c400bank, FUNC(address_map_bank_device::amap8));
-	map(0xc800, 0xcfff).m(m_c800bank, FUNC(address_map_bank_device::amap8));
-	map(0xd000, 0xffff).m(m_upperbank, FUNC(address_map_bank_device::amap8));
+
+	map(0xc100, 0xc2ff).view(m_c100bank);
+	m_c100bank[0](0xc100, 0xc2ff).rw(FUNC(apple2e_state::c100_r), FUNC(apple2e_state::c100_w));
+	m_c100bank[1](0xc100, 0xc2ff).rw(FUNC(apple2e_state::c100_int_r), FUNC(apple2e_state::c100_w));
+	m_c100bank[2](0xc100, 0xc2ff).rw(FUNC(apple2e_state::c100_int_bank_r), FUNC(apple2e_state::c100_w));
+	m_c100bank[3](0xc100, 0xc2ff).r(FUNC(apple2e_state::c100_cec_r)).nopw();
+	m_c100bank[4](0xc100, 0xc2ff).r(FUNC(apple2e_state::c100_cec_bank_r)).nopw();
+
+	map(0xc300, 0xc3ff).view(m_c300bank);
+	m_c300bank[0](0xc300, 0xc3ff).rw(FUNC(apple2e_state::c300_r), FUNC(apple2e_state::c300_w));
+	m_c300bank[1](0xc300, 0xc3ff).rw(FUNC(apple2e_state::c300_int_r), FUNC(apple2e_state::c300_w));
+	m_c300bank[2](0xc300, 0xc3ff).rw(FUNC(apple2e_state::c300_int_bank_r), FUNC(apple2e_state::c300_w));
+	m_c300bank[3](0xc300, 0xc3ff).r(FUNC(apple2e_state::c300_cec_r)).nopw();
+	m_c300bank[4](0xc300, 0xc3ff).r(FUNC(apple2e_state::c300_cec_bank_r)).nopw();
+
+	map(0xc400, 0xc7ff).view(m_c400bank);
+	m_c400bank[0](0xc400, 0xc7ff).rw(FUNC(apple2e_state::c400_r), FUNC(apple2e_state::c400_w));
+	m_c400bank[1](0xc400, 0xc7ff).rw(FUNC(apple2e_state::c400_int_r), FUNC(apple2e_state::c400_w));
+	m_c400bank[2](0xc400, 0xc7ff).rw(FUNC(apple2e_state::c400_int_bank_r), FUNC(apple2e_state::c400_w));
+	m_c400bank[3](0xc400, 0xc7ff).rw(FUNC(apple2e_state::c400_cec_r), FUNC(apple2e_state::c400_cec_w));
+	m_c400bank[4](0xc400, 0xc7ff).r(FUNC(apple2e_state::c400_cec_bank_r)).nopw();
+
+	map(0xc800, 0xcfff).view(m_c800bank);
+	m_c800bank[0](0xc800, 0xcfff).rw(FUNC(apple2e_state::c800_r), FUNC(apple2e_state::c800_w));
+	m_c800bank[1](0xc800, 0xcfff).rw(FUNC(apple2e_state::c800_int_r), FUNC(apple2e_state::c800_w));
+	m_c800bank[2](0xc800, 0xcfff).rw(FUNC(apple2e_state::c800_b2_int_r), FUNC(apple2e_state::c800_w));
+	m_c800bank[3](0xc800, 0xcfff).r(FUNC(apple2e_state::c800_cec_r)).nopw();
+	m_c800bank[4](0xc800, 0xcfff).r(FUNC(apple2e_state::c800_cec_bank_r)).nopw();
+
+	map(0xd000, 0xffff).view(m_upperbank); //m(m_upperbank, FUNC(address_map_bank_device::amap8));
+	m_upperbank[0](0xd000, 0xffff).m(m_lcbank, FUNC(address_map_bank_device::amap8));
+	m_upperbank[1](0xd000, 0xffff).rw(FUNC(apple2e_state::inh_r), FUNC(apple2e_state::inh_w));
 }
 
 void apple2e_state::apple2c_map(address_map &map)
 {
-	map(0x0000, 0x01ff).m(m_0000bank, FUNC(address_map_bank_device::amap8));
-	map(0x0200, 0x03ff).m(m_0200bank, FUNC(address_map_bank_device::amap8));
-	map(0x0400, 0x07ff).m(m_0400bank, FUNC(address_map_bank_device::amap8));
-	map(0x0800, 0x1fff).m(m_0800bank, FUNC(address_map_bank_device::amap8));
-	map(0x2000, 0x3fff).m(m_2000bank, FUNC(address_map_bank_device::amap8));
-	map(0x4000, 0xbfff).m(m_4000bank, FUNC(address_map_bank_device::amap8));
+	base_map(map);
 	map(0xc000, 0xc07f).rw(FUNC(apple2e_state::c000_iic_r), FUNC(apple2e_state::c000_iic_w));
-	map(0xc080, 0xc0ff).rw(FUNC(apple2e_state::c080_r), FUNC(apple2e_state::c080_w));
 	map(0xc098, 0xc09b).rw(m_acia1, FUNC(mos6551_device::read), FUNC(mos6551_device::write));
 	map(0xc0a8, 0xc0ab).rw(m_acia2, FUNC(mos6551_device::read), FUNC(mos6551_device::write));
-	map(0xc100, 0xc2ff).m(m_c100bank, FUNC(address_map_bank_device::amap8));
-	map(0xc300, 0xc3ff).m(m_c300bank, FUNC(address_map_bank_device::amap8));
-	map(0xc400, 0xc7ff).m(m_c400bank, FUNC(address_map_bank_device::amap8));
-	map(0xc800, 0xcfff).m(m_c800bank, FUNC(address_map_bank_device::amap8));
-	map(0xd000, 0xffff).m(m_upperbank, FUNC(address_map_bank_device::amap8));
 }
 
 void apple2e_state::apple2c_memexp_map(address_map &map)
 {
-	map(0x0000, 0x01ff).m(m_0000bank, FUNC(address_map_bank_device::amap8));
-	map(0x0200, 0x03ff).m(m_0200bank, FUNC(address_map_bank_device::amap8));
-	map(0x0400, 0x07ff).m(m_0400bank, FUNC(address_map_bank_device::amap8));
-	map(0x0800, 0x1fff).m(m_0800bank, FUNC(address_map_bank_device::amap8));
-	map(0x2000, 0x3fff).m(m_2000bank, FUNC(address_map_bank_device::amap8));
-	map(0x4000, 0xbfff).m(m_4000bank, FUNC(address_map_bank_device::amap8));
+	base_map(map);
 	map(0xc000, 0xc07f).rw(FUNC(apple2e_state::c000_iic_r), FUNC(apple2e_state::c000_iic_w));
-	map(0xc080, 0xc0ff).rw(FUNC(apple2e_state::c080_r), FUNC(apple2e_state::c080_w));
 	map(0xc098, 0xc09b).rw(m_acia1, FUNC(mos6551_device::read), FUNC(mos6551_device::write));
 	map(0xc0a8, 0xc0ab).rw(m_acia2, FUNC(mos6551_device::read), FUNC(mos6551_device::write));
 	map(0xc0c0, 0xc0c3).rw(FUNC(apple2e_state::memexp_r), FUNC(apple2e_state::memexp_w));
-	map(0xc100, 0xc2ff).m(m_c100bank, FUNC(address_map_bank_device::amap8));
-	map(0xc300, 0xc3ff).m(m_c300bank, FUNC(address_map_bank_device::amap8));
-	map(0xc400, 0xc7ff).m(m_c400bank, FUNC(address_map_bank_device::amap8));
-	map(0xc800, 0xcfff).m(m_c800bank, FUNC(address_map_bank_device::amap8));
-	map(0xd000, 0xffff).m(m_upperbank, FUNC(address_map_bank_device::amap8));
 }
 
 void apple2e_state::laser128_map(address_map &map)
 {
-	map(0x0000, 0x01ff).m(m_0000bank, FUNC(address_map_bank_device::amap8));
-	map(0x0200, 0x03ff).m(m_0200bank, FUNC(address_map_bank_device::amap8));
-	map(0x0400, 0x07ff).m(m_0400bank, FUNC(address_map_bank_device::amap8));
-	map(0x0800, 0x1fff).m(m_0800bank, FUNC(address_map_bank_device::amap8));
-	map(0x2000, 0x3fff).m(m_2000bank, FUNC(address_map_bank_device::amap8));
-	map(0x4000, 0xbfff).m(m_4000bank, FUNC(address_map_bank_device::amap8));
+	base_map(map);
 	map(0xc000, 0xc07f).rw(FUNC(apple2e_state::c000_laser_r), FUNC(apple2e_state::c000_laser_w));
-	map(0xc080, 0xc0ff).rw(FUNC(apple2e_state::c080_r), FUNC(apple2e_state::c080_w));
 	map(0xc090, 0xc097).w(FUNC(apple2e_state::laserprn_w));
 	map(0xc098, 0xc09b).rw(m_acia1, FUNC(mos6551_device::read), FUNC(mos6551_device::write));
 	map(0xc0a8, 0xc0ab).rw(m_acia2, FUNC(mos6551_device::read), FUNC(mos6551_device::write));
 	map(0xc0c0, 0xc0cf).rw(FUNC(apple2e_state::laser_mouse_r), FUNC(apple2e_state::laser_mouse_w));
 	map(0xc0d0, 0xc0d3).rw(FUNC(apple2e_state::memexp_r), FUNC(apple2e_state::memexp_w));
 	map(0xc0e0, 0xc0ef).rw(m_laserudc, FUNC(applefdc_base_device::read), FUNC(applefdc_base_device::write));
-	map(0xc100, 0xc2ff).m(m_c100bank, FUNC(address_map_bank_device::amap8));
 	map(0xc1c1, 0xc1c1).r(FUNC(apple2e_state::laserprn_busy_r));
-	map(0xc300, 0xc3ff).m(m_c300bank, FUNC(address_map_bank_device::amap8));
-	map(0xc400, 0xc7ff).m(m_c400bank, FUNC(address_map_bank_device::amap8));
-	map(0xc800, 0xcfff).m(m_c800bank, FUNC(address_map_bank_device::amap8));
-	map(0xd000, 0xffff).m(m_upperbank, FUNC(address_map_bank_device::amap8));
 }
 
 void apple2e_state::ace500_map(address_map &map)
 {
-	map(0x0000, 0x01ff).m(m_0000bank, FUNC(address_map_bank_device::amap8));
-	map(0x0200, 0x03ff).m(m_0200bank, FUNC(address_map_bank_device::amap8));
-	map(0x0400, 0x07ff).m(m_0400bank, FUNC(address_map_bank_device::amap8));
-	map(0x0800, 0x1fff).m(m_0800bank, FUNC(address_map_bank_device::amap8));
-	map(0x2000, 0x3fff).m(m_2000bank, FUNC(address_map_bank_device::amap8));
-	map(0x4000, 0xbfff).m(m_4000bank, FUNC(address_map_bank_device::amap8));
+	base_map(map);
 	map(0xc000, 0xc07f).rw(FUNC(apple2e_state::c000_iic_r), FUNC(apple2e_state::c000_iic_w));
-	map(0xc080, 0xc0ff).rw(FUNC(apple2e_state::c080_r), FUNC(apple2e_state::c080_w));
 	map(0xc0a8, 0xc0ab).rw(m_acia1, FUNC(mos6551_device::read), FUNC(mos6551_device::write));
 	map(0xc090, 0xc097).w(FUNC(apple2e_state::laserprn_w));
 	map(0xc0b0, 0xc0bf).rw(FUNC(apple2e_state::ace500_c0bx_r), FUNC(apple2e_state::ace500_c0bx_w));
-	map(0xc100, 0xc2ff).m(m_c100bank, FUNC(address_map_bank_device::amap8));
 	map(0xc1c1, 0xc1c1).r(FUNC(apple2e_state::laserprn_busy_r));
-	map(0xc300, 0xc3ff).m(m_c300bank, FUNC(address_map_bank_device::amap8));
-	map(0xc400, 0xc7ff).m(m_c400bank, FUNC(address_map_bank_device::amap8));
-	map(0xc800, 0xcfff).m(m_c800bank, FUNC(address_map_bank_device::amap8));
-	map(0xd000, 0xffff).m(m_upperbank, FUNC(address_map_bank_device::amap8));
 }
 
-void apple2e_state::r0000bank_map(address_map &map)
+void apple2e_state::ace2200_map(address_map &map)
 {
-	map(0x0000, 0x01ff).rw(FUNC(apple2e_state::ram0000_r), FUNC(apple2e_state::ram0000_w));
-	map(0x0200, 0x03ff).rw(FUNC(apple2e_state::auxram0000_r), FUNC(apple2e_state::auxram0000_w));
-}
+	base_map(map);
 
-void apple2e_state::r0200bank_map(address_map &map)
-{
-	map(0x0000, 0x01ff).rw(FUNC(apple2e_state::ram0200_r), FUNC(apple2e_state::ram0200_w)); // wr 0 rd 0
-	map(0x0200, 0x03ff).rw(FUNC(apple2e_state::auxram0200_r), FUNC(apple2e_state::ram0200_w)); // wr 0 rd 1
-	map(0x0400, 0x05ff).rw(FUNC(apple2e_state::ram0200_r), FUNC(apple2e_state::auxram0200_w)); // wr 1 rd 0
-	map(0x0600, 0x07ff).rw(FUNC(apple2e_state::auxram0200_r), FUNC(apple2e_state::auxram0200_w)); // wr 1 rd 1
-}
+	// change the banking here to acommodate the Ace 2x00's ROM banking in at $A000
+	m_4000bank[0](0x4000, 0xbfff).rw(FUNC(apple2e_state::ram4000_ace2200_r), FUNC(apple2e_state::ram4000_w));
 
-void apple2e_state::r0400bank_map(address_map &map)
-{
-	map(0x0000, 0x03ff).rw(FUNC(apple2e_state::ram0400_r), FUNC(apple2e_state::ram0400_w)); // wr 0 rd 0
-	map(0x0400, 0x07ff).rw(FUNC(apple2e_state::auxram0400_r), FUNC(apple2e_state::ram0400_w));  // wr 0 rd 1
-	map(0x0800, 0x0bff).rw(FUNC(apple2e_state::ram0400_r), FUNC(apple2e_state::auxram0400_w));  // wr 1 rd 0
-	map(0x0c00, 0x0fff).rw(FUNC(apple2e_state::auxram0400_r), FUNC(apple2e_state::auxram0400_w)); // wr 1 rd 1
-}
-
-void apple2e_state::r0800bank_map(address_map &map)
-{
-	map(0x0000, 0x17ff).rw(FUNC(apple2e_state::ram0800_r), FUNC(apple2e_state::ram0800_w));
-	map(0x2000, 0x37ff).rw(FUNC(apple2e_state::auxram0800_r), FUNC(apple2e_state::ram0800_w));
-	map(0x4000, 0x57ff).rw(FUNC(apple2e_state::ram0800_r), FUNC(apple2e_state::auxram0800_w));
-	map(0x6000, 0x77ff).rw(FUNC(apple2e_state::auxram0800_r), FUNC(apple2e_state::auxram0800_w));
-}
-
-void apple2e_state::r2000bank_map(address_map &map)
-{
-	map(0x0000, 0x1fff).rw(FUNC(apple2e_state::ram2000_r), FUNC(apple2e_state::ram2000_w));
-	map(0x2000, 0x3fff).rw(FUNC(apple2e_state::auxram2000_r), FUNC(apple2e_state::ram2000_w));
-	map(0x4000, 0x5fff).rw(FUNC(apple2e_state::ram2000_r), FUNC(apple2e_state::auxram2000_w));
-	map(0x6000, 0x7fff).rw(FUNC(apple2e_state::auxram2000_r), FUNC(apple2e_state::auxram2000_w));
-}
-
-void apple2e_state::r4000bank_map(address_map &map)
-{
-	map(0x00000, 0x07fff).rw(FUNC(apple2e_state::ram4000_r), FUNC(apple2e_state::ram4000_w));
-	map(0x08000, 0x0ffff).rw(FUNC(apple2e_state::auxram4000_r), FUNC(apple2e_state::ram4000_w));
-	map(0x10000, 0x17fff).rw(FUNC(apple2e_state::ram4000_r), FUNC(apple2e_state::auxram4000_w));
-	map(0x18000, 0x1ffff).rw(FUNC(apple2e_state::auxram4000_r), FUNC(apple2e_state::auxram4000_w));
-	map(0x20000, 0x23fff).rw(FUNC(apple2e_state::cec4000_r), FUNC(apple2e_state::ram4000_w));
-	map(0x24000, 0x27fff).rw(FUNC(apple2e_state::cec8000_r), FUNC(apple2e_state::ram8000_w));
-}
-
-void apple2e_state::c100bank_map(address_map &map)
-{
-	map(0x0000, 0x01ff).rw(FUNC(apple2e_state::c100_r), FUNC(apple2e_state::c100_w));
-	map(0x0200, 0x03ff).rw(FUNC(apple2e_state::c100_int_r), FUNC(apple2e_state::c100_w));
-	map(0x0400, 0x05ff).rw(FUNC(apple2e_state::c100_int_bank_r), FUNC(apple2e_state::c100_w));
-	map(0x0600, 0x07ff).r(FUNC(apple2e_state::c100_cec_r)).nopw();
-	map(0x0800, 0x09ff).r(FUNC(apple2e_state::c100_cec_bank_r)).nopw();
-
-}
-
-void apple2e_state::c300bank_map(address_map &map)
-{
-	map(0x0000, 0x00ff).rw(FUNC(apple2e_state::c300_r), FUNC(apple2e_state::c300_w));
-	map(0x0100, 0x01ff).rw(FUNC(apple2e_state::c300_int_r), FUNC(apple2e_state::c300_w));
-	map(0x0200, 0x02ff).rw(FUNC(apple2e_state::c300_int_bank_r), FUNC(apple2e_state::c300_w));
-	map(0x0300, 0x03ff).r(FUNC(apple2e_state::c300_cec_r)).nopw();
-	map(0x0400, 0x04ff).r(FUNC(apple2e_state::c300_cec_bank_r)).nopw();
-}
-
-void apple2e_state::c400bank_map(address_map &map)
-{
-	map(0x0000, 0x03ff).rw(FUNC(apple2e_state::c400_r), FUNC(apple2e_state::c400_w));
-	map(0x0400, 0x07ff).rw(FUNC(apple2e_state::c400_int_r), FUNC(apple2e_state::c400_w));
-	map(0x0800, 0x0bff).rw(FUNC(apple2e_state::c400_int_bank_r), FUNC(apple2e_state::c400_w));
-	map(0x0c00, 0x0fff).rw(FUNC(apple2e_state::c400_cec_r), FUNC(apple2e_state::c400_cec_w));
-	map(0x1000, 0x13ff).r(FUNC(apple2e_state::c400_cec_bank_r)).nopw();
-}
-
-void apple2e_state::c800bank_map(address_map &map)
-{
-	map(0x0000, 0x07ff).rw(FUNC(apple2e_state::c800_r), FUNC(apple2e_state::c800_w));
-	map(0x0800, 0x0fff).rw(FUNC(apple2e_state::c800_int_r), FUNC(apple2e_state::c800_w));
-	map(0x1000, 0x17ff).rw(FUNC(apple2e_state::c800_b2_int_r), FUNC(apple2e_state::c800_w));
-	map(0x1800, 0x1fff).r(FUNC(apple2e_state::c800_cec_r)).nopw();
-	map(0x2000, 0x27ff).r(FUNC(apple2e_state::c800_cec_bank_r)).nopw();
-}
-
-void apple2e_state::inhbank_map(address_map &map)
-{
-	map(0x0000, 0x2fff).m(m_lcbank, FUNC(address_map_bank_device::amap8));
-	map(0x3000, 0x5fff).rw(FUNC(apple2e_state::inh_r), FUNC(apple2e_state::inh_w));
+	map(0xc090, 0xc097).w(FUNC(apple2e_state::laserprn_w));
+	map(0xc1c1, 0xc1c1).r(FUNC(apple2e_state::laserprn_busy_r));
 }
 
 void apple2e_state::lcbank_map(address_map &map)
@@ -4506,7 +4490,17 @@ INPUT_PORTS_END
 
 static INPUT_PORTS_START( ace500 )
 	PORT_INCLUDE( apple2e_common )
-	PORT_INCLUDE( laser128_sysconfig )
+
+	PORT_START("a2_config")
+	PORT_CONFNAME(0x03, 0x00, "Composite monitor type")
+	PORT_CONFSETTING(0x00, "Color")
+	PORT_CONFSETTING(0x01, "B&W")
+	PORT_CONFSETTING(0x02, "Green")
+	PORT_CONFSETTING(0x03, "Amber")
+
+	PORT_CONFNAME(0x80, 0x00, "Auto Line Feed for printer")
+	PORT_CONFSETTING(0x80, DEF_STR(On))
+	PORT_CONFSETTING(0x00, DEF_STR(Off))
 
 	PORT_START("keyb_special")
 	PORT_BIT( 0x01, IP_ACTIVE_LOW,  IPT_KEYBOARD) PORT_NAME("Caps Lock")    PORT_CODE(KEYCODE_CAPSLOCK) PORT_TOGGLE
@@ -5112,7 +5106,7 @@ void apple2e_state::apple2e(machine_config &config)
 {
 	/* basic machine hardware */
 	M6502(config, m_maincpu, 1021800);
-	m_maincpu->set_addrmap(AS_PROGRAM, &apple2e_state::apple2e_map);
+	m_maincpu->set_addrmap(AS_PROGRAM, &apple2e_state::base_map);
 	m_maincpu->set_dasm_override(FUNC(apple2e_state::dasm_trampoline));
 
 	TIMER(config, m_scantimer, 0).configure_scanline(FUNC(apple2e_state::apple2_interrupt), "screen", 0, 1);
@@ -5138,41 +5132,8 @@ void apple2e_state::apple2e(machine_config &config)
 	/* RAM */
 	RAM(config, m_ram).set_default_size("64K").set_default_value(0x00);
 
-	/* 0000 banking */
-	ADDRESS_MAP_BANK(config, A2_0000_TAG).set_map(&apple2e_state::r0000bank_map).set_options(ENDIANNESS_LITTLE, 8, 32, 0x200);
-
-	/* 0200 banking */
-	ADDRESS_MAP_BANK(config, A2_0200_TAG).set_map(&apple2e_state::r0200bank_map).set_options(ENDIANNESS_LITTLE, 8, 32, 0x200);
-
-	/* 0400 banking */
-	ADDRESS_MAP_BANK(config, A2_0400_TAG).set_map(&apple2e_state::r0400bank_map).set_options(ENDIANNESS_LITTLE, 8, 32, 0x400);
-
-	/* 0800 banking */
-	ADDRESS_MAP_BANK(config, A2_0800_TAG).set_map(&apple2e_state::r0800bank_map).set_options(ENDIANNESS_LITTLE, 8, 32, 0x2000);
-
-	/* 2000 banking */
-	ADDRESS_MAP_BANK(config, A2_2000_TAG).set_map(&apple2e_state::r2000bank_map).set_options(ENDIANNESS_LITTLE, 8, 32, 0x2000);
-
-	/* 4000 banking */
-	ADDRESS_MAP_BANK(config, A2_4000_TAG).set_map(&apple2e_state::r4000bank_map).set_options(ENDIANNESS_LITTLE, 8, 32, 0x8000);
-
-	/* C100 banking */
-	ADDRESS_MAP_BANK(config, A2_C100_TAG).set_map(&apple2e_state::c100bank_map).set_options(ENDIANNESS_LITTLE, 8, 32, 0x200);
-
-	/* C300 banking */
-	ADDRESS_MAP_BANK(config, A2_C300_TAG).set_map(&apple2e_state::c300bank_map).set_options(ENDIANNESS_LITTLE, 8, 32, 0x100);
-
-	/* C400 banking */
-	ADDRESS_MAP_BANK(config, A2_C400_TAG).set_map(&apple2e_state::c400bank_map).set_options(ENDIANNESS_LITTLE, 8, 32, 0x400);
-
-	/* C800 banking */
-	ADDRESS_MAP_BANK(config, A2_C800_TAG).set_map(&apple2e_state::c800bank_map).set_options(ENDIANNESS_LITTLE, 8, 32, 0x800);
-
 	/* built-in language card emulation */
 	ADDRESS_MAP_BANK(config, A2_LCBANK_TAG).set_map(&apple2e_state::lcbank_map).set_options(ENDIANNESS_LITTLE, 8, 32, 0x3000);
-
-	/* /INH banking */
-	ADDRESS_MAP_BANK(config, A2_UPPERBANK_TAG).set_map(&apple2e_state::inhbank_map).set_options(ENDIANNESS_LITTLE, 8, 32, 0x3000);
 
 	/* keyboard controller */
 	ay3600_device &kbdc(AY3600(config, "ay3600", 0));
@@ -5232,7 +5193,7 @@ void apple2e_state::apple2epal(machine_config &config)
 {
 	apple2e(config);
 	M6502(config.replace(), m_maincpu, 1016966);
-	m_maincpu->set_addrmap(AS_PROGRAM, &apple2e_state::apple2e_map);
+	m_maincpu->set_addrmap(AS_PROGRAM, &apple2e_state::base_map);
 	m_maincpu->set_dasm_override(FUNC(apple2e_state::dasm_trampoline));
 	m_screen->set_raw(1016966 * 14, (65 * 7) * 2, 0, (40 * 7) * 2, 312, 0, 192);
 }
@@ -5250,7 +5211,7 @@ void apple2e_state::apple2ee(machine_config &config)
 	subdevice<software_list_device>("flop_a2_orig")->set_filter("A2EE");  // Filter list to compatible disks for this machine.
 
 	M65C02(config.replace(), m_maincpu, 1021800);
-	m_maincpu->set_addrmap(AS_PROGRAM, &apple2e_state::apple2e_map);
+	m_maincpu->set_addrmap(AS_PROGRAM, &apple2e_state::base_map);
 	m_maincpu->set_dasm_override(FUNC(apple2e_state::dasm_trampoline));
 }
 
@@ -5258,7 +5219,7 @@ void apple2e_state::apple2eepal(machine_config &config)
 {
 	apple2ee(config);
 	M65C02(config.replace(), m_maincpu, 1016966);
-	m_maincpu->set_addrmap(AS_PROGRAM, &apple2e_state::apple2e_map);
+	m_maincpu->set_addrmap(AS_PROGRAM, &apple2e_state::base_map);
 	m_maincpu->set_dasm_override(FUNC(apple2e_state::dasm_trampoline));
 
 	m_screen->set_raw(1016966 * 14, (65 * 7) * 2, 0, (40 * 7) * 2, 312, 0, 192);
@@ -5279,7 +5240,7 @@ void apple2e_state::tk3000(machine_config &config)
 {
 	apple2e(config);
 	M65C02(config.replace(), m_maincpu, 1021800);
-	m_maincpu->set_addrmap(AS_PROGRAM, &apple2e_state::apple2e_map);
+	m_maincpu->set_addrmap(AS_PROGRAM, &apple2e_state::base_map);
 
 //  z80_device &subcpu(Z80(config, "subcpu", 1021800));    // schematics are illegible on where the clock comes from, but it *seems* to be the same as the 65C02 clock
 //  subcpu.set_addrmap(AS_PROGRAM, &apple2e_state::tk3000_kbd_map);
@@ -5289,7 +5250,8 @@ void apple2e_state::apple2ep(machine_config &config)
 {
 	apple2e(config);
 	M65C02(config.replace(), m_maincpu, 1021800);
-	m_maincpu->set_addrmap(AS_PROGRAM, &apple2e_state::apple2e_map);
+	m_maincpu->set_addrmap(AS_PROGRAM, &apple2e_state::base_map);
+	m_maincpu->set_dasm_override(FUNC(apple2e_state::dasm_trampoline));
 }
 
 void apple2e_state::apple2c(machine_config &config)
@@ -5299,6 +5261,7 @@ void apple2e_state::apple2c(machine_config &config)
 
 	M65C02(config.replace(), m_maincpu, 1021800);
 	m_maincpu->set_addrmap(AS_PROGRAM, &apple2e_state::apple2c_map);
+	m_maincpu->set_dasm_override(FUNC(apple2e_state::dasm_trampoline));
 
 	// IIc and friends have no cassette port
 	config.device_remove(A2_CASSETTE_TAG);
@@ -5513,6 +5476,7 @@ void apple2e_state::laser128(machine_config &config)
 	apple2c(config);
 	M65C02(config.replace(), m_maincpu, 1021800);
 	m_maincpu->set_addrmap(AS_PROGRAM, &apple2e_state::laser128_map);
+	m_maincpu->set_dasm_override(FUNC(apple2e_state::dasm_trampoline));
 
 	m_screen->set_screen_update(FUNC(apple2e_state::screen_update_tf));
 
@@ -5544,6 +5508,7 @@ void apple2e_state::laser128o(machine_config &config)
 	apple2c(config);
 	M65C02(config.replace(), m_maincpu, 1021800);
 	m_maincpu->set_addrmap(AS_PROGRAM, &apple2e_state::laser128_map);
+	m_maincpu->set_dasm_override(FUNC(apple2e_state::dasm_trampoline));
 
 	m_screen->set_screen_update(FUNC(apple2e_state::screen_update_tf));
 
@@ -5576,6 +5541,7 @@ void apple2e_state::laser128ex2(machine_config &config)
 	apple2c(config);
 	M65C02(config.replace(), m_maincpu, 1021800);
 	m_maincpu->set_addrmap(AS_PROGRAM, &apple2e_state::laser128_map);
+	m_maincpu->set_dasm_override(FUNC(apple2e_state::dasm_trampoline));
 
 	m_screen->set_screen_update(FUNC(apple2e_state::screen_update_tf));
 
@@ -5604,11 +5570,13 @@ void apple2e_state::laser128ex2(machine_config &config)
 
 void apple2e_state::ace500(machine_config &config)
 {
-	apple2c_iwm(config);
+	apple2ee(config);
+		subdevice<software_list_device>("flop_a2_orig")->set_filter("A2C");  // Filter list to compatible disks for this machine.
+
 	M65C02(config.replace(), m_maincpu, 1021800);
 	m_maincpu->set_addrmap(AS_PROGRAM, &apple2e_state::ace500_map);
+	m_maincpu->set_dasm_override(FUNC(apple2e_state::dasm_trampoline));
 
-	m_screen->set_screen_update(FUNC(apple2e_state::screen_update_tf));
 	m_screen->set_screen_update(FUNC(apple2e_state::screen_update_tt));
 
 	CENTRONICS(config, m_printer_conn, centronics_devices, "printer");
@@ -5616,8 +5584,65 @@ void apple2e_state::ace500(machine_config &config)
 	OUTPUT_LATCH(config, m_printer_out);
 	m_printer_conn->set_output_latch(*m_printer_out);
 
-	// memory above 128K is RAMWorks compatible, a 256K machine has 128K of RAMWorks, and a 512K has 384K.
-	m_ram->set_default_size("256K").set_extra_options("256K, 512K");
+	MOS6551(config, m_acia1, 0);
+	m_acia1->set_xtal(1.8432_MHz_XTAL);
+	m_acia1->txd_handler().set(MODEM_PORT_TAG, FUNC(rs232_port_device::write_txd));
+	m_acia1->irq_handler().set(FUNC(apple2e_state::a2bus_irq_w));
+
+	rs232_port_device &modem(RS232_PORT(config, MODEM_PORT_TAG, default_rs232_devices, nullptr));
+	modem.rxd_handler().set(m_acia1, FUNC(mos6551_device::write_rxd));
+	modem.dcd_handler().set(m_acia1, FUNC(mos6551_device::write_dcd));
+	modem.dsr_handler().set(m_acia1, FUNC(mos6551_device::write_dsr));
+	modem.cts_handler().set(m_acia1, FUNC(mos6551_device::write_cts));
+
+	config.device_remove(A2_CASSETTE_TAG);
+	config.device_remove("sl1");
+	config.device_remove("sl2");
+	config.device_remove("sl3");
+	config.device_remove("sl4");
+	config.device_remove("sl5");
+	config.device_remove("sl6");
+	config.device_remove("sl7");
+	config.device_remove("aux");
+
+	A2BUS_IWM(config, "sl6", A2BUS_7M_CLOCK).set_onboard(m_a2bus);
+
+	A2EAUX_FRANKLIN384(config, "aux", A2BUS_7M_CLOCK).set_onboard(m_a2eauxslot);
+
+	m_ram->set_default_size("128K");
+}
+
+void apple2e_state::ace2200(machine_config &config)
+{
+	apple2e(config);
+	M65C02(config.replace(), m_maincpu, 1021800);
+	m_maincpu->set_addrmap(AS_PROGRAM, &apple2e_state::ace2200_map);
+	m_maincpu->set_dasm_override(FUNC(apple2e_state::dasm_trampoline));
+
+	m_screen->set_screen_update(FUNC(apple2e_state::screen_update_tt));
+
+	// The Ace 2000 series has 3 physical slots, 2, 4/7, and 5.
+	// 4/7 can be slot 4 or 7 via a jumper; we fix it to slot 7 here
+	// because that's most useful (for e.g. cffa202).
+	config.device_remove("sl1");
+	config.device_remove("sl3");
+	config.device_remove("sl4");
+	config.device_remove("sl5");
+	config.device_remove("sl6");
+
+	A2BUS_ACE2X00_SLOT1(config, "sl1", A2BUS_7M_CLOCK).set_onboard(m_a2bus);
+	A2BUS_SLOT(config, "sl5", m_a2bus, apple2_cards, "mockingboard");
+	A2BUS_ACE2X00_SLOT6(config, "sl6", A2BUS_7M_CLOCK).set_onboard(m_a2bus);
+
+	config.device_remove("aux");
+	A2EAUX_FRANKLIN512(config, "aux", A2BUS_7M_CLOCK).set_onboard(m_a2eauxslot);
+
+	CENTRONICS(config, m_printer_conn, centronics_devices, "printer");
+	m_printer_conn->busy_handler().set(FUNC(apple2e_state::busy_w));
+	OUTPUT_LATCH(config, m_printer_out);
+	m_printer_conn->set_output_latch(*m_printer_out);
+
+	m_ram->set_default_size("128K");
 }
 
 void apple2e_state::cec(machine_config &config)
@@ -6071,6 +6096,20 @@ ROM_START(zijini)
 	ROM_LOAD( "u40.m2822.bin", 0x000000, 0x000100, CRC(b72a2c70) SHA1(bc39fbd5b9a8d2287ac5d0a42e639fc4d3c2f9d4) )
 ROM_END
 
+ROM_START(ace2200)
+	ROM_REGION(0x2000,"gfx1",0)
+	ROM_LOAD("franklin_ace2000_videorom.bin", 0x1000, 0x1000, CRC(545bdeea) SHA1(26ebc4b0d3080311f550090bc1b29807cb22d083))
+	ROM_CONTINUE(0x0000, 0x1000)
+
+	ROM_REGION(0x10000,"maincpu",0)
+	ROM_LOAD("franklin_ace2000_rom_u2_p2_rev6.bin", 0x000000, 0x002000, CRC(1ab6e4d3) SHA1(5bdb10089fbdadaee9772afa1f7439a51289636b))
+	ROM_LOAD("franklin_ace2000_rom_u3_p1_rev6.bin", 0x002000, 0x002000, CRC(197f4936) SHA1(ec9de6da0ca6b6fd97fbef34eec64bf5c3c1b6c5))
+	ROM_LOAD("franklin_ace2000_rom_u1_p3_rev6_franklinrom.bin", 0x004000, 0x002000, CRC(5cc150a7) SHA1(7ac8028bbf8cb7730f432e0bae32e364523555fb))
+
+	ROM_REGION( 0x800, "keyboard", ROMREGION_ERASE00 )
+	ROM_LOAD( "342-0132-c.e12", 0x000, 0x800, CRC(e47045f4) SHA1(12a2e718f5f4acd69b6c33a45a4a940b1440a481) ) // 1983 US-Dvorak
+ROM_END
+
 ROM_START(ace500)
 	ROM_REGION(0x2000,"gfx1",0)
 	// not sure if the 500 and 2000 have the same character set.  First 4K is normal charset, second 4K is MouseText
@@ -6115,4 +6154,5 @@ COMP( 1989, cecm,       0,       apple2, cec,         cecm,      apple2e_state, 
 COMP( 1991, cec2000,    0,       apple2, cec,         ceci,      apple2e_state, empty_init, "Shaanxi Province Computer Factory", "China Education Computer 2000", MACHINE_SUPPORTS_SAVE )
 COMP( 1989, zijini,     0,       apple2, cec,         zijini,    apple2e_state, empty_init, "Nanjing Computer Factory", "Zi Jin I", MACHINE_SUPPORTS_SAVE )
 COMP( 1988, apple2cp,   apple2c, 0,      apple2cp,    apple2cp,  apple2e_state, empty_init, "Apple Computer",   "Apple //c Plus", MACHINE_SUPPORTS_SAVE )
+COMP( 1985, ace2200,    apple2e, 0,      ace2200,     ace500,    apple2e_state, init_ace2200,"Franklin Computer", "ACE 2200", MACHINE_SUPPORTS_SAVE)
 COMP( 1986, ace500,     apple2c, 0,      ace500,      ace500,    apple2e_state, init_ace500,"Franklin Computer", "ACE 500", MACHINE_SUPPORTS_SAVE)

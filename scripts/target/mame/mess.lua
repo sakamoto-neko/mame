@@ -325,6 +325,7 @@ SOUNDS["ROLANDPCM"] = true
 --SOUNDS["TT5665"] = true
 SOUNDS["RP2C33_SOUND"] = true
 SOUNDS["UDA1344"] = true
+SOUNDS["LYNX"] = true
 
 --------------------------------------------------
 -- specify available video cores
@@ -410,7 +411,6 @@ VIDEOS["SED1356"] = true
 VIDEOS["SED1500"] = true
 VIDEOS["SED1520"] = true
 VIDEOS["SNES_PPU"] = true
-VIDEOS["STVVDP"] = true
 VIDEOS["T6963C"] = true
 VIDEOS["T6A04"] = true
 VIDEOS["TEA1002"] = true
@@ -510,6 +510,7 @@ MACHINES["CS4031"] = true
 MACHINES["CS8221"] = true
 MACHINES["CS8900A"] = true
 MACHINES["CXD1095"] = true
+MACHINES["DL11"] = true
 MACHINES["DP8390"] = true
 MACHINES["DP83932C"] = true
 MACHINES["DP8573"] = true
@@ -1283,6 +1284,7 @@ function linkProjects_mame_mess(_target, _subtarget)
 		"grundy",
 		"h01x",
 		"hartung",
+		"hds",
 		"heathkit",
 		"hec2hrp",
 		"hegener",
@@ -1508,6 +1510,7 @@ function createProjects_mame_mess(_target, _subtarget)
 -- 3do.c (MESS + MAME), konamim2.c (MAME)
 -- vectrex.c (MESS + MAME)
 -- cps1.c (MESS + MAME)
+-- apple
 --------------------------------------------------
 if (_subtarget=="mess") then
 createMESSProjects(_target, _subtarget, "mameshared")
@@ -1626,8 +1629,13 @@ files {
 	MAME_DIR .. "src/mame/includes/saturn.h",
 	MAME_DIR .. "src/mame/drivers/saturn.cpp",
 	MAME_DIR .. "src/mame/machine/saturn.cpp",
+	MAME_DIR .. "src/mame/video/saturn.cpp",
 	MAME_DIR .. "src/mame/machine/saturn_cdb.cpp",
 	MAME_DIR .. "src/mame/machine/saturn_cdb.h",
+	MAME_DIR .. "src/mame/video/apple2.cpp",
+	MAME_DIR .. "src/mame/video/apple2.h",
+	MAME_DIR .. "src/mame/machine/apple2common.cpp",
+	MAME_DIR .. "src/mame/machine/apple2common.h",
 }
 end
 --------------------------------------------------
@@ -1812,12 +1820,8 @@ files {
 	MAME_DIR .. "src/mame/drivers/apple2.cpp",
 	MAME_DIR .. "src/mame/drivers/apple2e.cpp",
 	MAME_DIR .. "src/mame/includes/apple2e.h",
-	MAME_DIR .. "src/mame/video/apple2.cpp",
-	MAME_DIR .. "src/mame/video/apple2.h",
 	MAME_DIR .. "src/mame/drivers/tk2000.cpp",
 	MAME_DIR .. "src/mame/drivers/apple2gs.cpp",
-	MAME_DIR .. "src/mame/machine/apple2common.cpp",
-	MAME_DIR .. "src/mame/machine/apple2common.h",
 	MAME_DIR .. "src/mame/drivers/apple3.cpp",
 	MAME_DIR .. "src/mame/includes/apple3.h",
 	MAME_DIR .. "src/mame/machine/apple3.cpp",
@@ -1910,8 +1914,6 @@ files {
 	MAME_DIR .. "src/mame/video/atarist.h",
 	MAME_DIR .. "src/mame/drivers/lynx.cpp",
 	MAME_DIR .. "src/mame/includes/lynx.h",
-	MAME_DIR .. "src/mame/audio/lynx.cpp",
-	MAME_DIR .. "src/mame/audio/lynx.h",
 	MAME_DIR .. "src/mame/machine/lynx.cpp",
 	MAME_DIR .. "src/mame/drivers/pofo.cpp",
 	MAME_DIR .. "src/mame/machine/pofo_kbd.cpp",
@@ -2565,6 +2567,11 @@ files {
 createMESSProjects(_target, _subtarget, "hartung")
 files {
 	MAME_DIR .. "src/mame/drivers/gmaster.cpp",
+}
+
+createMESSProjects(_target, _subtarget, "hds")
+files {
+	MAME_DIR .. "src/mame/drivers/hds200.cpp",
 }
 
 createMESSProjects(_target, _subtarget, "heathkit")
@@ -3946,8 +3953,6 @@ files {
 createMESSProjects(_target, _subtarget, "teamconc")
 files {
 	MAME_DIR .. "src/mame/drivers/comquest.cpp",
-	MAME_DIR .. "src/mame/includes/comquest.h",
-	MAME_DIR .. "src/mame/video/comquest.cpp",
 }
 
 createMESSProjects(_target, _subtarget, "tectoy")

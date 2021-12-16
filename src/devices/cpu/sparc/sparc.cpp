@@ -16,6 +16,7 @@
 //      - Test: SPARCv8 ops are untested
 //      - Extended-precision FPU support
 //      - Coprocessor support
+//      - Finish SPARClite peripherals
 //
 //================================================================
 
@@ -53,8 +54,6 @@
 DEFINE_DEVICE_TYPE(SPARCV7, sparcv7_device, "sparcv7", "Sun SPARC v7")
 DEFINE_DEVICE_TYPE(SPARCV8, sparcv8_device, "sparcv8", "Sun SPARC v8")
 DEFINE_DEVICE_TYPE(MB86930, mb86930_device, "mb86930", "Fujitsu MB86930 'SPARClite'")
-
-const int sparc_base_device::NWINDOWS = 7;
 
 #if LOG_FCODES
 #include "ss1fcode.ipp"
@@ -260,6 +259,11 @@ void sparc_base_device::device_start()
 	}
 	m_log_fcodes = false;
 #endif
+
+	NWINDOWS = 7;
+	PSR = 0;
+	m_ver = 0;
+	m_impl = 0;
 
 	m_bp_reset_in = false;
 	m_bp_fpu_present = true;
@@ -478,13 +482,12 @@ void sparc_base_device::device_start()
 	save_item(NAME(m_alu_op3_assigned));
 	save_item(NAME(m_ldst_op3_assigned));
 	save_item(NAME(m_alu_setcc));
+	save_item(NAME(m_nwindows));
 	save_item(NAME(m_privileged_asr));
 	save_item(NAME(m_illegal_instruction_asr));
 	save_item(NAME(m_mae));
 	save_item(NAME(m_no_annul));
 	save_item(NAME(m_hold_bus));
-	save_item(NAME(m_icount));
-	save_item(NAME(m_stashed_icount));
 	save_item(NAME(m_insn_space));
 	save_item(NAME(m_data_space));
 
@@ -540,8 +543,6 @@ void sparc_base_device::device_reset()
 	m_bp_irl = 0;
 	m_irq_state = 0;
 
-	m_stashed_icount = -1;
-
 	MAE = false;
 	HOLD_BUS = false;
 	m_no_annul = true;
@@ -555,9 +556,16 @@ void sparc_base_device::device_reset()
 	TBR = 0;
 	Y = 0;
 
-	PSR = PSR_S_MASK | PSR_PS_MASK;
+	PSR = (PSR & PSR_ZERO_MASK) | (PSR_S_MASK | PSR_PS_MASK);
 	m_s = true;
+	m_ps = true;
 	m_data_space = 11;
+	m_pil = 0;
+	m_et = false;
+	m_icc = 0;
+	m_ec = false;
+	m_ef = false;
+	m_cwp = 0;
 
 	for (int i = 0; i < 8; i++)
 	{
@@ -631,19 +639,25 @@ void mb86930_device::device_start()
 {
 	sparcv8_device::device_start();
 
+	NWINDOWS = 8;
+	PSR |= 2 << PSR_VER_SHIFT;
+	m_ver = 2;
+
+	m_bp_cp_present = false;
+	m_bp_fpu_present = false;
+
 	m_alu_setcc[OP3_DIVSCC] = true;
 
 	m_alu_op3_assigned[OP3_DIVSCC] = true;
 	m_alu_op3_assigned[OP3_SCAN] = true;
 
+	save_item(NAME(m_ssctrl));
 	save_item(NAME(m_spmr));
 	save_item(NAME(m_spmr_mask));
 	save_item(NAME(m_arsr));
 	save_item(NAME(m_amr));
 	save_item(NAME(m_wssr));
 	save_item(NAME(m_last_masked_addr));
-	save_item(NAME(m_same_page_waits));
-	save_item(NAME(m_other_page_waits));
 
 	std::fill_n(&m_arsr[0], 6, 0);
 	std::fill_n(&m_amr[0], 6, 0);
@@ -656,18 +670,19 @@ void mb86930_device::device_reset()
 {
 	sparcv8_device::device_reset();
 
+	m_ssctrl = 0x08;
 	m_spmr = 0;
 	m_spmr_mask = ~0ULL;
-	std::fill_n(&m_wssr[0], 3, 0);
 	m_last_masked_addr = 0ULL;
 
-	std::fill_n(&m_same_page_waits[0], 6, 0);
-	std::fill_n(&m_other_page_waits[0], 6, 0);
+	std::fill_n(&m_wssr[0], 3, 0);
+	m_wssr[0] = 0x1ffd << 6;
 
 	m_arsr[0] = (9 << 23);
 	m_amr[0] = (0x1f << 1);
 
 	update_addr_masks();
+	update_wait_states();
 }
 
 
@@ -869,6 +884,30 @@ void mb86930_device::update_addr_masks()
 	}
 }
 
+void mb86930_device::update_wait_states()
+{
+	for (int i = 0; i < 6; i++)
+	{
+		const uint8_t shift = (i & 1) ? 19 : 6;
+		const bool enable = bool(BIT(m_wssr[i >> 1], shift + 2));
+		const bool single = bool(BIT(m_wssr[i >> 1], shift + 1));
+		//const bool override = bool(BIT(m_wssr[i >> 1], shift + 0));
+
+		if (BIT(m_ssctrl, 3) && !single && enable)
+		{
+			const uint8_t count1 = ((m_wssr[i >> 1] >> (shift + 8)) & 0x1f) + 1;
+			const uint8_t count2 = ((m_wssr[i >> 1] >> (shift + 3)) & 0x1f) + 1;
+			m_other_page_waits[i] = count1;
+			m_same_page_waits[i] = BIT(m_ssctrl, 5) ? count2 : count1;
+		}
+		else
+		{
+			m_other_page_waits[i] = 0;
+			m_same_page_waits[i] = 0;
+		}
+	}
+}
+
 uint32_t mb86930_device::biu_ctrl_r(offs_t offset, uint32_t mem_mask)
 {
 	uint32_t data = 0;
@@ -936,7 +975,7 @@ void mb86930_device::restore_lock_ctrl_w(offs_t offset, uint32_t data, uint32_t 
 
 uint32_t mb86930_device::system_support_ctrl_r(offs_t offset, uint32_t mem_mask)
 {
-	uint32_t data = 0;
+	uint32_t data = m_ssctrl;
 	LOGMASKED(LOG_SYSTEM_CTRL, "%s: system_ctrl_r: %08x & %08x\n", machine().describe_context(), data, mem_mask);
 	return data;
 }
@@ -944,6 +983,8 @@ uint32_t mb86930_device::system_support_ctrl_r(offs_t offset, uint32_t mem_mask)
 void mb86930_device::system_support_ctrl_w(offs_t offset, uint32_t data, uint32_t mem_mask)
 {
 	LOGMASKED(LOG_SYSTEM_CTRL, "%s: system_ctrl_w: %08x & %08x\n", machine().describe_context(), data, mem_mask);
+	COMBINE_DATA(&m_ssctrl);
+	update_wait_states();
 }
 
 
@@ -1003,14 +1044,7 @@ void mb86930_device::wait_specifier_w(offs_t offset, uint32_t data, uint32_t mem
 {
 	LOGMASKED(LOG_WAIT_STATE, "%s: wait_state_w[%d]: %08x & %08x\n", machine().describe_context(), offset, data, mem_mask);
 	COMBINE_DATA(&m_wssr[offset]);
-
-	const uint32_t wait_idx = (offset << 1);
-	const bool wait_en0 = BIT(m_wssr[offset], 8) && !BIT(m_wssr[offset], 7);
-	const bool wait_en1 = BIT(m_wssr[offset], 21) && !BIT(m_wssr[offset], 20);
-	m_same_page_waits[wait_idx] = wait_en0 ? (((m_wssr[offset] >> 9) & 0x1f) + 1) : 0;
-	m_other_page_waits[wait_idx] = wait_en0 ? (((m_wssr[offset] >> 14) & 0x1f) + 1) : 0;
-	m_same_page_waits[wait_idx + 1] = wait_en1 ? (((m_wssr[offset] >> 22) & 0x1f) + 1) : 0;
-	m_other_page_waits[wait_idx + 1] = wait_en1 ? (((m_wssr[offset] >> 27) & 0x1f) + 1) : 0;
+	update_wait_states();
 }
 
 
@@ -1054,6 +1088,7 @@ void mb86930_device::device_post_load()
 {
 	sparcv8_device::device_post_load();
 	update_addr_masks();
+	update_wait_states();
 }
 
 
@@ -1316,8 +1351,6 @@ void sparc_base_device::execute_taddcc(uint32_t op)
 	{
 		m_trap = 1;
 		m_tag_overflow = true;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -1395,8 +1428,6 @@ void sparc_base_device::execute_tsubcc(uint32_t op)
 	{
 		m_trap = 1;
 		m_tag_overflow = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -1595,16 +1626,12 @@ void sparc_base_device::execute_rdsr(uint32_t op)
 	{
 		m_trap = 1;
 		m_privileged_instruction = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 	else if (m_illegal_instruction_asr[RS1])
 	{
 		m_trap = 1;
 		m_illegal_instruction = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -1657,16 +1684,12 @@ void sparc_base_device::execute_wrsr(uint32_t op)
 		{
 			m_trap = 1;
 			m_privileged_instruction = 1;
-			m_stashed_icount = m_icount;
-			m_icount = 0;
 			return;
 		}
 		else if (m_illegal_instruction_asr[RD])
 		{
 			m_trap = 1;
 			m_illegal_instruction = 1;
-			m_stashed_icount = m_icount;
-			m_icount = 0;
 			return;
 		}
 		else
@@ -1682,20 +1705,16 @@ void sparc_base_device::execute_wrsr(uint32_t op)
 		{
 			m_trap = 1;
 			m_privileged_instruction = 1;
-			m_stashed_icount = m_icount;
-			m_icount = 0;
 			return;
 		}
 		else if ((result & 31) >= NWINDOWS)
 		{
 			m_trap = 1;
 			m_illegal_instruction = 1;
-			m_stashed_icount = m_icount;
-			m_icount = 0;
 			return;
 		}
 
-		PSR = result &~ PSR_ZERO_MASK;
+		PSR = (PSR & PSR_ZERO_MASK) | (result & ~PSR_ZERO_MASK);
 		update_gpr_pointers();
 
 		m_et = PSR & PSR_ET_MASK;
@@ -1725,8 +1744,6 @@ void sparc_base_device::execute_wrsr(uint32_t op)
 		{
 			m_trap = 1;
 			m_privileged_instruction = 1;
-			m_stashed_icount = m_icount;
-			m_icount = 0;
 			return;
 		}
 
@@ -1740,8 +1757,6 @@ void sparc_base_device::execute_wrsr(uint32_t op)
 		{
 			m_trap = 1;
 			m_privileged_instruction = 1;
-			m_stashed_icount = m_icount;
-			m_icount = 0;
 			return;
 		}
 
@@ -1774,8 +1789,6 @@ void sparc_base_device::execute_rett(uint32_t op)
 		{
 			m_illegal_instruction = 1;
 		}
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 	else if (IS_USER)
@@ -1785,8 +1798,6 @@ void sparc_base_device::execute_rett(uint32_t op)
 		m_tt = 3;
 		m_execute_mode = 0;
 		m_error_mode = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 	else if ((WIM & (1 << new_cwp)) != 0)
@@ -1796,8 +1807,6 @@ void sparc_base_device::execute_rett(uint32_t op)
 		m_tt = 6;
 		m_execute_mode = 0;
 		m_error_mode = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 	else if (address & 3)
@@ -1807,8 +1816,6 @@ void sparc_base_device::execute_rett(uint32_t op)
 		m_tt = 7;
 		m_execute_mode = 0;
 		m_error_mode = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -1834,6 +1841,12 @@ void sparc_base_device::execute_rett(uint32_t op)
 	}
 
 	update_gpr_pointers();
+
+	if (m_et && (m_bp_irl == 15 || m_bp_irl > m_pil) && m_interrupt_level == 0)
+	{
+		m_trap = 1;
+		m_interrupt_level = m_bp_irl;
+	}
 }
 
 
@@ -1858,8 +1871,6 @@ void sparc_base_device::execute_saverestore(uint32_t op)
 		{
 			m_trap = 1;
 			m_window_overflow = 1;
-			m_stashed_icount = m_icount;
-			m_icount = 0;
 			return;
 		}
 
@@ -1874,8 +1885,6 @@ void sparc_base_device::execute_saverestore(uint32_t op)
 		{
 			m_trap = 1;
 			m_window_underflow = 1;
-			m_stashed_icount = m_icount;
-			m_icount = 0;
 			return;
 		}
 
@@ -1908,8 +1917,6 @@ void sparc_base_device::execute_jmpl(uint32_t op)
 	{
 		m_trap = 1;
 		m_mem_address_not_aligned = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 	}
 	else
 	{
@@ -2021,8 +2028,6 @@ inline void sparc_base_device::execute_group2(uint32_t op)
 			{
 				m_trap = 1;
 				m_fp_disabled = 1;
-				m_stashed_icount = m_icount;
-				m_icount = 0;
 			}
 			complete_fp_execution(op);
 			return;
@@ -2056,8 +2061,6 @@ inline void sparc_base_device::execute_group2(uint32_t op)
 				logerror("illegal instruction at %08x: %08x\n", PC, op);
 				m_trap = 1;
 				m_illegal_instruction = 1;
-				m_stashed_icount = m_icount;
-				m_icount = 0;
 			}
 			break;
 	}
@@ -2074,14 +2077,6 @@ bool sparcv7_device::execute_extra_group2(uint32_t op)
 {
 	switch (OP3)
 	{
-		case OP3_TADDCCTV:
-			execute_taddcc(op);
-			return true;
-
-		case OP3_TSUBCCTV:
-			execute_tsubcc(op);
-			return true;
-
 		default:
 			return false;
 	}
@@ -2110,8 +2105,6 @@ bool sparcv8_device::execute_extra_group2(uint32_t op)
 			logerror("cpop @ %08x: %08x\n", PC, op);
 			m_trap = 1;
 			m_cp_disabled = 1;
-			m_stashed_icount = m_icount;
-			m_icount = 0;
 			return true;
 
 		default:
@@ -2147,6 +2140,12 @@ bool mb86930_device::execute_extra_group2(uint32_t op)
 			execute_scan(op);
 			return true;
 
+		case OP3_UMUL:
+		case OP3_SMUL:
+		case OP3_UMULCC:
+		case OP3_SMULCC:
+			return sparcv8_device::execute_extra_group2(op);
+
 		default:
 			return false;
 	}
@@ -2181,16 +2180,12 @@ void sparc_base_device::execute_store(uint32_t op)
 	{
 		m_trap = 1;
 		m_privileged_instruction = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 	else if ((USEIMM && (STDA || STA || STHA || STBA)) || ((STD || STDA) && (RD & 1)))
 	{
 		m_trap = 1;
 		m_illegal_instruction = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -2210,24 +2205,18 @@ void sparc_base_device::execute_store(uint32_t op)
 	{
 		m_trap = 1;
 		m_fp_disabled = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 	if ((STC || STDC || STCSR || STDCQ) && (!(PSR & PSR_EC_MASK) || !m_bp_cp_present))
 	{
 		m_trap = 1;
 		m_cp_disabled = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
 	if ((STH || STHA) && ((address & 1) != 0))
 	{
 		m_trap = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		m_mem_address_not_aligned = 1;
 		return;
 	}
@@ -2235,16 +2224,12 @@ void sparc_base_device::execute_store(uint32_t op)
 	{
 		m_trap = 1;
 		m_mem_address_not_aligned = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 	else if ((STD || STDA || STDF || STDFQ || STDC || STDCQ) && ((address & 7) != 0))
 	{
 		m_mem_address_not_aligned = 1;
 		m_trap = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -2258,8 +2243,6 @@ void sparc_base_device::execute_store(uint32_t op)
 		// assume no coprocessor queue for now
 		m_trap = 1;
 		m_cp_exception = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		// { possibly additional implementation-dependent actions }
 		return;
 	}
@@ -2379,8 +2362,6 @@ void sparc_base_device::execute_store(uint32_t op)
 	{
 		m_trap = 1;
 		m_data_access_exception = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -2391,8 +2372,6 @@ void sparc_base_device::execute_store(uint32_t op)
 		{
 			m_trap = 1;
 			m_data_access_exception = 1;
-			m_stashed_icount = m_icount;
-			m_icount = 0;
 			return;
 		}
 	}
@@ -2409,8 +2388,6 @@ inline void sparc_base_device::execute_ldd(uint32_t op)
 	{
 		m_trap = 1;
 		m_illegal_instruction = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -2420,8 +2397,7 @@ inline void sparc_base_device::execute_ldd(uint32_t op)
 	{
 		m_trap = 1;
 		m_mem_address_not_aligned = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
+		return;
 	}
 
 	const uint32_t data = read_word(m_data_space, address);
@@ -2430,8 +2406,6 @@ inline void sparc_base_device::execute_ldd(uint32_t op)
 	{
 		m_trap = 1;
 		m_data_access_exception = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -2443,8 +2417,6 @@ inline void sparc_base_device::execute_ldd(uint32_t op)
 	{
 		m_trap = 1;
 		m_data_access_exception = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -2462,8 +2434,6 @@ inline void sparc_base_device::execute_ld(uint32_t op)
 	{
 		m_trap = 1;
 		m_mem_address_not_aligned = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -2473,8 +2443,6 @@ inline void sparc_base_device::execute_ld(uint32_t op)
 	{
 		m_trap = 1;
 		m_data_access_exception = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -2493,8 +2461,6 @@ inline void sparc_base_device::execute_ldsh(uint32_t op)
 	{
 		m_trap = 1;
 		m_mem_address_not_aligned = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -2505,8 +2471,6 @@ inline void sparc_base_device::execute_ldsh(uint32_t op)
 	{
 		m_trap = 1;
 		m_data_access_exception = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -2528,8 +2492,6 @@ inline void sparc_base_device::execute_lduh(uint32_t op)
 	{
 		m_trap = 1;
 		m_mem_address_not_aligned = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -2540,8 +2502,6 @@ inline void sparc_base_device::execute_lduh(uint32_t op)
 	{
 		m_trap = 1;
 		m_data_access_exception = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -2566,8 +2526,6 @@ inline void sparc_base_device::execute_ldsb(uint32_t op)
 	{
 		m_trap = 1;
 		m_data_access_exception = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -2595,8 +2553,6 @@ inline void sparc_base_device::execute_ldub(uint32_t op)
 	{
 		m_trap = 1;
 		m_data_access_exception = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -2618,8 +2574,6 @@ inline void sparc_base_device::execute_lddfpr(uint32_t op)
 	{
 		m_trap = 1;
 		m_fp_disabled = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -2627,8 +2581,6 @@ inline void sparc_base_device::execute_lddfpr(uint32_t op)
 	{
 		m_trap = 1;
 		m_mem_address_not_aligned = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -2638,8 +2590,6 @@ inline void sparc_base_device::execute_lddfpr(uint32_t op)
 	{
 		m_trap = 1;
 		m_data_access_exception = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -2653,8 +2603,6 @@ inline void sparc_base_device::execute_lddfpr(uint32_t op)
 	{
 		m_trap = 1;
 		m_data_access_exception = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -2678,8 +2626,6 @@ inline void sparc_base_device::execute_ldfpr(uint32_t op)
 	{
 		m_trap = 1;
 		m_fp_disabled = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -2687,8 +2633,6 @@ inline void sparc_base_device::execute_ldfpr(uint32_t op)
 	{
 		m_trap = 1;
 		m_mem_address_not_aligned = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -2698,8 +2642,6 @@ inline void sparc_base_device::execute_ldfpr(uint32_t op)
 	{
 		m_trap = 1;
 		m_data_access_exception = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -2722,8 +2664,6 @@ inline void sparc_base_device::execute_ldfsr(uint32_t op)
 	{
 		m_trap = 1;
 		m_fp_disabled = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -2731,8 +2671,6 @@ inline void sparc_base_device::execute_ldfsr(uint32_t op)
 	{
 		m_trap = 1;
 		m_mem_address_not_aligned = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -2742,8 +2680,6 @@ inline void sparc_base_device::execute_ldfsr(uint32_t op)
 	{
 		m_trap = 1;
 		m_data_access_exception = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -2769,8 +2705,6 @@ inline void sparc_base_device::execute_lddcpr(uint32_t op)
 	{
 		m_trap = 1;
 		m_cp_disabled = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -2778,8 +2712,6 @@ inline void sparc_base_device::execute_lddcpr(uint32_t op)
 	{
 		m_trap = 1;
 		m_mem_address_not_aligned = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -2787,8 +2719,6 @@ inline void sparc_base_device::execute_lddcpr(uint32_t op)
 	{
 		m_trap = 1;
 		m_cp_exception = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		// possibly additional implementation-dependent actions
 		return;
 	}
@@ -2798,8 +2728,6 @@ inline void sparc_base_device::execute_lddcpr(uint32_t op)
 	{
 		m_trap = 1;
 		m_data_access_exception = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -2810,8 +2738,6 @@ inline void sparc_base_device::execute_lddcpr(uint32_t op)
 	{
 		m_trap = 1;
 		m_data_access_exception = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -2829,8 +2755,6 @@ inline void sparc_base_device::execute_ldcpr(uint32_t op)
 	{
 		m_trap = 1;
 		m_cp_disabled = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -2838,8 +2762,6 @@ inline void sparc_base_device::execute_ldcpr(uint32_t op)
 	{
 		m_trap = 1;
 		m_mem_address_not_aligned = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -2847,8 +2769,6 @@ inline void sparc_base_device::execute_ldcpr(uint32_t op)
 	{
 		m_trap = 1;
 		m_cp_exception = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		// possibly additional implementation-dependent actions
 		return;
 	}
@@ -2859,8 +2779,6 @@ inline void sparc_base_device::execute_ldcpr(uint32_t op)
 	{
 		m_trap = 1;
 		m_data_access_exception = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -2878,8 +2796,6 @@ inline void sparc_base_device::execute_ldcsr(uint32_t op)
 	{
 		m_trap = 1;
 		m_cp_disabled = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -2887,8 +2803,6 @@ inline void sparc_base_device::execute_ldcsr(uint32_t op)
 	{
 		m_trap = 1;
 		m_mem_address_not_aligned = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -2896,8 +2810,6 @@ inline void sparc_base_device::execute_ldcsr(uint32_t op)
 	{
 		m_trap = 1;
 		m_cp_exception = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		// possibly additional implementation-dependent actions
 		return;
 	}
@@ -2908,8 +2820,6 @@ inline void sparc_base_device::execute_ldcsr(uint32_t op)
 	{
 		m_trap = 1;
 		m_data_access_exception = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -2925,16 +2835,12 @@ inline void sparc_base_device::execute_ldda(uint32_t op)
 	{
 		m_trap = 1;
 		m_privileged_instruction = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 	else if (USEIMM || (RD & 1))
 	{
 		m_trap = 1;
 		m_illegal_instruction = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -2945,8 +2851,6 @@ inline void sparc_base_device::execute_ldda(uint32_t op)
 	{
 		m_trap = 1;
 		m_mem_address_not_aligned = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -2956,8 +2860,6 @@ inline void sparc_base_device::execute_ldda(uint32_t op)
 	{
 		m_trap = 1;
 		m_data_access_exception = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -2969,8 +2871,6 @@ inline void sparc_base_device::execute_ldda(uint32_t op)
 	{
 		m_trap = 1;
 		m_data_access_exception = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -2986,16 +2886,12 @@ inline void sparc_base_device::execute_lda(uint32_t op)
 	{
 		m_trap = 1;
 		m_privileged_instruction = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 	else if (USEIMM)
 	{
 		m_trap = 1;
 		m_illegal_instruction = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -3005,8 +2901,6 @@ inline void sparc_base_device::execute_lda(uint32_t op)
 	{
 		m_trap = 1;
 		m_mem_address_not_aligned = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -3016,8 +2910,6 @@ inline void sparc_base_device::execute_lda(uint32_t op)
 	{
 		m_trap = 1;
 		m_data_access_exception = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -3034,16 +2926,12 @@ inline void sparc_base_device::execute_ldsha(uint32_t op)
 	{
 		m_trap = 1;
 		m_privileged_instruction = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 	else if (USEIMM)
 	{
 		m_trap = 1;
 		m_illegal_instruction = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -3053,8 +2941,6 @@ inline void sparc_base_device::execute_ldsha(uint32_t op)
 	{
 		m_trap = 1;
 		m_mem_address_not_aligned = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -3065,8 +2951,6 @@ inline void sparc_base_device::execute_ldsha(uint32_t op)
 	{
 		m_trap = 1;
 		m_data_access_exception = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -3086,16 +2970,12 @@ inline void sparc_base_device::execute_lduha(uint32_t op)
 	{
 		m_trap = 1;
 		m_privileged_instruction = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 	else if (USEIMM)
 	{
 		m_trap = 1;
 		m_illegal_instruction = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -3104,8 +2984,6 @@ inline void sparc_base_device::execute_lduha(uint32_t op)
 	{
 		m_trap = 1;
 		m_mem_address_not_aligned = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -3116,8 +2994,6 @@ inline void sparc_base_device::execute_lduha(uint32_t op)
 	{
 		m_trap = 1;
 		m_data_access_exception = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -3137,16 +3013,12 @@ inline void sparc_base_device::execute_ldsba(uint32_t op)
 	{
 		m_trap = 1;
 		m_privileged_instruction = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 	else if (USEIMM)
 	{
 		m_trap = 1;
 		m_illegal_instruction = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -3158,8 +3030,6 @@ inline void sparc_base_device::execute_ldsba(uint32_t op)
 	{
 		m_trap = 1;
 		m_data_access_exception = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -3181,16 +3051,12 @@ inline void sparc_base_device::execute_lduba(uint32_t op)
 	{
 		m_trap = 1;
 		m_privileged_instruction = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 	else if (USEIMM)
 	{
 		m_trap = 1;
 		m_illegal_instruction = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -3202,8 +3068,6 @@ inline void sparc_base_device::execute_lduba(uint32_t op)
 	{
 		m_trap = 1;
 		m_data_access_exception = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -3242,27 +3106,21 @@ void sparc_base_device::execute_ldstub(uint32_t op)
 		{
 			m_trap = 1;
 			m_privileged_instruction = 1;
-			m_stashed_icount = m_icount;
-			m_icount = 0;
 			return;
 		}
 		else if (USEIMM)
 		{
 			m_trap = 1;
 			m_illegal_instruction = 1;
-			m_stashed_icount = m_icount;
-			m_icount = 0;
 			return;
 		}
 		else
 		{
 			address = RS1REG + RS2REG;
 			addr_space = ASI;
-			return;
 		}
 	}
 
-	uint32_t data(0);
 	//while (m_pb_block_ldst_byte || m_pb_block_ldst_word)
 	//{
 		// { wait for lock(s) to be lifted }
@@ -3273,14 +3131,12 @@ void sparc_base_device::execute_ldstub(uint32_t op)
 	m_pb_block_ldst_byte = 1;
 
 	static const uint32_t mask8[4] = { 0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff };
-	data = read_word(addr_space, address, mask8[address & 3]);
+	uint32_t data = read_word(addr_space, address, mask8[address & 3]);
 
 	if (MAE)
 	{
 		m_trap = 1;
 		m_data_access_exception = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -3292,8 +3148,6 @@ void sparc_base_device::execute_ldstub(uint32_t op)
 	{
 		m_trap = 1;
 		m_data_access_exception = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 
@@ -3427,8 +3281,6 @@ inline void sparc_base_device::execute_group3(uint32_t op)
 				logerror("illegal instruction at %08x: %08x\n", PC, op);
 				m_trap = 1;
 				m_illegal_instruction = 1;
-				m_stashed_icount = m_icount;
-				m_icount = 0;
 			}
 			break;
 	}
@@ -3627,8 +3479,6 @@ void sparc_base_device::execute_ticc(uint32_t op)
 			m_trap = 1;
 			m_trap_instruction = 1;
 			m_ticc_trap_type = trap_number & 0x7f;
-			m_stashed_icount = m_icount;
-			m_icount = 0;
 		}
 		else
 		{
@@ -3659,7 +3509,6 @@ void sparc_base_device::select_trap()
 	{
 		m_execute_mode = 0;
 		m_error_mode = 1;
-		m_stashed_icount = m_icount;
 		m_icount = 0;
 	}
 	else
@@ -3864,9 +3713,8 @@ inline void sparc_base_device::dispatch_instruction(uint32_t op)
 		case OP2_BICC: // branch on integer condition codes
 			execute_bicc(op);
 			break;
-		case OP2_SETHI: // sethi
-			*m_regs[RD] = op << 10;
-			m_r[0] = 0;
+		case OP2_SETHI: // sethi or nop
+			if (RDBITS) RDREG = op << 10;
 			PC = nPC;
 			nPC = nPC + 4;
 			break;
@@ -3875,8 +3723,6 @@ inline void sparc_base_device::dispatch_instruction(uint32_t op)
 			{
 				m_trap = 1;
 				m_fp_disabled = 1;
-				m_stashed_icount = m_icount;
-				m_icount = 0;
 				return;
 			}
 			execute_fbfcc(op);
@@ -3887,8 +3733,6 @@ inline void sparc_base_device::dispatch_instruction(uint32_t op)
 				logerror("illegal instruction at %08x: %08x\n", PC, op);
 				m_trap = 1;
 				m_illegal_instruction = 1;
-				m_stashed_icount = m_icount;
-				m_icount = 0;
 			}
 			return;
 		}
@@ -3934,8 +3778,6 @@ bool sparcv8_device::dispatch_extra_instruction(uint32_t op)
 				logerror("cbccc @ %08x: %08x\n", PC, op);
 				m_trap = 1;
 				m_cp_disabled = 1;
-				m_stashed_icount = m_icount;
-				m_icount = 0;
 				return true;
 			}
 			return true;
@@ -4379,16 +4221,12 @@ void sparcv8_device::execute_swap(uint32_t op)
 		{
 			m_trap = 1;
 			m_privileged_instruction = 1;
-			m_stashed_icount = m_icount;
-			m_icount = 0;
 			return;
 		}
 		else if (USEIMM)
 		{
 			m_trap = 1;
 			m_illegal_instruction = 1;
-			m_stashed_icount = m_icount;
-			m_icount = 0;
 			return;
 		}
 		else
@@ -4398,51 +4236,48 @@ void sparcv8_device::execute_swap(uint32_t op)
 		}
 	}
 
+	if (address & 3)
+	{
+		m_trap = 1;
+		m_mem_address_not_aligned = 1;
+		return;
+	}
+
 	uint32_t word = 0;
-	uint32_t temp = 0;
-	if (!m_trap)
+	uint32_t data = RDREG;
+
+	//while (m_pb_block_ldst_byte || m_pb_block_ldst_word)
+	//{
+		// { wait for lock(s) to be lifted }
+		// { an implementation actually need only block when another SWAP is pending on
+		//   the same word in memory as the one addressed by this SWAP, or a LDSTUB is
+		//   pending on any byte of the word in memory addressed by this SWAP }
+	//}
+
+	m_pb_block_ldst_word = 1;
+
+	word = read_word(addr_space, address);
+
+	if (MAE)
 	{
-		temp = RDREG;
-		while (m_pb_block_ldst_byte || m_pb_block_ldst_word)
-		{
-			// { wait for lock(s) to be lifted }
-			// { an implementation actually need only block when another SWAP is pending on
-			//   the same word in memory as the one addressed by this SWAP, or a LDSTUB is
-			//   pending on any byte of the word in memory addressed by this SWAP }
-		}
-
-		m_pb_block_ldst_word = 1;
-
-		word = read_word(addr_space, address);
-
-		if (MAE)
-		{
-			m_trap = 1;
-			m_data_access_exception = 1;
-			m_stashed_icount = m_icount;
-			m_icount = 0;
-			return;
-		}
+		m_trap = 1;
+		m_data_access_exception = 1;
+		return;
 	}
-	if (!m_trap)
+
+	write_word(addr_space, address, data);
+
+	m_pb_block_ldst_word = 0;
+
+	if (MAE)
 	{
-		write_word(addr_space, address, temp);
-
-		m_pb_block_ldst_word = 0;
-		if (MAE)
-		{
-			m_trap = 1;
-			m_data_access_exception = 1;
-			m_stashed_icount = m_icount;
-			m_icount = 0;
-			return;
-		}
-		else
-		{
-			if (RDBITS)
-				RDREG = word;
-		}
+		m_trap = 1;
+		m_data_access_exception = 1;
+		return;
 	}
+
+	if (RDBITS)
+		RDREG = word;
 
 	PC = nPC;
 	nPC = nPC + 4;
@@ -4503,8 +4338,6 @@ void sparcv8_device::execute_div(uint32_t op)
 	{
 		m_trap = 1;
 		m_division_by_zero = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
 		return;
 	}
 	else
@@ -4518,7 +4351,7 @@ void sparcv8_device::execute_div(uint32_t op)
 
 			result = uint32_t(temp_64bit);
 
-			temp_v = ((temp_64bit & 0xffffffff00000000) == 0) ? false : true;
+			temp_v = ((temp_64bit & 0xffffffff00000000ULL) == 0) ? false : true;
 		}
 		else if (SDIV || SDIVCC)
 		{
@@ -4527,7 +4360,7 @@ void sparcv8_device::execute_div(uint32_t op)
 			result = uint32_t(temp_64bit);
 
 			uint64_t shifted = uint64_t(temp_64bit) >> 31;
-			temp_v = (shifted == 0 || shifted == 0x1ffffffff) ? false : true;
+			temp_v = (shifted == 0 || shifted == 0x1ffffffffULL) ? false : true;
 		}
 
 		if (temp_v)
@@ -4588,8 +4421,6 @@ inline void sparc_base_device::execute_step()
 		{
 			m_trap = 1;
 			m_instruction_access_exception = 1;
-			m_stashed_icount = m_icount;
-			m_icount = 0;
 			return;
 		}
 		dispatch_instruction(op);
@@ -4603,10 +4434,8 @@ inline void sparc_base_device::execute_step()
 				if (m_fp_exception_pending)
 				{
 					m_fp_exception_pending = false;
-					m_fp_exception = 1;
 					m_trap = 1;
-					m_stashed_icount = m_icount;
-					m_icount = 0;
+					m_fp_exception = 1;
 					return;
 				}
 			}
@@ -4629,15 +4458,10 @@ void sparc_base_device::reset_step()
 {
 	// The SPARC Instruction Manual: Version 8, page 156, "Appendix C - ISP Descriptions - C.5. Processor States and Instruction Dispatch" (SPARCv8.pdf, pg. 153)
 
-	if (!m_bp_reset_in)
-	{
-		m_reset_mode = 0;
-		m_execute_mode = 1;
-		m_trap = 1;
-		m_reset_trap = 1;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
-	}
+	m_reset_mode = 0;
+	m_execute_mode = 1;
+	m_trap = 1;
+	m_reset_trap = 1;
 }
 
 
@@ -4649,14 +4473,8 @@ void sparc_base_device::error_step()
 {
 	// The SPARC Instruction Manual: Version 8, page 157, "Appendix C - ISP Descriptions - C.5. Processor States and Instruction Dispatch" (SPARCv8.pdf, pg. 154)
 
-	if (m_bp_reset_in)
-	{
-		m_error_mode = 0;
-		m_reset_mode = 1;
-		m_pb_error = 0;
-		m_stashed_icount = m_icount;
-		m_icount = 0;
-	}
+	// waiting for SPARC_RESET
+	m_icount = 0;
 }
 
 template <bool CHECK_DEBUG, sparc_base_device::running_mode MODE>
@@ -4696,7 +4514,7 @@ void sparc_base_device::run_loop()
 			}
 		}
 		--m_icount;
-	} while (m_icount >= 0);
+	} while (m_icount > 0 && !m_trap);
 }
 
 //-------------------------------------------------
@@ -4710,10 +4528,14 @@ void sparc_base_device::execute_run()
 
 	if (m_bp_reset_in)
 	{
+		if (m_error_mode)
+		{
+			m_pb_error = 0;
+		}
+
 		m_execute_mode = 0;
 		m_error_mode = 0;
 		m_reset_mode = 1;
-		m_stashed_icount = m_icount;
 		m_icount = 0;
 		return;
 	}
@@ -4748,13 +4570,7 @@ void sparc_base_device::execute_run()
 			else
 				run_loop<false, MODE_EXECUTE>();
 		}
-
-		if (m_stashed_icount >= 0)
-		{
-			m_icount = m_stashed_icount;
-			m_stashed_icount = -1;
-		}
-	} while (m_icount >= 0);
+	} while (m_icount > 0);
 }
 
 

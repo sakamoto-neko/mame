@@ -298,6 +298,7 @@ SOUNDS["TT5665"] = true
 --SOUNDS["UDA1344"] = true
 SOUNDS["SWP30"] = true
 SOUNDS["XT446"] = true
+--SOUNDS["LYNX"] = true
 
 --------------------------------------------------
 -- specify available video cores
@@ -377,7 +378,6 @@ VIDEOS["PWM_DISPLAY"] = true
 --VIDEOS["SED1500"] = true
 --VIDEOS["SED1520"] = true
 VIDEOS["SNES_PPU"] = true
-VIDEOS["STVVDP"] = true
 --VIDEOS["T6963C"] = true
 --VIDEOS["T6A04"] = true
 VIDEOS["TLC34076"] = true
@@ -1350,8 +1350,6 @@ files {
 	MAME_DIR .. "src/mame/audio/sprint2.cpp",
 	MAME_DIR .. "src/mame/video/sprint2.cpp",
 	MAME_DIR .. "src/mame/drivers/sprint4.cpp",
-	MAME_DIR .. "src/mame/includes/sprint4.h",
-	MAME_DIR .. "src/mame/video/sprint4.cpp",
 	MAME_DIR .. "src/mame/audio/sprint4.cpp",
 	MAME_DIR .. "src/mame/audio/sprint4.h",
 	MAME_DIR .. "src/mame/drivers/sprint8.cpp",
@@ -2035,7 +2033,7 @@ files {
 	MAME_DIR .. "src/mame/includes/gaelco.h",
 	MAME_DIR .. "src/mame/video/gaelco.cpp",
 	MAME_DIR .. "src/mame/machine/gaelcrpt.cpp",
-	MAME_DIR .. "src/mame/includes/gaelcrpt.h",
+	MAME_DIR .. "src/mame/machine/gaelcrpt.h",
 	MAME_DIR .. "src/mame/drivers/gaelco2.cpp",
 	MAME_DIR .. "src/mame/includes/gaelco2.h",
 	MAME_DIR .. "src/mame/machine/gaelco2.cpp",
@@ -3260,8 +3258,6 @@ files {
 	MAME_DIR .. "src/mame/drivers/ddealer.cpp",
 	MAME_DIR .. "src/mame/drivers/jalmah.cpp",
 	MAME_DIR .. "src/mame/drivers/macrossp.cpp",
-	MAME_DIR .. "src/mame/includes/macrossp.h",
-	MAME_DIR .. "src/mame/video/macrossp.cpp",
 	MAME_DIR .. "src/mame/drivers/nmk16.cpp",
 	MAME_DIR .. "src/mame/includes/nmk16.h",
 	MAME_DIR .. "src/mame/machine/nmk004.cpp",
@@ -3631,6 +3627,7 @@ files {
 	MAME_DIR .. "src/mame/includes/saturn.h",
 	MAME_DIR .. "src/mame/drivers/saturn.cpp",
 	MAME_DIR .. "src/mame/machine/saturn.cpp",
+	MAME_DIR .. "src/mame/video/saturn.cpp",
 	MAME_DIR .. "src/mame/machine/saturn_cdb.cpp",
 	MAME_DIR .. "src/mame/machine/saturn_cdb.h",
 	MAME_DIR .. "src/mame/includes/stv.h",
@@ -4678,6 +4675,7 @@ files {
 	MAME_DIR .. "src/mame/drivers/jp.cpp",
 	MAME_DIR .. "src/mame/drivers/jvh.cpp",
 	MAME_DIR .. "src/mame/drivers/kissproto.cpp",
+	MAME_DIR .. "src/mame/drivers/lancelot.cpp",
 	MAME_DIR .. "src/mame/drivers/lckydraw.cpp",
 	MAME_DIR .. "src/mame/drivers/ltd.cpp",
 	MAME_DIR .. "src/mame/drivers/macp.cpp",
@@ -4787,10 +4785,12 @@ files {
 	MAME_DIR .. "src/mame/includes/ampoker2.h",
 	MAME_DIR .. "src/mame/video/ampoker2.cpp",
 	MAME_DIR .. "src/mame/drivers/amspdwy.cpp",
-	MAME_DIR .. "src/mame/includes/amspdwy.h",
-	MAME_DIR .. "src/mame/video/amspdwy.cpp",
 	MAME_DIR .. "src/mame/drivers/amusco.cpp",
 	MAME_DIR .. "src/mame/drivers/anes.cpp",
+	MAME_DIR .. "src/mame/video/apple2.cpp",
+	MAME_DIR .. "src/mame/video/apple2.h",
+	MAME_DIR .. "src/mame/machine/apple2common.cpp",
+	MAME_DIR .. "src/mame/machine/apple2common.h",
 	MAME_DIR .. "src/mame/drivers/arachnid.cpp",
 	MAME_DIR .. "src/mame/drivers/artmagic.cpp",
 	MAME_DIR .. "src/mame/includes/artmagic.h",
@@ -4850,6 +4850,7 @@ files {
 	MAME_DIR .. "src/mame/drivers/coinmvga.cpp",
 	MAME_DIR .. "src/mame/drivers/cointek.cpp",
 	MAME_DIR .. "src/mame/drivers/comebaby.cpp",
+	MAME_DIR .. "src/mame/drivers/compucranes.cpp",
 	MAME_DIR .. "src/mame/drivers/cowtipping.cpp",
 	MAME_DIR .. "src/mame/drivers/crazybal.cpp",
 	MAME_DIR .. "src/mame/drivers/cromptons.cpp",
@@ -4909,6 +4910,7 @@ files {
 	MAME_DIR .. "src/mame/drivers/ettrivia.cpp",
 	MAME_DIR .. "src/mame/drivers/extrema.cpp",
 	MAME_DIR .. "src/mame/drivers/ez2d.cpp",
+	MAME_DIR .. "src/mame/drivers/falgas_m89.cpp",
 	MAME_DIR .. "src/mame/drivers/fastinvaders.cpp",
 	MAME_DIR .. "src/mame/drivers/fireball.cpp",
 	MAME_DIR .. "src/mame/drivers/flipjack.cpp",
@@ -4958,7 +4960,6 @@ files {
 	MAME_DIR .. "src/mame/drivers/hotblock.cpp",
 	MAME_DIR .. "src/mame/drivers/hotstuff.cpp",
 	MAME_DIR .. "src/mame/drivers/houseball.cpp",
-	MAME_DIR .. "src/mame/drivers/ichiban.cpp",
 	MAME_DIR .. "src/mame/drivers/imolagp.cpp",
 	MAME_DIR .. "src/mame/drivers/intrscti.cpp",
 	MAME_DIR .. "src/mame/drivers/island.cpp",
