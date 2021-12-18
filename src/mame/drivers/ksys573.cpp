@@ -362,6 +362,7 @@ G: gun mania only, drives air soft gun (this game uses real BB bullet)
 #include "machine/k573msu.h"
 #include "machine/k573npu.h"
 #include "machine/k573kara.h"
+#include "machine/kwindy2.h"
 #include "machine/mb89371.h"
 #include "machine/ram.h"
 #include "machine/timekpr.h"
