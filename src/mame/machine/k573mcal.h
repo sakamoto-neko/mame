@@ -26,8 +26,6 @@ public:
 
 	virtual ioport_constructor device_input_ports() const override;
 
-	DECLARE_WRITE_LINE_MEMBER(write_rxd);
-
 protected:
 	template <uint8_t First> void set_port_tags() { }
 
@@ -48,4 +46,4 @@ private:
 
 DECLARE_DEVICE_TYPE(KONAMI_573_MASTER_CALENDAR, k573mcal_device)
 
-#endif // MAME_MACHINE_K573_MCR_H
+#endif // MAME_MACHINE_K573_MCAL_H

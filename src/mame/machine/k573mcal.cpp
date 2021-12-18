@@ -2,7 +2,7 @@
 // copyright-holders:windyfairy
 /*
  * Konami 573 Master Calendar
- * 
+ *
  * Not much is known about the actual details of the device.
  * The device itself allows for reprogramming the security cartridge.
  */
@@ -110,7 +110,7 @@ int k573mcal_device::handle_message(const uint8_t* send_buffer, uint32_t send_si
 		// 020304050607 is the machine SID
 		// BC9A78563412 is the machine XID
 		// 000000000000B5 is ???
-		
+
 		// msg: 7e xx
 		uint8_t resp[] = {
 			// 0x01 - Breaks loop, sends next byte
@@ -154,4 +154,4 @@ ioport_constructor k573mcal_device::device_input_ports() const
 	return INPUT_PORTS_NAME(k573mcal);
 }
 
-DEFINE_DEVICE_TYPE(KONAMI_573_MASTER_CALENDAR, k573mcal_device, "k573mcal", "Konami 573 Memory Card Reader")
+DEFINE_DEVICE_TYPE(KONAMI_573_MASTER_CALENDAR, k573mcal_device, "k573mcal", "Konami 573 Master Calendar")
