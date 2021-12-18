@@ -74,6 +74,11 @@ void zs01_device::device_start()
 	save_item( NAME( m_data ) );
 }
 
+void zs01_device::device_reset()
+{
+	memset( m_rolling_key, 0, sizeof( m_rolling_key ) );
+}
+
 WRITE_LINE_MEMBER( zs01_device::write_rst )
 {
 	if( m_rst != state )
@@ -388,6 +393,9 @@ WRITE_LINE_MEMBER( zs01_device::write_scl )
 
 							if( ( m_write_buffer[ 0 ] & 4 ) != 0 )
 							{
+								// TODO: Figure out how this key is determined exactly.
+								// It has something to do with the last written data, but I don't know what triggers it to update exactly.
+								//decrypt2( &m_write_buffer[ 2 ], &m_write_buffer[ 2 ], SIZE_DATA_BUFFER, m_rolling_key, 0x00 );
 								decrypt2( &m_write_buffer[ 2 ], &m_write_buffer[ 2 ], SIZE_DATA_BUFFER, m_data_key, 0x00 );
 							}
 
@@ -405,6 +413,11 @@ WRITE_LINE_MEMBER( zs01_device::write_scl )
 								switch( m_write_buffer[ 0 ] & 1 )
 								{
 								case COMMAND_WRITE:
+									if (data_offset() == 0x7f8) {
+										// TODO: Figure out how to implement this properly
+										memcpy( m_rolling_key, &m_write_buffer[ 2 ], SIZE_DATA_BUFFER );
+									}
+
 									memcpy( &m_data[ data_offset() ], &m_write_buffer[ 2 ], SIZE_DATA_BUFFER );
 
 									/* todo: find out what should be returned. */

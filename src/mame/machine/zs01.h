@@ -38,6 +38,7 @@ public:
 protected:
 	// device-level overrides
 	virtual void device_start() override;
+	virtual void device_reset() override;
 
 	// device_nvram_interface overrides
 	virtual void nvram_default() override;
@@ -91,6 +92,7 @@ private:
 	uint8_t m_response_to_reset[ 4 ];
 	uint8_t m_command_key[ 8 ];
 	uint8_t m_data_key[ 8 ];
+	uint8_t m_rolling_key[ 8 ];
 	uint8_t m_data[ 4096 ];
 };
 
