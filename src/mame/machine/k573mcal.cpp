@@ -96,7 +96,7 @@ int k573mcal_device::handle_message(const uint8_t* send_buffer, uint32_t send_si
 
 		uint8_t resp[] = {
 			0x01, // status, must be 1
-			m_in1->read() & 0x0f, // Area specification
+			uint8_t(m_in1->read() & 0x0f), // Area specification
 		};
 
 		memcpy(recv_buffer, resp, sizeof(resp));
