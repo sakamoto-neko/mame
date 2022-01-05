@@ -74,11 +74,6 @@ void zs01_device::device_start()
 	save_item( NAME( m_data ) );
 }
 
-void zs01_device::device_reset()
-{
-	memset( m_rolling_key, 0, sizeof( m_rolling_key ) );
-}
-
 WRITE_LINE_MEMBER( zs01_device::write_rst )
 {
 	if( m_rst != state )
@@ -393,10 +388,21 @@ WRITE_LINE_MEMBER( zs01_device::write_scl )
 
 							if( ( m_write_buffer[ 0 ] & 4 ) != 0 )
 							{
-								// TODO: Figure out how this key is determined exactly.
-								// It has something to do with the last written data, but I don't know what triggers it to update exactly.
-								//decrypt2( &m_write_buffer[ 2 ], &m_write_buffer[ 2 ], SIZE_DATA_BUFFER, m_rolling_key, 0x00 );
-								decrypt2( &m_write_buffer[ 2 ], &m_write_buffer[ 2 ], SIZE_DATA_BUFFER, m_data_key, 0x00 );
+								// When the master calendar is used to generate a fresh security cartridge,
+								// the data key is stored at 0x7f8.
+								// The master calendar also expects the key to be blank (= data section uninitialized?)
+								// when starting it or else it won't work.
+								uint8_t buf[12] = { 0 };
+								memcpy( buf, m_write_buffer, sizeof( m_write_buffer ) );
+								decrypt2( &buf[ 2 ], &buf[ 2 ], SIZE_DATA_BUFFER, &m_data[ 0x7f8 ], 0x00 );
+
+								uint16_t crc = calc_crc( buf, 10 );
+								if ( crc == ( ( buf[ 10 ] << 8) | buf[ 11 ] ) )
+									// The key at 0x7f8 in the data matches so just reuse the already decrypted data
+									memcpy( m_write_buffer, buf, sizeof( m_write_buffer ) );
+								else
+									// The key at 0x7f8 didn't match (uninitialized?) so just use the normal m_data_key
+									decrypt2( &m_write_buffer[ 2 ], &m_write_buffer[ 2 ], SIZE_DATA_BUFFER, m_data_key, 0x00 );
 							}
 
 							uint16_t crc = calc_crc( m_write_buffer, 10 );
@@ -405,6 +411,27 @@ WRITE_LINE_MEMBER( zs01_device::write_scl )
 							{
 								verboselog( 1, "-> command: %02x\n", m_write_buffer[ 0 ] );
 								verboselog( 1, "-> address: %02x\n", m_write_buffer[ 1 ] );
+								// Notes from dmx2majp:
+								// For read commands, data is an xor'd form of the md5 hash of the data key salted by some unique but useless data.
+								// The salt data is a combination of values from the timekeeper chip + the lower byte of VSync(-1).
+								//
+								// Example:
+								// data key = 980d85b1b666f399
+								// expected data = 2bef6a373a5c59b1
+								//
+								// salt data = 7a 00 07 05 0f 23 12 18
+								// md5 = a08d0279cf8a73cc8b62684ef5d62a7d
+								// output = a08d0279cf8a73cc ^ 8b62684ef5d62a7d = 2bef6a373a5c59b1
+								//
+								// >>> md5 = hashlib.md5()
+								// >>> md5.update(b"\x98\x0D\x85\xB1\xB6\x66\xF3\x99")
+								// >>> md5.update(b"\x7A\x00\x07\x05\x0F\x23\x12\x18")
+								// >>> s = md5.digest()
+								// >>> data = [s[i] ^ s[i+8] for i in range(8)]
+								// >>> bytes(data) == b"\x2b\xef\x6a\x37\x3a\x5c\x59\xb1"
+								// True
+								//
+								// All that to say, I don't think the data value when the command is a read is useful.
 								verboselog( 1, "-> data: %02x%02x%02x%02x%02x%02x%02x%02x\n",
 									m_write_buffer[ 2 ], m_write_buffer[ 3 ], m_write_buffer[ 4 ], m_write_buffer[ 5 ],
 									m_write_buffer[ 6 ], m_write_buffer[ 7 ], m_write_buffer[ 8 ], m_write_buffer[ 9 ] );
@@ -413,11 +440,9 @@ WRITE_LINE_MEMBER( zs01_device::write_scl )
 								switch( m_write_buffer[ 0 ] & 1 )
 								{
 								case COMMAND_WRITE:
-									if (data_offset() == 0x7f8) {
-										// TODO: Figure out how to implement this properly
-										memcpy( m_rolling_key, &m_write_buffer[ 2 ], SIZE_DATA_BUFFER );
-									}
-
+									// 0xfd = Writes the previous described md5 xor'd value here. Unused?
+									// 0xfe = ?
+									// 0xff = Data key
 									memcpy( &m_data[ data_offset() ], &m_write_buffer[ 2 ], SIZE_DATA_BUFFER );
 
 									/* todo: find out what should be returned. */
@@ -430,6 +455,8 @@ WRITE_LINE_MEMBER( zs01_device::write_scl )
 
 									switch( m_write_buffer[ 1 ] )
 									{
+									// 0xfc = Some kind of ID, doesn't seem to be displayed anywhere. TID?
+									// 0xfd = SID (Security ID?)
 									case 0xfd:
 										{
 											/* TODO: use read/write to talk to the ds2401, which will require a timer. */
