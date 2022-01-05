@@ -156,7 +156,7 @@ void k573dio_device::device_reset()
 	crypto_key1 = 0;
 
 	network_id = 0;
-	network_read_idx = 0;
+	network_buffer_output_waiting_size = 0;
 
 	std::fill(std::begin(output_data), std::end(output_data), 0);
 }
@@ -487,6 +487,76 @@ void k573dio_device::output(int offset, uint16_t data)
 	output_data[offset] = data;
 }
 
+TIMER_DEVICE_CALLBACK_MEMBER(k573dio_device::network_update_callback)
+{
+	uint32_t len = 0;
+
+	for (auto i = 0; i < m_network.size(); i++) {
+		if (!m_network[i]->exists()) {
+			continue;
+		}
+
+		do {
+			uint8_t val = 0;
+			len = m_network[i]->input(&val, 1);
+
+			if (len == 0 || ((network_buffer_input[i].size() == 0 && val != 0xc0) || (network_buffer_input[i].size() > 0 && network_buffer_input[i].front() != 0xc0)))
+				continue;
+
+			// Found start of packet or continuation of an existing packet
+			network_buffer_input[i].push_back(val);
+
+			// If it's not potentially the end of the packet, just skip the logic to send
+			if (val != 0xc0 || network_buffer_input[i].size() <= 1 || network_buffer_input[i].front() != 0xc0 || network_buffer_input[i].back() != 0xc0)
+				continue;
+
+			if (network_buffer_input[i].size() == 2) {
+				// c0 c0 would be an empty packet (corrupt packet?) so discard the first byte
+				network_buffer_input[i].pop_front();
+				continue;
+			}
+
+			// Found end of packet, push all contents of temp buffer to main buffer
+			auto target_machine = network_buffer_input[i][1];
+
+			if (network_id != target_machine) {
+				// Only accept packets from other machines
+				network_buffer_muxed.insert(network_buffer_muxed.end(), network_buffer_input[i].begin(), network_buffer_input[i].end());
+			}
+
+			for (auto n : m_network) {
+				if (n == m_network[i] || !n->exists()) {
+					continue;
+				}
+
+				for (auto j = 0; j < network_buffer_input[i].size(); j++) {
+					// Send packets to other connected machines
+					n->output(network_buffer_input[i][j]);
+				}
+			}
+
+			network_buffer_input[i].clear();
+		} while (len > 0);
+	}
+
+	if (network_buffer_output_queue.size() > 0) {
+		auto packet = network_buffer_output_queue.front();
+		network_buffer_output_queue.pop_front();
+
+		for (auto n : m_network) {
+			if (!n->exists()) {
+				continue;
+			}
+
+			for (auto c : packet) {
+				n->output(c);
+			}
+		}
+
+		network_buffer_output_waiting_size -= packet.size();
+	}
+}
+
 uint16_t k573dio_device::network_r()
 {
 	uint16_t val = 0;
@@ -499,101 +569,36 @@ uint16_t k573dio_device::network_r()
 	return val;
 }
 
-TIMER_DEVICE_CALLBACK_MEMBER(k573dio_device::network_update_callback)
-{
-	uint32_t len = 0;
-
-	if (network_buffer_muxed.size() + 0x20 > 0x200) {
-		return;
-	}
-
-	for (int i = 0; i < m_network.size(); i++) {
-		if (m_network[network_read_idx]->exists()) {
-			break;
-		}
-
-		network_read_idx = (network_read_idx + 1) % m_network.size();
-	}
-
-	if (!m_network[network_read_idx]->exists()) {
-		return;
-	}
-
-	do {
-		uint8_t val = 0;
-		len = m_network[network_read_idx]->input(&val, 1);
-
-		if (len > 0 && (val == 0xc0 || (network_buffer_temp.size() > 0 && network_buffer_temp.front() == 0xc0))) {
-			// Found start of packet or continuation of an existing packet
-			network_buffer_temp.push_back(val);
-
-			if (val == 0xc0 && network_buffer_temp.size() > 1 && network_buffer_temp.front() == 0xc0 && network_buffer_temp.back() == 0xc0) {
-				if (network_buffer_temp.size() == 2) {
-					network_buffer_temp.pop_front();
-					continue;
-				}
-
-				// Found end of packet, push all contents of temp buffer to main buffer
-				auto target_machine = network_buffer_temp.at(1);
-				while (network_buffer_temp.size() > 0) {
-					val = network_buffer_temp.front();
-					network_buffer_temp.pop_front();
-
-					// Broadcast everything to packet to other client
-					if (network_id != target_machine) {
-						network_buffer_muxed.push_back(val);
-					}
-
-					for (auto n : m_network) {
-						if (n == m_network[network_read_idx]) {
-							continue;
-						}
-
-						n->output(val);
-					}
-				}
-
-				network_read_idx = (network_read_idx + 1) % m_network.size();
-
-				break;
-			}
-		}
-	} while (len > 0);
-}
-
 void k573dio_device::network_w(uint16_t data)
 {
-	if (data == 0xc0 || (network_buffer_output.size() > 0 && network_buffer_output.front() == 0xc0)) {
-		network_buffer_output.push_back(data);
+	if ((network_buffer_output.size() == 0 && data != 0xc0) || (network_buffer_output.size() > 0 && network_buffer_output.front() != 0xc0))
+		return;
 
-		if (data == 0xc0 && network_buffer_output.size() > 1 && network_buffer_output.front() == 0xc0 && network_buffer_output.back() == 0xc0) {
-			if (network_buffer_output.size() == 2) {
-				network_buffer_output.pop_front();
-				return;
-			}
+	network_buffer_output.push_back(data);
 
-			while (network_buffer_output.size() > 0) {
-				auto val = network_buffer_output.front();
-				network_buffer_output.pop_front();
+	if (data != 0xc0 || network_buffer_output.size() <= 1 || network_buffer_output.front() != 0xc0 || network_buffer_output.back() != 0xc0)
+		return;
 
-				for (auto n : m_network) {
-					n->output(val);
-				}
-			}
-		}
+	if (network_buffer_output.size() == 2) {
+		// c0 c0 would be an empty packet (corrupt packet?) so discard the first byte
+		network_buffer_output.pop_front();
+		return;
 	}
+
+	network_buffer_output_waiting_size += network_buffer_output.size();
+	network_buffer_output_queue.push_back(network_buffer_output);
+	network_buffer_output.clear();
 }
 
 uint16_t k573dio_device::network_output_buf_size_r()
 {
 	// Number of bytes in waiting to be sent
-	return network_buffer_output.size();
+	return network_buffer_output_waiting_size;
 }
 
 uint16_t k573dio_device::network_input_buf_size_r()
 {
 	// Number of bytes waiting to be read
-	//network_update_callback();
 	return network_buffer_muxed.size();
 }
 

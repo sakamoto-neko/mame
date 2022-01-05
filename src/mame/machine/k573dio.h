@@ -97,10 +97,11 @@ private:
 	uint8_t output_data[8];
 
 	uint16_t network_id;
-	int network_read_idx;
-	std::deque<uint8_t> network_buffer_temp;
+	size_t network_buffer_output_waiting_size;
 	std::deque<uint8_t> network_buffer_muxed;
 	std::deque<uint8_t> network_buffer_output;
+	std::deque<uint8_t> network_buffer_input[2];
+	std::deque<std::deque<uint8_t>> network_buffer_output_queue;
 
 	void output(int offset, uint16_t data);
 
