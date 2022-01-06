@@ -534,7 +534,6 @@ public:
 	void dsftkd(machine_config &config);
 	void dsfdct(machine_config &config);
 	void dsfdcta(machine_config &config);
-	void mamboagga(machine_config &config);
 	void gunmania(machine_config &config);
 	void hypbbc2p(machine_config &config);
 	void gtrfrk2m(machine_config& config);
@@ -3015,16 +3014,16 @@ void ksys573_state::dmx(machine_config &config)
 
 void ksys573_state::mamboagg(machine_config &config)
 {
+	// e-Amusement version checks the cabinet type through a device presumably connected to the serial port on the security catridge, similar to
+	// how GFDM connects the MSU and card readers through the network port on the security cartridge.
+	// Data is transmitted via PSX SIO1 to the serial device.
+	// During boot it will send "a5 c0" and wants to see a string of "a5 c0" back (at least repeated 3 times) before it will pass the e-Amusement 2
+	// communication error screen. I didn't observe any communication on serial after that, but I couldn't get in-game to test further.
+	// Arcade operators must input passwords to increase the rental credits allotted to the machine. The game is not playable without rental credits.
 	k573d(config);
 	subdevice<k573dio_device>("k573dio")->output_callback().set(FUNC(ksys573_state::mamboagg_output_callback));
 
 	casszi(config);
-}
-
-void ksys573_state::mamboagga(machine_config &config)
-{
-	mamboagg(config);
-	KONAMI_573_NETWORK_PCB_UNIT(config, "k573npu", 0);
 }
 
 static INPUT_PORTS_START( konami573 )
@@ -6265,7 +6264,7 @@ GAME( 2001, ddr5m,     sys573,   ddr5m,      ddr,       ksys573_state, empty_ini
 GAME( 2021, ddr5ms,    ddr5m,    ddr5m,      ddrsolo2,  ksys573_state, empty_init,    ROT0,  "hack",   "Dance Dance Revolution 5th Mix Solo (hack)", MACHINE_IMPERFECT_SOUND )
 GAME( 2001, dmx2majp,  sys573,   dmx,        dmx,       ksys573_state, empty_init,    ROT0,  "Konami", "Dance Maniax 2nd Mix Append J-Paradise (G*A38 VER. JAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.9 */
 GAME( 2001, mamboagg,  sys573,   mamboagg,   mamboagg,  ksys573_state, empty_init,    ROT0,  "Konami", "Mambo A Go-Go (GQA40 VER. JAB)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
-GAME( 2001, mamboagga, mamboagg, mamboagga,  mamboagg,  ksys573_state, empty_init,    ROT0,  "Konami", "Mambo A Go-Go e-Amusement (GQA40 VER. JRB)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
+GAME( 2001, mamboagga, mamboagg, mamboagg,   mamboagg,  ksys573_state, empty_init,    ROT0,  "Konami", "Mambo A Go-Go e-Amusement (GQA40 VER. JRB)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
 GAME( 2001, pcnfrk5m,  sys573,   drmn4m,     drmn,      ksys573_state, empty_init,    ROT0,  "Konami", "Percussion Freaks 5th Mix (G*B05 VER. AAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.9 */
 GAME( 2001, pcnfrk5mk, pcnfrk5m, drmn4m,     drmn,      ksys573_state, empty_init,    ROT0,  "Konami", "Percussion Freaks 5th Mix (G*B05 VER. KAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.9 */
 GAME( 2001, drmn5m,    pcnfrk5m, drmn4m,     drmn,      ksys573_state, empty_init,    ROT0,  "Konami", "DrumMania 5th Mix (G*B05 VER. JAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.9 */
