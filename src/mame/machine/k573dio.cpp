@@ -90,7 +90,7 @@ void k573dio_device::amap(address_map &map)
 	map(0x10, 0x11).w(FUNC(k573dio_device::a10_w));
 	map(0x80, 0x81).r(FUNC(k573dio_device::a80_r));
 	map(0x90, 0x91).w(FUNC(k573dio_device::network_id_w));
-	map(0xc4, 0xc5).r(FUNC(k573dio_device::ac4_r));
+	//map(0x92, 0x93).w(FUNC(k573dio_device::network_unk_w));
 	map(0xa0, 0xa1).rw(FUNC(k573dio_device::mpeg_start_adr_high_r), FUNC(k573dio_device::mpeg_start_adr_high_w));
 	map(0xa2, 0xa3).rw(FUNC(k573dio_device::mpeg_start_adr_low_r), FUNC(k573dio_device::mpeg_start_adr_low_w));
 	map(0xa4, 0xa5).rw(FUNC(k573dio_device::mpeg_end_adr_high_r), FUNC(k573dio_device::mpeg_end_adr_high_w));
@@ -107,6 +107,7 @@ void k573dio_device::amap(address_map &map)
 	map(0xc0, 0xc1).rw(FUNC(k573dio_device::network_r), FUNC(k573dio_device::network_w));
 	map(0xc2, 0xc3).r(FUNC(k573dio_device::network_output_buf_size_r));
 	map(0xc4, 0xc5).r(FUNC(k573dio_device::network_input_buf_size_r));
+	//map(0xc8, 0xc9).w(FUNC(k573dio_device::network_unk2_w));
 	map(0xca, 0xcb).r(FUNC(k573dio_device::mp3_counter_high_r));
 	map(0xcc, 0xcd).rw(FUNC(k573dio_device::mp3_counter_low_r), FUNC(k573dio_device::mp3_counter_low_w));
 	map(0xce, 0xcf).r(FUNC(k573dio_device::mp3_counter_diff_r));
@@ -239,12 +240,6 @@ uint16_t k573dio_device::a0a_r()
 void k573dio_device::a10_w(uint16_t data)
 {
 	LOGUNKNOWNREG("%s: a10_w: %04x (%s)\n", tag(), data, machine().describe_context());
-}
-
-uint16_t k573dio_device::ac4_r()
-{
-	LOGUNKNOWNREG("%s: ac4_r (%s)\n", tag(), machine().describe_context());
-	return 0;
 }
 
 uint16_t k573dio_device::a80_r()
@@ -518,21 +513,9 @@ TIMER_DEVICE_CALLBACK_MEMBER(k573dio_device::network_update_callback)
 
 			// Found end of packet, push all contents of temp buffer to main buffer
 			auto target_machine = network_buffer_input[i][1];
-
 			if (network_id != target_machine) {
 				// Only accept packets from other machines
 				network_buffer_muxed.insert(network_buffer_muxed.end(), network_buffer_input[i].begin(), network_buffer_input[i].end());
-			}
-
-			for (auto n : m_network) {
-				if (n == m_network[i] || !n->exists()) {
-					continue;
-				}
-
-				for (auto j = 0; j < network_buffer_input[i].size(); j++) {
-					// Send packets to other connected machines
-					n->output(network_buffer_input[i][j]);
-				}
 			}
 
 			network_buffer_input[i].clear();

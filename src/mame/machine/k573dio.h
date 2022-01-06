@@ -87,11 +87,13 @@ protected:
 	virtual void device_timer(emu_timer &timer, device_timer_id id, int param, void *ptr) override;
 
 private:
+	static const int NETWORK_CONNECTIONS = 3;
+
 	memory_share_creator<uint16_t> ram;
 	required_device<k573fpga_device> k573fpga;
 	required_device<ds2401_device> digital_id;
 	devcb_write8 output_cb;
-	required_device_array<bitbanger_device, 2> m_network;
+	required_device_array<bitbanger_device, NETWORK_CONNECTIONS> m_network;
 
 	uint32_t ram_adr, ram_read_adr;
 	uint8_t output_data[8];
@@ -100,7 +102,7 @@ private:
 	size_t network_buffer_output_waiting_size;
 	std::deque<uint8_t> network_buffer_muxed;
 	std::deque<uint8_t> network_buffer_output;
-	std::deque<uint8_t> network_buffer_input[2];
+	std::deque<uint8_t> network_buffer_input[NETWORK_CONNECTIONS];
 	std::deque<std::deque<uint8_t>> network_buffer_output_queue;
 
 	void output(int offset, uint16_t data);
