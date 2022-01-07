@@ -28,6 +28,7 @@ public:
 protected:
 	// device-level overrides
 	virtual void device_start() override;
+	virtual void device_reset() override;
 
 	// device_nvram_interface overrides
 	virtual void nvram_default() override;
@@ -57,6 +58,8 @@ private:
 		STATE_LOAD_COMMAND,
 		STATE_LOAD_PASSWORD,
 		STATE_VERIFY_PASSWORD,
+		STATE_CHANGE_WRITE_PASSWORD,
+		STATE_CHANGE_READ_PASSWORD,
 		STATE_READ_DATA,
 		STATE_WRITE_DATA
 	};
@@ -74,6 +77,7 @@ private:
 	int m_bit;
 	int m_byte;
 	int m_command;
+	int m_password_retry_counter;
 	uint8_t m_write_buffer[ 8 ];
 	uint8_t m_response_to_reset[ 4 ];
 	uint8_t m_write_password[ 8 ];

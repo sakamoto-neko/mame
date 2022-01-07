@@ -45,13 +45,14 @@ x76f100_device::x76f100_device( const machine_config &mconfig, const char *tag, 
 	m_shift( 0 ),
 	m_bit( 0 ),
 	m_byte( 0 ),
-	m_command( 0 )
+	m_command( 0 ),
+	m_password_retry_counter( 0 )
 {
 }
 
 void x76f100_device::device_start()
 {
-	memset( m_write_buffer, 0, sizeof( m_write_buffer ) );
+	std::fill( std::begin( m_write_buffer ), std::end( m_write_buffer ), 0 );
 
 	save_item( NAME( m_cs ) );
 	save_item( NAME( m_rst ) );
@@ -63,11 +64,28 @@ void x76f100_device::device_start()
 	save_item( NAME( m_bit ) );
 	save_item( NAME( m_byte ) );
 	save_item( NAME( m_command ) );
+	save_item( NAME( m_password_retry_counter ) );
 	save_item( NAME( m_write_buffer ) );
-	save_item( NAME( m_response_to_reset ) );
 	save_item( NAME( m_write_password ) );
 	save_item( NAME( m_read_password ) );
 	save_item( NAME( m_data ) );
+}
+
+void x76f100_device::device_reset()
+{
+	std::fill( std::begin( m_write_buffer ), std::end( m_write_buffer ), 0 );
+
+	m_cs = 0;
+	m_rst = 0;
+	m_scl = 0;
+	m_sdaw = 0;
+	m_sdar = 0;
+	m_state = STATE_STOP;
+	m_shift = 0;
+	m_bit = 0;
+	m_byte = 0;
+	m_command = 0;
+	m_password_retry_counter = 0;
 }
 
 WRITE_LINE_MEMBER( x76f100_device::write_cs )
@@ -124,7 +142,17 @@ uint8_t *x76f100_device::password()
 
 void x76f100_device::password_ok()
 {
-	if( ( m_command & 0xe1 ) == COMMAND_READ )
+	m_password_retry_counter = 0;
+
+	if( m_command == COMMAND_CHANGE_WRITE_PASSWORD )
+	{
+		m_state = STATE_CHANGE_WRITE_PASSWORD;
+	}
+	else if( m_command == COMMAND_CHANGE_READ_PASSWORD )
+	{
+		m_state = STATE_CHANGE_READ_PASSWORD;
+	}
+	else if( ( m_command & 0xe1 ) == COMMAND_READ )
 	{
 		m_state = STATE_READ_DATA;
 	}
@@ -188,6 +216,8 @@ WRITE_LINE_MEMBER( x76f100_device::write_scl )
 		case STATE_LOAD_COMMAND:
 		case STATE_LOAD_PASSWORD:
 		case STATE_VERIFY_PASSWORD:
+		case STATE_CHANGE_WRITE_PASSWORD:
+		case STATE_CHANGE_READ_PASSWORD:
 		case STATE_WRITE_DATA:
 			if( m_scl == 0 && state != 0 )
 			{
@@ -240,6 +270,16 @@ WRITE_LINE_MEMBER( x76f100_device::write_scl )
 							else
 							{
 								m_sdar = 1;
+
+								// TODO: Should the retry counter persist between power cycles?
+								m_password_retry_counter++;
+								if ( m_password_retry_counter > 8 )
+								{
+									std::fill( std::begin( m_read_password ), std::end( m_read_password ), 0 );
+									std::fill( std::begin( m_write_password ), std::end( m_write_password ), 0 );
+									std::fill( std::begin( m_data ), std::end( m_data ), 0 );
+									m_password_retry_counter = 0;
+								}
 							}
 						}
 						break;
@@ -260,6 +300,22 @@ WRITE_LINE_MEMBER( x76f100_device::write_scl )
 							m_byte = 0;
 
 							verboselog( 1, "data flushed\n" );
+						}
+						break;
+
+					case STATE_CHANGE_WRITE_PASSWORD:
+					case STATE_CHANGE_READ_PASSWORD:
+						verboselog( 2, "-> password data: %02x\n", m_shift );
+						m_write_buffer[ m_byte++ ] = m_shift;
+
+						if( m_byte == sizeof( m_write_buffer ) )
+						{
+							if ( m_state == STATE_CHANGE_WRITE_PASSWORD )
+								std::copy( std::begin( m_write_buffer ), std::end( m_write_buffer ), std::begin( m_write_password ) );
+							else
+								std::copy( std::begin( m_write_buffer ), std::end( m_write_buffer ), std::begin( m_read_password ) );
+
+							m_byte = 0;
 						}
 						break;
 					}
