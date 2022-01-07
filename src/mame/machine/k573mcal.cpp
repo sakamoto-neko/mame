@@ -14,7 +14,9 @@
 
 k573mcal_device::k573mcal_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock) :
 	jvs_device(mconfig, KONAMI_573_MASTER_CALENDAR, tag, owner, clock),
-	m_in1(*this, "IN1")
+	m_in1(*this, "IN1"),
+	seconds(0),
+	initEchoValue(0)
 {
 }
 
@@ -25,11 +27,10 @@ void k573mcal_device::device_start()
 
 void k573mcal_device::device_reset()
 {
-	jvs_device::device_reset();
-}
+	seconds = 0;
+	initEchoValue = 0;
 
-void k573mcal_device::device_add_mconfig(machine_config &config)
-{
+	jvs_device::device_reset();
 }
 
 const char *k573mcal_device::device_id()
@@ -52,7 +53,6 @@ uint8_t k573mcal_device::comm_method_version()
 	return 0x10;
 }
 
-uint8_t seconds = 0;
 int k573mcal_device::handle_message(const uint8_t* send_buffer, uint32_t send_size, uint8_t*& recv_buffer)
 {
 	printf("k573mcal msg: ");
@@ -104,7 +104,58 @@ int k573mcal_device::handle_message(const uint8_t* send_buffer, uint32_t send_si
 		return 4;
 	}
 
-	case 0x7e:
+	case 0x7c: {
+		// msg: 7c 7f 00 04
+		const uint16_t val = (send_buffer[1] << 8) | send_buffer[2];
+
+		if (val == 0x7f00) {
+			uint8_t resp[] = {
+				0x01, // status, must be 1
+				0x00, 0x00, 0x00, 0x00,
+			};
+
+			memcpy(recv_buffer, resp, sizeof(resp));
+			recv_buffer += sizeof(resp);
+		}
+		else if (val == 0x8000) {
+			uint8_t resp[] = {
+				0x01, // status, must be 1
+				'<', 'I', 'N', 'I', 'T', ' ', 'C', 'O', 'M', 'P', 'L', 'E', 'T', 'E', '!', '>',
+				uint8_t(initEchoValue & 0xff), uint8_t((initEchoValue >> 8) & 0xff), uint8_t((initEchoValue >> 16) & 0xff), uint8_t((initEchoValue >> 24) & 0xff),
+				0x00, 0x00, 0x00, 0x00,
+			};
+
+			for (int i = 0; i < 4; i++) {
+				// The second value is just the inverse of the first value
+				resp[0x15 + i] = ~resp[0x11 + i];
+			}
+
+			memcpy(recv_buffer, resp, sizeof(resp));
+			recv_buffer += sizeof(resp);
+		}
+
+		return 4;
+	}
+
+	case 0x7d: {
+		// msg: 7d 80 10 08 00 00 00 01 ff ff ff fe
+		const uint16_t val = (send_buffer[1] << 8) | send_buffer[2];
+
+		if (val == 0x8010) {
+			initEchoValue = send_buffer[4] | (send_buffer[5] << 8) | (send_buffer[6] << 16) | (send_buffer[7] << 24);
+
+			uint8_t resp[] = {
+				0x01, // status, must be 1
+			};
+
+			memcpy(recv_buffer, resp, sizeof(resp));
+			recv_buffer += sizeof(resp);
+		}
+
+		return 12;
+	}
+
+	case 0x7e: {
 		// This builds some buffer that creates data like this: @2B0001:020304050607:BC9A78563412:000000000000B5
 		// 2B0001 is ???
 		// 020304050607 is the machine SID
@@ -124,11 +175,18 @@ int k573mcal_device::handle_message(const uint8_t* send_buffer, uint32_t send_si
 		return 2;
 	}
 
+	case 0x7f:
+		// TODO: Where is this used?
+		// The command existed in the command list for a few games (starting at Drummania?) but was never referenced and then disappeared around DDR 3rd mix.
+		break;
+	}
+
 	// Command not recognized, pass it off to the base message handler
 	return jvs_device::handle_message(send_buffer, send_size, recv_buffer);
 }
 
 INPUT_PORTS_START( k573mcal )
+	// These values are only for later versions of the bootloader. Earlier versions use different region values.
 	PORT_START("IN1")
 	PORT_DIPNAME(0x0f, 0x00, "Area")
 	PORT_DIPSETTING(0x00, "JA")
