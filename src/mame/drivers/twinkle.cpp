@@ -303,12 +303,13 @@ public:
 	{
 	}
 
-	void twinkle_base(machine_config& config, bool isPsxSerialDvdPlayer, bool isDvdMedia);
 	void twinklex(machine_config& config);
 	void twinklex2(machine_config& config);
 	void twinklei(machine_config &config);
 	void twinklei2(machine_config &config);
-	void twinkle(machine_config &config);
+	void twinkle(machine_config& config);
+	void twinkle_dvd_type1(machine_config& config);
+	void twinkle_dvd_type2(machine_config& config);
 
 	bitmap_rgb32 m_video_bitmap;
 
@@ -384,6 +385,7 @@ private:
 	attotime m_videomixer_last_update;
 
 	jvc_xvd701_device *xvd701_player;
+	bool is_dvd_media;
 
 	static void cdrom_config(device_t *device);
 };
@@ -588,10 +590,11 @@ void twinkle_state::machine_start()
 
 	m_dma_timer = machine().scheduler().timer_alloc(timer_expired_delegate(FUNC(twinkle_state::spu_dma_callback), this));
 
-	xvd701_player = subdevice<jvc_xvd701_device>("rs232_dvd:xvd701_vcd");
-	if (xvd701_player == nullptr) {
-		xvd701_player = subdevice<jvc_xvd701_device>("rs232_dvd:xvd701_dvd");
-	}
+	xvd701_player = subdevice<jvc_xvd701_device>("rs232_dvd:xvd701");
+
+	xvd701_player->set_media_type(
+		is_dvd_media ? jvc_xvd701_media_type::JVC_MEDIA_DVD : jvc_xvd701_media_type::JVC_MEDIA_VCD
+	);
 
 	if (xvd701_player != nullptr) {
 		m_video_bitmap = bitmap_rgb32(640, 240); // IIDX render resolution
@@ -788,16 +791,13 @@ void twinkle_state::twinkle_videomixer_w(offs_t offset, uint16_t data)
 		}
 		break;
 	case 0x18:
-		/* Always 0x69? */
+		// Always 0x69?
 		break;
 	case 0x30:
-		/* Always 0x10? */
+		// Always 0x10?
 		break;
 	case 0x48:
-		/*
-			Only one seen value so far:
-			0x20 - Powered on?
-		*/
+		// 0x20 - Powered on?
 		break;
 	}
 }
@@ -1254,7 +1254,7 @@ void twinkle_state::cdrom_config(device_t *device)
 	device->subdevice<cdda_device>("cdda")->add_route(1, "^^speakerright", 1.0);
 }
 
-void twinkle_state::twinkle_base(machine_config &config, bool isPsxSerialDvdPlayer, bool isDvdMedia)
+void twinkle_state::twinkle(machine_config &config)
 {
 	/* basic machine hardware */
 	CXD8530CQ(config, m_maincpu, XTAL(67'737'600));
@@ -1316,84 +1316,94 @@ void twinkle_state::twinkle_base(machine_config &config, bool isPsxSerialDvdPlay
 	rf5c400.set_addrmap(0, &twinkle_state::rf5c400_map);
 	rf5c400.add_route(0, "speakerleft", 0.45);
 	rf5c400.add_route(1, "speakerright", 0.45);
-
-	rs232_port_device& rs232(RS232_PORT(config, "rs232_dvd", 0));
-	if (isDvdMedia) {
-		rs232.option_add("xvd701_dvd", JVC_XVD701_DVD);
-		// rs232.option_add("xvs1100", JVC_XVS1100); // 8th mix only
-		rs232.set_default_option("xvd701_dvd");
-	} else {
-		rs232.option_add("xvd701_vcd", JVC_XVD701_VCD);
-		rs232.set_default_option("xvd701_vcd");
-	}
-
-	if (isPsxSerialDvdPlayer) {
-		auto sio1 = subdevice<psxsio1_device>("maincpu:sio1");
-		rs232.rxd_handler().set(*sio1, FUNC(psxsio1_device::write_rxd));
-		rs232.dsr_handler().set(*sio1, FUNC(psxsio1_device::write_dsr));
-		rs232.cts_handler().set(*sio1, FUNC(psxsio1_device::write_cts));
-		sio1->txd_handler().set(rs232, FUNC(rs232_port_device::write_txd));
-		sio1->dtr_handler().set(rs232, FUNC(rs232_port_device::write_dtr));
-		sio1->rts_handler().set(rs232, FUNC(rs232_port_device::write_rts));
-
-		ns16550_device& uart(*subdevice<ns16550_device>("fdc37c665gt:uart2"));
-		rs232_port_device& rs232_network(RS232_PORT(config, "rs232_network", default_rs232_devices, nullptr));
-		uart.out_tx_callback().set(rs232_network, FUNC(rs232_port_device::write_txd));
-		uart.out_dtr_callback().set(rs232_network, FUNC(rs232_port_device::write_dtr));
-		uart.out_rts_callback().set(rs232_network, FUNC(rs232_port_device::write_rts));
-		rs232_network.rxd_handler().set(uart, FUNC(ns16550_device::rx_w));
-		rs232_network.dcd_handler().set(uart, FUNC(ns16550_device::dcd_w));
-		rs232_network.dsr_handler().set(uart, FUNC(ns16550_device::dsr_w));
-		rs232_network.ri_handler().set(uart, FUNC(ns16550_device::ri_w));
-		rs232_network.cts_handler().set(uart, FUNC(ns16550_device::cts_w));
-	}
-	else {
-		ns16550_device& uart(*subdevice<ns16550_device>("fdc37c665gt:uart2"));
-		rs232.rxd_handler().set(uart, FUNC(ns16550_device::rx_w));
-		rs232.dcd_handler().set(uart, FUNC(ns16550_device::dcd_w));
-		rs232.dsr_handler().set(uart, FUNC(ns16550_device::dsr_w));
-		rs232.ri_handler().set(uart, FUNC(ns16550_device::ri_w));
-		rs232.cts_handler().set(uart, FUNC(ns16550_device::cts_w));
-
-		uart.out_tx_callback().set(rs232, FUNC(rs232_port_device::write_txd));
-		uart.out_dtr_callback().set(rs232, FUNC(rs232_port_device::write_dtr));
-		uart.out_rts_callback().set(rs232, FUNC(rs232_port_device::write_rts));
-
-		auto sio1 = subdevice<psxsio1_device>("maincpu:sio1");
-		rs232_port_device& rs232_network(RS232_PORT(config, "rs232_network", default_rs232_devices, nullptr));
-		sio1->txd_handler().set(rs232_network, FUNC(rs232_port_device::write_txd));
-		sio1->dtr_handler().set(rs232_network, FUNC(rs232_port_device::write_dtr));
-		rs232_network.rxd_handler().set(*sio1, FUNC(psxsio1_device::write_rxd));
-		rs232_network.dsr_handler().set(*sio1, FUNC(psxsio1_device::write_dsr));
-	}
 }
 
-void twinkle_state::twinkle(machine_config& config)
+void twinkle_state::twinkle_dvd_type1(machine_config &config)
 {
-	twinkle_base(config, false, false);
+	// All versions before beatmania IIDX 2nd style
+	//   - maincpu:sio1 (PSX SIO1) is used for the DVD player
+	//   - fdc37c665gt:uart2 is used for network/session play
+	rs232_port_device &rs232(RS232_PORT(config, "rs232_dvd", 0));
+	rs232.option_add("xvd701", JVC_XVD701);
+	rs232.set_default_option("xvd701");
+
+	auto sio1 = subdevice<psxsio1_device>("maincpu:sio1");
+	rs232.rxd_handler().set(*sio1, FUNC(psxsio1_device::write_rxd));
+	rs232.dsr_handler().set(*sio1, FUNC(psxsio1_device::write_dsr));
+	rs232.cts_handler().set(*sio1, FUNC(psxsio1_device::write_cts));
+	sio1->txd_handler().set(rs232, FUNC(rs232_port_device::write_txd));
+	sio1->dtr_handler().set(rs232, FUNC(rs232_port_device::write_dtr));
+	sio1->rts_handler().set(rs232, FUNC(rs232_port_device::write_rts));
+
+	ns16550_device &uart(*subdevice<ns16550_device>("fdc37c665gt:uart2"));
+	rs232_port_device &rs232_network(RS232_PORT(config, "rs232_network", default_rs232_devices, nullptr));
+	uart.out_tx_callback().set(rs232_network, FUNC(rs232_port_device::write_txd));
+	uart.out_dtr_callback().set(rs232_network, FUNC(rs232_port_device::write_dtr));
+	uart.out_rts_callback().set(rs232_network, FUNC(rs232_port_device::write_rts));
+	rs232_network.rxd_handler().set(uart, FUNC(ns16550_device::rx_w));
+	rs232_network.dcd_handler().set(uart, FUNC(ns16550_device::dcd_w));
+	rs232_network.dsr_handler().set(uart, FUNC(ns16550_device::dsr_w));
+	rs232_network.ri_handler().set(uart, FUNC(ns16550_device::ri_w));
+	rs232_network.cts_handler().set(uart, FUNC(ns16550_device::cts_w));
+}
+
+void twinkle_state::twinkle_dvd_type2(machine_config &config)
+{
+	// All versions starting from beatmania IIDX 2nd style
+	//   - fdc37c665gt:uart2 is used for the DVD player
+	//   - maincpu:sio1 (PSX SIO1) is used for network/session play
+	rs232_port_device &rs232(RS232_PORT(config, "rs232_dvd", 0));
+	rs232.option_add("xvd701", JVC_XVD701);
+	// rs232.option_add("xvs1100", JVC_XVS1100); // 8th mix only
+	rs232.set_default_option("xvd701");
+
+	auto sio1 = subdevice<psxsio1_device>("maincpu:sio1");
+	rs232_port_device &rs232_network(RS232_PORT(config, "rs232_network", default_rs232_devices, nullptr));
+	sio1->txd_handler().set(rs232_network, FUNC(rs232_port_device::write_txd));
+	sio1->dtr_handler().set(rs232_network, FUNC(rs232_port_device::write_dtr));
+	rs232_network.rxd_handler().set(*sio1, FUNC(psxsio1_device::write_rxd));
+	rs232_network.dsr_handler().set(*sio1, FUNC(psxsio1_device::write_dsr));
+
+	ns16550_device &uart(*subdevice<ns16550_device>("fdc37c665gt:uart2"));
+	uart.out_tx_callback().set(rs232, FUNC(rs232_port_device::write_txd));
+	uart.out_dtr_callback().set(rs232, FUNC(rs232_port_device::write_dtr));
+	uart.out_rts_callback().set(rs232, FUNC(rs232_port_device::write_rts));
+	rs232.rxd_handler().set(uart, FUNC(ns16550_device::rx_w));
+	rs232.dcd_handler().set(uart, FUNC(ns16550_device::dcd_w));
+	rs232.dsr_handler().set(uart, FUNC(ns16550_device::dsr_w));
+	rs232.ri_handler().set(uart, FUNC(ns16550_device::ri_w));
+	rs232.cts_handler().set(uart, FUNC(ns16550_device::cts_w));
 }
 
 void twinkle_state::twinklex(machine_config& config)
 {
-	twinkle_base(config, true, false);
+	is_dvd_media = false;
+	twinkle(config);
+	twinkle_dvd_type1(config);
 	X76F041(config, "security");
 }
 
 void twinkle_state::twinklex2(machine_config& config)
 {
-	twinkle_base(config, false, false);
+	is_dvd_media = false;
+	twinkle(config);
+	twinkle_dvd_type2(config);
 	X76F041(config, "security");
 }
 
 void twinkle_state::twinklei(machine_config &config)
 {
-	twinkle_base(config, false, false);
+	is_dvd_media = false;
+	twinkle(config);
+	twinkle_dvd_type2(config);
 	I2C_M24C02(config, "security", 0); // M24C02-W
 }
 
 void twinkle_state::twinklei2(machine_config &config)
 {
-	twinkle_base(config, false, true);
+	is_dvd_media = true;
+	twinkle(config);
+	twinkle_dvd_type2(config);
 	I2C_M24C02(config, "security", 0); // M24C02-W
 }
 
