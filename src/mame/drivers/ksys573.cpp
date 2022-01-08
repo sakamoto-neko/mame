@@ -3796,13 +3796,6 @@ ROM_START( ddrmegamix )
 	DISK_IMAGE_READONLY( "ddrmegamix_game", 0, SHA1(f73938832820b116635661f03057bc150b80c3df) )
 ROM_END
 
-ROM_START( sys573cd )
-	SYS573_BIOS_A
-
-	DISK_REGION( "cdrom0" )
-	DISK_IMAGE_READONLY( "cdtester", 0, BAD_DUMP )
-ROM_END
-
 ROM_START( ddru )
 	SYS573_BIOS_A
 
@@ -6148,8 +6141,6 @@ ROM_END
 
 
 GAME( 1997, sys573,    0,        konami573,  konami573, ksys573_state, empty_init,    ROT0,  "Konami", "System 573 BIOS", MACHINE_IS_BIOS_ROOT )
-
-GAME( 1999, sys573cd,  sys573,   ddr,        ddr,       ksys573_state, init_ddr,      ROT0,  "Konami", "System 573 CD Tester", MACHINE_IMPERFECT_SOUND )
 
 GAME( 1997, strgchmp,  sys573,   konami573,  hndlchmp,  ksys573_state, empty_init,    ROT0,  "Konami", "Steering Champ (GQ710 97/12/18 VER. UAA)", MACHINE_IMPERFECT_SOUND )
 GAME( 1997, hndlchmp,  strgchmp, konami573,  hndlchmp,  ksys573_state, empty_init,    ROT0,  "Konami", "Handle Champ (GQ710 97/12/18 VER. SAA)", MACHINE_IMPERFECT_SOUND )
