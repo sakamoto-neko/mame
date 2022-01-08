@@ -33,7 +33,6 @@ public:
 	uint16_t a0a_r();
 	void a10_w(uint16_t data);
 	uint16_t a80_r();
-	uint16_t ac4_r();
 
 	uint16_t mpeg_start_adr_high_r();
 	void mpeg_start_adr_high_w(uint16_t data);

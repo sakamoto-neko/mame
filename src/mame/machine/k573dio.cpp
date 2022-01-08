@@ -145,6 +145,7 @@ void k573dio_device::device_start()
 	save_item(NAME(output_data));
 	save_item(NAME(is_ddrsbm_fpga));
 	save_item(NAME(crypto_key1));
+	save_item(NAME(network_id));
 
 	k573fpga->set_ddrsbm_fpga(is_ddrsbm_fpga);
 
@@ -542,6 +543,8 @@ TIMER_DEVICE_CALLBACK_MEMBER(k573dio_device::network_update_callback)
 
 uint16_t k573dio_device::network_r()
 {
+	// Return a byte from the input buffer
+
 	uint16_t val = 0;
 
 	if (network_buffer_muxed.size() > 0) {
@@ -554,6 +557,8 @@ uint16_t k573dio_device::network_r()
 
 void k573dio_device::network_w(uint16_t data)
 {
+	// Write a byte to the output buffer
+
 	if ((network_buffer_output.size() == 0 && data != 0xc0) || (network_buffer_output.size() > 0 && network_buffer_output.front() != 0xc0))
 		return;
 
@@ -575,17 +580,18 @@ void k573dio_device::network_w(uint16_t data)
 
 uint16_t k573dio_device::network_output_buf_size_r()
 {
-	// Number of bytes in waiting to be sent
+	// Number of bytes in the output buffer waiting to be sent
 	return network_buffer_output_waiting_size;
 }
 
 uint16_t k573dio_device::network_input_buf_size_r()
 {
-	// Number of bytes waiting to be read
+	// Number of bytes in the input buffer waiting to be read
 	return network_buffer_muxed.size();
 }
 
 void k573dio_device::network_id_w(uint16_t data)
 {
+	// The network ID configured in the operator menu
 	network_id = data;
 }
