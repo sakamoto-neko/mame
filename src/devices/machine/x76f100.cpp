@@ -66,6 +66,7 @@ void x76f100_device::device_start()
 	save_item( NAME( m_command ) );
 	save_item( NAME( m_password_retry_counter ) );
 	save_item( NAME( m_write_buffer ) );
+	save_item( NAME( m_response_to_reset ) );
 	save_item( NAME( m_write_password ) );
 	save_item( NAME( m_read_password ) );
 	save_item( NAME( m_data ) );
@@ -271,7 +272,6 @@ WRITE_LINE_MEMBER( x76f100_device::write_scl )
 							{
 								m_sdar = 1;
 
-								// TODO: Should the retry counter persist between power cycles?
 								m_password_retry_counter++;
 								if ( m_password_retry_counter > 8 )
 								{
