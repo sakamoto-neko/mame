@@ -7,6 +7,8 @@
  *
  * This is a high level emulation of the PIC used in some of the System 573 security cartridges.
  *
+ * Referred to internally as "NS2K001".
+ *
  */
 
 #include "emu.h"
@@ -43,7 +45,8 @@ zs01_device::zs01_device( const machine_config &mconfig, const char *tag, device
 	m_state( STATE_STOP ),
 	m_shift( 0 ),
 	m_bit( 0 ),
-	m_byte( 0 )
+	m_byte( 0 ),
+	m_rand_byte( 0 )
 {
 }
 
@@ -65,6 +68,7 @@ void zs01_device::device_start()
 	save_item( NAME( m_shift ) );
 	save_item( NAME( m_bit ) );
 	save_item( NAME( m_byte ) );
+	save_item( NAME( m_rand_byte ) );
 	save_item( NAME( m_write_buffer ) );
 	save_item( NAME( m_read_buffer ) );
 	save_item( NAME( m_response_key ) );
@@ -309,7 +313,7 @@ uint16_t zs01_device::calc_crc( uint8_t *buffer, uint32_t length )
 
 int zs01_device::data_offset()
 {
-	int block = ( ( m_write_buffer[ 0 ] & 2 ) << 7 ) | m_write_buffer[ 1 ];
+	int block = ( ( m_write_buffer[ 0 ] & 2 ) << 10 ) | m_write_buffer[ 1 ];
 
 	return block * SIZE_DATA_BUFFER;
 }
@@ -384,81 +388,85 @@ WRITE_LINE_MEMBER( zs01_device::write_scl )
 						m_byte++;
 						if( m_byte == sizeof( m_write_buffer ) )
 						{
+							// The "command key" persists through erasing so it's likely a fixed key
 							decrypt( m_write_buffer, m_write_buffer, sizeof( m_write_buffer ), m_command_key, 0xff );
 
 							if( ( m_write_buffer[ 0 ] & 4 ) != 0 )
-							{
-								// When the master calendar is used to generate a fresh security cartridge,
-								// the data key is stored at 0x7f8.
-								// The master calendar also expects the key to be blank (= data section uninitialized?)
-								// when starting it or else it won't work.
-								uint8_t buf[12] = { 0 };
-								memcpy( buf, m_write_buffer, sizeof( m_write_buffer ) );
-								decrypt2( &buf[ 2 ], &buf[ 2 ], SIZE_DATA_BUFFER, &m_data[ 0x7f8 ], 0x00 );
-
-								uint16_t crc = calc_crc( buf, 10 );
-								if ( crc == ( ( buf[ 10 ] << 8) | buf[ 11 ] ) )
-									// The key at 0x7f8 in the data matches so just reuse the already decrypted data
-									memcpy( m_write_buffer, buf, sizeof( m_write_buffer ) );
-								else
-									// The key at 0x7f8 didn't match (uninitialized?) so just use the normal m_data_key
-									decrypt2( &m_write_buffer[ 2 ], &m_write_buffer[ 2 ], SIZE_DATA_BUFFER, m_data_key, 0x00 );
-							}
+								decrypt2( &m_write_buffer[ 2 ], &m_write_buffer[ 2 ], SIZE_DATA_BUFFER, m_data_key, m_rand_byte );
 
 							uint16_t crc = calc_crc( m_write_buffer, 10 );
 
+							verboselog( 1, "-> command: %02x (%s)\n", m_write_buffer[ 0 ], ( m_write_buffer[ 0 ] & 1 ) ? "READ" : "WRITE" );
+							verboselog( 1, "-> address: %04x\n", data_offset() );
+							verboselog( 1, "-> data: %02x%02x%02x%02x%02x%02x%02x%02x\n",
+								m_write_buffer[ 2 ], m_write_buffer[ 3 ], m_write_buffer[ 4 ], m_write_buffer[ 5 ],
+								m_write_buffer[ 6 ], m_write_buffer[ 7 ], m_write_buffer[ 8 ], m_write_buffer[ 9 ] );
+							verboselog( 1, "-> crc: %04x vs %02x%02x %s\n", crc, m_write_buffer[ 10 ], m_write_buffer[ 11 ], crc == ( ( m_write_buffer[ 10 ] << 8 ) | m_write_buffer[ 11 ] ) ? "" : "(FAIL)");
+
 							if( crc == ( ( m_write_buffer[ 10 ] << 8 ) | m_write_buffer[ 11 ] ) )
 							{
-								verboselog( 1, "-> command: %02x\n", m_write_buffer[ 0 ] );
-								verboselog( 1, "-> address: %02x\n", m_write_buffer[ 1 ] );
-								// Notes from dmx2majp:
-								// For read commands, data is an xor'd form of the md5 hash of the data key salted by some unique but useless data.
-								// The salt data is a combination of values from the timekeeper chip + the lower byte of VSync(-1).
-								//
-								// Example:
-								// data key = 980d85b1b666f399
-								// expected data = 2bef6a373a5c59b1
-								//
-								// salt data = 7a 00 07 05 0f 23 12 18
-								// md5 = a08d0279cf8a73cc8b62684ef5d62a7d
-								// output = a08d0279cf8a73cc ^ 8b62684ef5d62a7d = 2bef6a373a5c59b1
-								//
-								// >>> md5 = hashlib.md5()
-								// >>> md5.update(b"\x98\x0D\x85\xB1\xB6\x66\xF3\x99")
-								// >>> md5.update(b"\x7A\x00\x07\x05\x0F\x23\x12\x18")
-								// >>> s = md5.digest()
-								// >>> data = [s[i] ^ s[i+8] for i in range(8)]
-								// >>> bytes(data) == b"\x2b\xef\x6a\x37\x3a\x5c\x59\xb1"
-								// True
-								//
-								// All that to say, I don't think the data value when the command is a read is useful.
-								verboselog( 1, "-> data: %02x%02x%02x%02x%02x%02x%02x%02x\n",
-									m_write_buffer[ 2 ], m_write_buffer[ 3 ], m_write_buffer[ 4 ], m_write_buffer[ 5 ],
-									m_write_buffer[ 6 ], m_write_buffer[ 7 ], m_write_buffer[ 8 ], m_write_buffer[ 9 ] );
-								verboselog( 1, "-> crc: %02x%02x\n", m_write_buffer[ 10 ], m_write_buffer[ 11 ] );
+								auto offset = data_offset();
+
+								m_data[ 0x7f5 ] = 0; // Reset password fail counter
 
 								switch( m_write_buffer[ 0 ] & 1 )
 								{
 								case COMMAND_WRITE:
-									// 0xfd = Writes the previous described md5 xor'd value here. Unused?
-									// 0xfe = ?
-									// 0xff = Data key
-									memcpy( &m_data[ data_offset() ], &m_write_buffer[ 2 ], SIZE_DATA_BUFFER );
-
-									/* todo: find out what should be returned. */
 									memset( &m_read_buffer[ 0 ], 0, sizeof( m_write_buffer ) );
+									m_read_buffer[ 0 ] = STATUS_OK;
+
+									switch (offset)
+									{
+									case 0x7e8:
+										{
+											// Erase
+											// TODO: Is it possible to erase even
+											std::fill( std::begin( m_data ), std::end( m_data ), 0 );
+											std::fill( std::begin( m_data_key ), std::end( m_data_key ), 0 );
+										}
+										break;
+
+									case 0x7f0:
+										{
+											// Configuration register
+											// TODO: This doesn't belong in the data section
+											memcpy( &m_data[ offset ], &m_write_buffer[ 2 ], SIZE_DATA_BUFFER );
+										}
+										break;
+
+									case 0x7f8:
+										{
+											// Set password
+											memcpy( m_data_key, &m_write_buffer[ 2 ], SIZE_DATA_BUFFER );
+										}
+										break;
+
+									default:
+										memcpy( &m_data[ offset ], &m_write_buffer[ 2 ], SIZE_DATA_BUFFER );
+										break;
+									}
 									break;
 
 								case COMMAND_READ:
-									/* todo: find out what should be returned. */
-									memset( &m_read_buffer[ 0 ], 0, 2 );
+									m_read_buffer[ 0 ] = STATUS_OK;
 
-									switch( m_write_buffer[ 1 ] )
+									// TODO: What happens if you try reading the password through 0x7f8?
+									switch (offset)
 									{
-									// 0xfc = Some kind of ID, doesn't seem to be displayed anywhere. TID?
-									// 0xfd = SID (Security ID?)
-									case 0xfd:
+									case 0x7e0:
 										{
+											// TODO: Unknown serial
+											// The serial is verified by the same algorithm as the one read from 0x7e8 (DS2401 serial), so maybe it's the same or related.
+											for( int i = 0; i < SIZE_DATA_BUFFER; i++ )
+											{
+												m_read_buffer[ 2 + i ] = m_ds2401->direct_read( SIZE_DATA_BUFFER - i - 1 );
+											}
+										}
+										break;
+
+									case 0x7e8:
+										{
+											// DS2401 serial
 											/* TODO: use read/write to talk to the ds2401, which will require a timer. */
 											for( int i = 0; i < SIZE_DATA_BUFFER; i++ )
 											{
@@ -467,8 +475,21 @@ WRITE_LINE_MEMBER( zs01_device::write_scl )
 										}
 										break;
 
+									case 0x7f0:
+										{
+											// Configuration register
+											// TODO: This doesn't belong in the data section
+											// Format:
+											// aa bb cc dd ee ff gg hh
+											// ee = Number of retries allowed
+											// ff = Current number of retries
+											// hh = ??
+											memcpy( &m_read_buffer[ 2 ], &m_data[ offset ], SIZE_DATA_BUFFER );
+										}
+										break;
+
 									default:
-										memcpy( &m_read_buffer[ 2 ], &m_data[ data_offset() ], SIZE_DATA_BUFFER );
+										memcpy( &m_read_buffer[ 2 ], &m_data[ offset ], SIZE_DATA_BUFFER );
 										break;
 									}
 
@@ -479,17 +500,26 @@ WRITE_LINE_MEMBER( zs01_device::write_scl )
 							else
 							{
 								verboselog( 0, "bad crc\n" );
+								m_read_buffer[ 0 ] = STATUS_ERROR;
 
-								/* todo: find out what should be returned. */
-								memset( &m_read_buffer[ 0 ], 0xff, 2 );
+								m_data[ 0x7f5 ]++;
+								if ( m_data[ 0x7f5 ] > m_data[ 0x7f4 ] )
+								{
+									// Too many bad reads, erase data
+									std::fill( std::begin( m_data ), std::end( m_data ), 0 );
+									std::fill( std::begin( m_data_key ), std::end( m_data_key ), 0 );
+								}
 							}
 
-							verboselog( 1, "<- status: %02x%02x\n",
-								m_read_buffer[ 0 ], m_read_buffer[ 1 ] );
+							verboselog( 1, "<- status: %02x\n", m_read_buffer[ 0 ] );
 
 							verboselog( 1, "<- data: %02x%02x%02x%02x%02x%02x%02x%02x\n",
 								m_read_buffer[ 2 ], m_read_buffer[ 3 ], m_read_buffer[ 4 ], m_read_buffer[ 5 ],
 								m_read_buffer[ 6 ], m_read_buffer[ 7 ], m_read_buffer[ 8 ], m_read_buffer[ 9 ] );
+
+							verboselog(1, "\n");
+
+							m_rand_byte = m_read_buffer[ 1 ];
 
 							crc = calc_crc( m_read_buffer, 10 );
 							m_read_buffer[ 10 ] = crc >> 8;
