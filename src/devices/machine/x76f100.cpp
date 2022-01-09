@@ -145,19 +145,11 @@ void x76f100_device::password_ok()
 {
 	m_password_retry_counter = 0;
 
-	if( m_command == COMMAND_CHANGE_WRITE_PASSWORD )
-	{
-		m_state = STATE_CHANGE_WRITE_PASSWORD;
-	}
-	else if( m_command == COMMAND_CHANGE_READ_PASSWORD )
-	{
-		m_state = STATE_CHANGE_READ_PASSWORD;
-	}
-	else if( ( m_command & 0xe1 ) == COMMAND_READ )
+	if( ( m_command & 0x81 ) == COMMAND_READ )
 	{
 		m_state = STATE_READ_DATA;
 	}
-	else if( ( m_command & 0xe1 ) == COMMAND_WRITE )
+	else if( ( m_command & 0x81 ) == COMMAND_WRITE )
 	{
 		m_state = STATE_WRITE_DATA;
 	}
@@ -217,8 +209,6 @@ WRITE_LINE_MEMBER( x76f100_device::write_scl )
 		case STATE_LOAD_COMMAND:
 		case STATE_LOAD_PASSWORD:
 		case STATE_VERIFY_PASSWORD:
-		case STATE_CHANGE_WRITE_PASSWORD:
-		case STATE_CHANGE_READ_PASSWORD:
 		case STATE_WRITE_DATA:
 			if( m_scl == 0 && state != 0 )
 			{
@@ -290,32 +280,27 @@ WRITE_LINE_MEMBER( x76f100_device::write_scl )
 
 						if( m_byte == sizeof( m_write_buffer ) )
 						{
-							for( m_byte = 0; m_byte < sizeof( m_write_buffer ); m_byte++ )
+							if ( m_command == COMMAND_CHANGE_WRITE_PASSWORD )
 							{
-								int offset = data_offset();
-								verboselog( 1, "-> data[ %03x ]: %02x\n", offset, m_write_buffer[ m_byte ] );
-								m_data[ offset ] = m_write_buffer[ m_byte ];
+								std::copy( std::begin( m_write_buffer ), std::end( m_write_buffer ), std::begin( m_write_password ) );
+							}
+							else if ( m_command == COMMAND_CHANGE_READ_PASSWORD )
+							{
+								std::copy( std::begin( m_write_buffer ), std::end( m_write_buffer ), std::begin( m_read_password ) );
+							}
+							else
+							{
+								for( m_byte = 0; m_byte < sizeof( m_write_buffer ); m_byte++ )
+								{
+									int offset = data_offset();
+									verboselog( 1, "-> data[ %03x ]: %02x\n", offset, m_write_buffer[ m_byte ] );
+									m_data[ offset ] = m_write_buffer[ m_byte ];
+								}
 							}
 
 							m_byte = 0;
 
 							verboselog( 1, "data flushed\n" );
-						}
-						break;
-
-					case STATE_CHANGE_WRITE_PASSWORD:
-					case STATE_CHANGE_READ_PASSWORD:
-						verboselog( 2, "-> password data: %02x\n", m_shift );
-						m_write_buffer[ m_byte++ ] = m_shift;
-
-						if( m_byte == sizeof( m_write_buffer ) )
-						{
-							if ( m_state == STATE_CHANGE_WRITE_PASSWORD )
-								std::copy( std::begin( m_write_buffer ), std::end( m_write_buffer ), std::begin( m_write_password ) );
-							else
-								std::copy( std::begin( m_write_buffer ), std::end( m_write_buffer ), std::begin( m_read_password ) );
-
-							m_byte = 0;
 						}
 						break;
 					}
