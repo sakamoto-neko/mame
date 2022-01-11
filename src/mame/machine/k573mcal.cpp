@@ -12,11 +12,17 @@
 
 #include "machine/timehelp.h"
 
+#define LOG_CMD  (1 << 0)
+ // #define VERBOSE      (LOG_CMD)
+ // #define LOG_OUTPUT_STREAM std::cout
+
+#include "logmacro.h"
+
+#define LOGCMD(...)    LOGMASKED(LOG_CMD, __VA_ARGS__)
+
 k573mcal_device::k573mcal_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock) :
 	jvs_device(mconfig, KONAMI_573_MASTER_CALENDAR, tag, owner, clock),
-	m_in1(*this, "IN1"),
-	seconds(0),
-	initEchoValue(0)
+	m_in1(*this, "IN1")
 {
 }
 
@@ -28,7 +34,11 @@ void k573mcal_device::device_start()
 void k573mcal_device::device_reset()
 {
 	seconds = 0;
-	initEchoValue = 0;
+
+	// Randomly picked values
+	// Is rendered in-game as x41-6379 where the x is generated based on the value of the main ID
+	mainId = 41; // valid range 0 - 99
+	subId = 6379; // valid range 0 - 9999
 
 	jvs_device::device_reset();
 }
@@ -55,10 +65,10 @@ uint8_t k573mcal_device::comm_method_version()
 
 int k573mcal_device::handle_message(const uint8_t* send_buffer, uint32_t send_size, uint8_t*& recv_buffer)
 {
-	printf("k573mcal msg: ");
+	LOGCMD("k573mcal msg: ");
 	for (uint32_t i = 0; i < send_size; i++)
-		printf("%02x ", send_buffer[i]);
-	printf("\n");
+		LOGCMD("%02x ", send_buffer[i]);
+	LOGCMD("\n");
 
 	switch (send_buffer[0]) {
 	case 0xf0:
@@ -109,26 +119,23 @@ int k573mcal_device::handle_message(const uint8_t* send_buffer, uint32_t send_si
 		const uint16_t val = (send_buffer[1] << 8) | send_buffer[2];
 
 		if (val == 0x7f00) {
+			// Return main ID
 			uint8_t resp[] = {
 				0x01, // status, must be 1
-				0x00, 0x00, 0x00, 0x00,
+				uint8_t((mainId >> 24) & 0xff), uint8_t((mainId >> 16) & 0xff), uint8_t((mainId >> 8) & 0xff), uint8_t(mainId & 0xff),
 			};
 
 			memcpy(recv_buffer, resp, sizeof(resp));
 			recv_buffer += sizeof(resp);
 		}
 		else if (val == 0x8000) {
+			// Return sub ID
 			uint8_t resp[] = {
 				0x01, // status, must be 1
 				'<', 'I', 'N', 'I', 'T', ' ', 'C', 'O', 'M', 'P', 'L', 'E', 'T', 'E', '!', '>',
-				uint8_t(initEchoValue & 0xff), uint8_t((initEchoValue >> 8) & 0xff), uint8_t((initEchoValue >> 16) & 0xff), uint8_t((initEchoValue >> 24) & 0xff),
-				0x00, 0x00, 0x00, 0x00,
+				uint8_t((subId >> 24) & 0xff), uint8_t((subId >> 16) & 0xff), uint8_t((subId >> 8) & 0xff), uint8_t(subId & 0xff),
+				uint8_t((~subId >> 24) & 0xff), uint8_t((~subId >> 16) & 0xff), uint8_t((~subId >> 8) & 0xff), uint8_t(~subId & 0xff),
 			};
-
-			for (int i = 0; i < 4; i++) {
-				// The second value is just the inverse of the first value
-				resp[0x15 + i] = ~resp[0x11 + i];
-			}
 
 			memcpy(recv_buffer, resp, sizeof(resp));
 			recv_buffer += sizeof(resp);
@@ -142,7 +149,8 @@ int k573mcal_device::handle_message(const uint8_t* send_buffer, uint32_t send_si
 		const uint16_t val = (send_buffer[1] << 8) | send_buffer[2];
 
 		if (val == 0x8010) {
-			initEchoValue = send_buffer[4] | (send_buffer[5] << 8) | (send_buffer[6] << 16) | (send_buffer[7] << 24);
+			// Set next sub ID
+			subId = (send_buffer[4] << 24) | (send_buffer[5] << 16) | (send_buffer[6] << 8) | send_buffer[7];
 
 			uint8_t resp[] = {
 				0x01, // status, must be 1
@@ -188,14 +196,14 @@ int k573mcal_device::handle_message(const uint8_t* send_buffer, uint32_t send_si
 INPUT_PORTS_START( k573mcal )
 	// These values are only for later versions of the bootloader. Earlier versions use different region values.
 	PORT_START("IN1")
-	PORT_DIPNAME(0x0f, 0x00, "Area")
+	PORT_DIPNAME(0x0f, 0x03, "Area")
 	PORT_DIPSETTING(0x00, "JA")
 	PORT_DIPSETTING(0x01, "UA")
 	PORT_DIPSETTING(0x02, "EA")
 	PORT_DIPSETTING(0x03, "3")
 	PORT_DIPSETTING(0x04, "AA")
 	PORT_DIPSETTING(0x05, "KA")
-	PORT_DIPSETTING(0x06, "JY")
+	PORT_DIPSETTING(0x06, "JY/AY")
 	PORT_DIPSETTING(0x07, "JR")
 	PORT_DIPSETTING(0x08, "JB")
 	PORT_DIPSETTING(0x09, "UB")
@@ -203,7 +211,7 @@ INPUT_PORTS_START( k573mcal )
 	PORT_DIPSETTING(0x0b, "11")
 	PORT_DIPSETTING(0x0c, "AB")
 	PORT_DIPSETTING(0x0d, "KB")
-	PORT_DIPSETTING(0x0e, "JZ")
+	PORT_DIPSETTING(0x0e, "JZ/AZ")
 	PORT_DIPSETTING(0x0f, "JS")
 INPUT_PORTS_END
 

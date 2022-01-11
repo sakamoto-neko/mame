@@ -43,7 +43,8 @@ private:
 	required_ioport m_in1;
 
 	uint8_t seconds = 0;
-	uint32_t initEchoValue = 0;
+	uint32_t mainId;
+	uint32_t subId;
 };
 
 DECLARE_DEVICE_TYPE(KONAMI_573_MASTER_CALENDAR, k573mcal_device)
