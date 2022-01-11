@@ -234,9 +234,6 @@ void x76f041_device::load_address()
 
 	verboselog( 1, "-> address: %02x\n", m_address );
 
-#if 0
-	// Security carts need to be regenerated before this can be used properly, otherwise a lot of older System 573 games won't be able to boot anymore
-	// Remove the ifs when security carts are regenerated.
 	if ( ( m_configuration_registers[ CONFIG_CR ] & CR_RETRY_COUNTER_ENABLE_BIT ) != 0 &&
 		m_configuration_registers[ CONFIG_RR ] == m_configuration_registers[ CONFIG_RC ] &&
 		( m_configuration_registers[ CONFIG_CR ] & CR_UNAUTHORIZED_ACCESS_BITS ) == 0x80 )
@@ -247,7 +244,6 @@ void x76f041_device::load_address()
 		m_sdar = 0;
 		return;
 	}
-#endif
 
 	if ( ( m_command & 0xe0 ) == COMMAND_CONFIGURATION )
 	{
@@ -270,7 +266,6 @@ void x76f041_device::load_address()
 		return;
 	}
 
-#if 0
 	if ( ( m_configuration_registers[ CONFIG_CR ] & CR_RETRY_COUNTER_ENABLE_BIT ) != 0 &&
 		m_configuration_registers[ CONFIG_RR ] == m_configuration_registers[ CONFIG_RC ] &&
 		( m_configuration_registers[ CONFIG_CR ] & CR_UNAUTHORIZED_ACCESS_BITS ) != 0x80 )
@@ -281,7 +276,6 @@ void x76f041_device::load_address()
 		m_sdar = 0;
 		return;
 	}
-#endif
 
 	if( ( m_command & 1 ) == 0 )
 	{
