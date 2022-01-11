@@ -48,7 +48,8 @@ x76f041_device::x76f041_device( const machine_config &mconfig, const char *tag, 
 	m_bit( 0 ),
 	m_byte( 0 ),
 	m_command( 0 ),
-	m_address( 0 )
+	m_address( 0 ),
+	m_is_password_accepted ( false )
 {
 }
 
@@ -68,6 +69,7 @@ void x76f041_device::device_start()
 	save_item( NAME( m_byte ) );
 	save_item( NAME( m_command ) );
 	save_item( NAME( m_address ) );
+	save_item( NAME( m_is_password_accepted ) );
 	save_item( NAME( m_write_buffer ) );
 	save_item( NAME( m_response_to_reset ) );
 	save_item( NAME( m_write_password ) );
@@ -94,6 +96,7 @@ void x76f041_device::device_reset()
 	m_byte = 0;
 	m_command = 0;
 	m_address = 0;
+	m_is_password_accepted = false;
 }
 
 WRITE_LINE_MEMBER( x76f041_device::write_cs )
@@ -410,6 +413,16 @@ WRITE_LINE_MEMBER( x76f041_device::write_scl )
 						if( m_byte == sizeof( m_write_buffer ) )
 						{
 							m_state = STATE_VERIFY_PASSWORD;
+
+							// Perform the password acceptance check before verify password because
+							// password verify ack is meant to be spammed and will quickly overflow the
+							// retry counter.
+							m_is_password_accepted = memcmp( password(), m_write_buffer, sizeof( m_write_buffer ) ) == 0;
+							if( !m_is_password_accepted )
+							{
+								if( m_configuration_registers[ CONFIG_CR ] & CR_RETRY_COUNTER_ENABLE_BIT )
+									m_configuration_registers[ CONFIG_RC ]++;
+							}
 						}
 						break;
 
@@ -420,16 +433,13 @@ WRITE_LINE_MEMBER( x76f041_device::write_scl )
 						if( m_shift == 0xc0 )
 						{
 							/* todo: this should take 10ms before it returns ok. */
-							if( memcmp( password(), m_write_buffer, sizeof( m_write_buffer ) ) == 0 )
+							if( m_is_password_accepted )
 							{
 								password_ok();
 							}
 							else
 							{
 								m_sdar = 1;
-
-								if( m_configuration_registers[ CONFIG_CR ] & CR_RETRY_COUNTER_ENABLE_BIT )
-									m_configuration_registers[ CONFIG_RC ]++;
 							}
 						}
 						break;

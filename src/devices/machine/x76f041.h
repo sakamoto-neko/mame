@@ -133,6 +133,7 @@ private:
 	int m_byte;
 	int m_command;
 	int m_address;
+	bool m_is_password_accepted;
 	uint8_t m_write_buffer[ 8 ];
 	uint8_t m_response_to_reset[ 4 ];
 	uint8_t m_write_password[ 8 ];
