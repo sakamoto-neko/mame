@@ -165,8 +165,14 @@ void x76f100_device::password_ok()
 int x76f100_device::data_offset()
 {
 	int block_offset = ( m_command >> 1 ) & 0x0f;
+	int offset = ( block_offset * sizeof( m_write_buffer ) ) + m_byte;
 
-	return ( block_offset * sizeof( m_write_buffer ) ) + m_byte;
+	// Technically there are 4 bits assigned to sector values but since the data array is only 112 bytes,
+	// it will try reading out of bounds when the sector is 14 (= starts at 112) or 15 (= starts at 120).
+	if ( block_offset >= 14 || offset >= sizeof ( m_data ) )
+		return -1;
+
+	return offset;
 }
 
 WRITE_LINE_MEMBER( x76f100_device::write_scl )
@@ -306,8 +312,17 @@ WRITE_LINE_MEMBER( x76f100_device::write_scl )
 								for( m_byte = 0; m_byte < sizeof( m_write_buffer ); m_byte++ )
 								{
 									int offset = data_offset();
-									verboselog( 1, "-> data[ %03x ]: %02x\n", offset, m_write_buffer[ m_byte ] );
-									m_data[ offset ] = m_write_buffer[ m_byte ];
+
+									if ( offset != -1 )
+									{
+										verboselog( 1, "-> data[ %03x ]: %02x\n", offset, m_write_buffer[ m_byte ] );
+										m_data[ offset ] = m_write_buffer[ m_byte ];
+									}
+									else
+									{
+										verboselog( 1, "-> attempted to write %02x out of bounds\n", m_write_buffer[m_byte] );
+										break;
+									}
 								}
 							}
 
@@ -337,8 +352,18 @@ WRITE_LINE_MEMBER( x76f100_device::write_scl )
 						{
 						case STATE_READ_DATA:
 							offset = data_offset();
-							m_shift = m_data[ offset ];
-							verboselog( 1, "<- data[ %02x ]: %02x\n", offset, m_shift );
+
+							if ( offset != -1 )
+							{
+								m_shift = m_data[ offset ];
+								verboselog( 1, "<- data[ %02x ]: %02x\n", offset, m_shift );
+							}
+							else
+							{
+								m_shift = 0;
+								verboselog( 1, "<- attempted to read out of bounds \n" );
+							}
+
 							break;
 						}
 					}
@@ -348,7 +373,7 @@ WRITE_LINE_MEMBER( x76f100_device::write_scl )
 					m_bit++;
 				}
 				else
-				{
+					{
 					m_bit = 0;
 					m_sdar = 0;
 
