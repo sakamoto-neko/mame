@@ -78,6 +78,12 @@ private:
 		STATUS_ERROR = 2,
 	};
 
+	enum configuration_registers_t
+	{
+		CONFIG_RR = 4, // Retry Register
+		CONFIG_RC = 5  // Reset Counter
+	};
+
 	// internal state
 	optional_device<ds2401_device> m_ds2401;
 	optional_memory_region m_region;
@@ -96,8 +102,14 @@ private:
 	uint8_t m_read_buffer[ 12 ];
 	uint8_t m_response_key[ 8 ];
 	uint8_t m_response_to_reset[ 4 ];
+
+	// The command key persists through erasing so it's likely a fixed key
 	uint8_t m_command_key[ 8 ];
+
 	uint8_t m_data_key[ 8 ];
+
+	uint8_t m_configuration_registers[ 8 ];
+
 	uint8_t m_data[ 4096 ];
 };
 

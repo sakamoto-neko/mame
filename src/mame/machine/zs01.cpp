@@ -76,6 +76,7 @@ void zs01_device::device_start()
 	save_item( NAME( m_command_key ) );
 	save_item( NAME( m_data_key ) );
 	save_item( NAME( m_data ) );
+	save_item( NAME( m_configuration_registers ) );
 }
 
 WRITE_LINE_MEMBER( zs01_device::write_rst )
@@ -388,7 +389,6 @@ WRITE_LINE_MEMBER( zs01_device::write_scl )
 						m_byte++;
 						if( m_byte == sizeof( m_write_buffer ) )
 						{
-							// The "command key" persists through erasing so it's likely a fixed key
 							decrypt( m_write_buffer, m_write_buffer, sizeof( m_write_buffer ), m_command_key, 0xff );
 
 							if( ( m_write_buffer[ 0 ] & 4 ) != 0 )
@@ -407,7 +407,7 @@ WRITE_LINE_MEMBER( zs01_device::write_scl )
 							{
 								auto offset = data_offset();
 
-								m_data[ 0x7f5 ] = 0; // Reset password fail counter
+								m_configuration_registers[ CONFIG_RC ] = 0; // Reset password fail counter
 
 								switch( m_write_buffer[ 0 ] & 1 )
 								{
@@ -429,8 +429,7 @@ WRITE_LINE_MEMBER( zs01_device::write_scl )
 									case 0x7f0:
 										{
 											// Configuration register
-											// TODO: This doesn't belong in the data section
-											memcpy( &m_data[ offset ], &m_write_buffer[ 2 ], SIZE_DATA_BUFFER );
+											memcpy( m_configuration_registers, &m_write_buffer[ 2 ], SIZE_DATA_BUFFER );
 										}
 										break;
 
@@ -478,13 +477,7 @@ WRITE_LINE_MEMBER( zs01_device::write_scl )
 									case 0x7f0:
 										{
 											// Configuration register
-											// TODO: This doesn't belong in the data section
-											// Format:
-											// aa bb cc dd ee ff gg hh
-											// ee = Number of retries allowed
-											// ff = Current number of retries
-											// hh = ??
-											memcpy( &m_read_buffer[ 2 ], &m_data[ offset ], SIZE_DATA_BUFFER );
+											memcpy( &m_read_buffer[ 2 ], m_configuration_registers, SIZE_DATA_BUFFER );
 										}
 										break;
 
@@ -502,8 +495,8 @@ WRITE_LINE_MEMBER( zs01_device::write_scl )
 								verboselog( 0, "bad crc\n" );
 								m_read_buffer[ 0 ] = STATUS_ERROR;
 
-								m_data[ 0x7f5 ]++;
-								if ( m_data[ 0x7f5 ] > m_data[ 0x7f4 ] )
+								m_configuration_registers[ CONFIG_RC ]++;
+								if ( m_configuration_registers[ CONFIG_RC ] > m_configuration_registers[ CONFIG_RR ] )
 								{
 									// Too many bad reads, erase data
 									std::fill( std::begin( m_data ), std::end( m_data ), 0 );
@@ -644,12 +637,25 @@ READ_LINE_MEMBER( zs01_device::read_sda )
 
 void zs01_device::nvram_default()
 {
-	memset( m_response_to_reset, 0, sizeof( m_response_to_reset ) );
-	memset( m_command_key, 0, sizeof( m_command_key ) );
+	m_response_to_reset[ 0 ] = 0x5a;
+	m_response_to_reset[ 1 ] = 0x53;
+	m_response_to_reset[ 2 ] = 0x00;
+	m_response_to_reset[ 3 ] = 0x01;
+
+	m_command_key[ 0 ] = 0xed;
+	m_command_key[ 1 ] = 0x68;
+	m_command_key[ 2 ] = 0x50;
+	m_command_key[ 3 ] = 0x4b;
+	m_command_key[ 4 ] = 0xc6;
+	m_command_key[ 5 ] = 0x44;
+	m_command_key[ 6 ] = 0x48;
+	m_command_key[ 7 ] = 0x3e;
+
 	memset( m_data_key, 0, sizeof( m_data_key ) );
+	memset( m_configuration_registers, 0, sizeof( m_configuration_registers ) );
 	memset( m_data, 0, sizeof( m_data ) );
 
-	int expected_bytes = sizeof( m_response_to_reset ) + sizeof( m_command_key ) + sizeof( m_data_key ) + sizeof( m_data );
+	int expected_bytes = sizeof( m_response_to_reset ) + sizeof( m_command_key ) + sizeof( m_data_key ) + sizeof( m_data ) + sizeof( m_configuration_registers );
 
 	if (!m_region.found())
 	{
@@ -667,6 +673,7 @@ void zs01_device::nvram_default()
 		memcpy( m_command_key, region, sizeof( m_command_key ) ); region += sizeof( m_command_key );
 		memcpy( m_data_key, region, sizeof( m_data_key ) ); region += sizeof( m_data_key );
 		memcpy( m_data, region, sizeof( m_data ) ); region += sizeof( m_data );
+		memcpy( m_configuration_registers, region, sizeof( m_configuration_registers ) ); region += sizeof( m_configuration_registers );
 	}
 }
 
@@ -676,6 +683,7 @@ void zs01_device::nvram_read( emu_file &file )
 	file.read( m_command_key, sizeof( m_command_key ) );
 	file.read( m_data_key, sizeof( m_data_key ) );
 	file.read( m_data, sizeof( m_data ) );
+	file.read( m_configuration_registers, sizeof( m_configuration_registers ) );
 }
 
 void zs01_device::nvram_write( emu_file &file )
@@ -684,4 +692,5 @@ void zs01_device::nvram_write( emu_file &file )
 	file.write( m_command_key, sizeof( m_command_key ) );
 	file.write( m_data_key, sizeof( m_data_key ) );
 	file.write( m_data, sizeof( m_data ) );
+	file.write( m_configuration_registers, sizeof( m_configuration_registers ) );
 }
