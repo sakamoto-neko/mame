@@ -241,7 +241,8 @@ void x76f041_device::load_address()
 		// No commands are allowed
 		verboselog( 1, "unauthorized access rejected\n" );
 		m_state = STATE_STOP;
-		m_sdar = 0;
+		m_sdar = 1;
+		m_byte = 0;
 		return;
 	}
 
@@ -273,7 +274,8 @@ void x76f041_device::load_address()
 		// Only configuration commands are allowed
 		verboselog( 1, "unauthorized access rejected\n" );
 		m_state = STATE_STOP;
-		m_sdar = 0;
+		m_sdar = 1;
+		m_byte = 0;
 		return;
 	}
 
@@ -296,7 +298,8 @@ void x76f041_device::load_address()
 		/* todo: find out when this is really checked. */
 		verboselog( 1, "command not allowed\n" );
 		m_state = STATE_STOP;
-		m_sdar = 0;
+		m_sdar = 1;
+		m_byte = 0;
 	}
 	else if( ( ( m_command & 0xe0 ) == COMMAND_WRITE && ( bcr & BCR_X ) == 0 ) ||
 		( ( m_command & 0xe0 ) == COMMAND_READ && ( bcr & BCR_Y ) == 0 ) )

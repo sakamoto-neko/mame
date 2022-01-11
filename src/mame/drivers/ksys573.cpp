@@ -2491,6 +2491,10 @@ void ksys573_state::konami573(machine_config &config)
 
 	SYS573_JVS_HOST(config, m_sys573_jvs_host, 0);
 
+	// Uncomment for generating new security cartridges
+	// Warning: Does not play well with memory card reader (JVS chaining issue in MAME?)
+	//KONAMI_573_MASTER_CALENDAR(config, "k573mcal", 0, m_sys573_jvs_host);
+
 	rs232_port_device& rs232_network(RS232_PORT(config, "rs232_network", default_rs232_devices, nullptr));
 	auto sio1 = subdevice<psxsio1_device>("maincpu:sio1");
 	sio1->txd_handler().set(rs232_network, FUNC(rs232_port_device::write_txd));
@@ -3675,7 +3679,7 @@ ROM_START( animechmp )
 	ROM_CONTINUE( 0x000000, 0x100000 )
 
 	ROM_REGION( 0x0000084, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gca07ja.u1",   0x000000, 0x000084, BAD_DUMP CRC(e230ceb6) SHA1(af0f0e74af62e813ba5b40e6767856d2866c5324) )
+	ROM_LOAD( "gca07ja.u1",   0x000000, 0x000084, BAD_DUMP CRC(845e2907) /* updated hash */ SHA1(bf278d3eb35eaa233ccedf54bfee313b6ae772e0) /* updated hash */)
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gca07ja.u6",   0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -3685,7 +3689,7 @@ ROM_START( bassangl )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "ge765ja.u1", 0x000000, 0x000224, BAD_DUMP CRC(ee1b32a7) SHA1(c0f6b14b054f5a95ce474e794a3e0ca78faac681) )
+	ROM_LOAD( "ge765ja.u1", 0x000000, 0x000224, BAD_DUMP CRC(98141cc7) /* updated hash */ SHA1(79ed944c556671a00af995e054b9aeafee245015) /* updated hash */ )
 
 	DISK_REGION( "cdrom0" )
 	DISK_IMAGE_READONLY( "765jaa02", 0, SHA1(dfcf62581e0d0e994945cc2c37ef86827d511628) )
@@ -3695,7 +3699,7 @@ ROM_START( bassang2 )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gc865ja.u1", 0x000000, 0x000224, BAD_DUMP CRC(095cbfb5) SHA1(529ce0a7b0986cf7e64c37f466d6c2dac95cea7f) )
+	ROM_LOAD( "gc865ja.u1", 0x000000, 0x000224, BAD_DUMP CRC(0a25aec3) /* updated hash */ SHA1(7b3c4da67f862d8d17e84cf5b9fbb3f7554cc409) /* updated hash */ )
 
 	DISK_REGION( "cdrom0" )
 	DISK_IMAGE_READONLY( "865jaa02", 0, BAD_DUMP SHA1(b98d9aa54f13aa73bea580d6494cb6a7f3217be3) )
@@ -3719,7 +3723,7 @@ ROM_START( darkhleg )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gx706ja.u1", 0x000000, 0x000224, BAD_DUMP CRC(72b42574) SHA1(79dc959f0ce95ccb9ac0dbf0a72aec973e91bc56) )
+	ROM_LOAD( "gx706ja.u1", 0x000000, 0x000224, BAD_DUMP CRC(04bb0b14) /* updated hash */ SHA1(6cdedee6b1e169e0be6e065f93263abd3285a21a) /* updated hash */ )
 
 	DISK_REGION( "cdrom0" )
 	DISK_IMAGE_READONLY( "706jaa02", 0, SHA1(10101952fad80b7a10b1299158081bf86ce8cbe6) )
@@ -3728,8 +3732,8 @@ ROM_END
 ROM_START( ddrextrm )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gcc36ja.u1",   0x000000, 0x001014, BAD_DUMP CRC(c1601287) SHA1(929691a78f7bb6dd830f832f301116df0da1619b) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gcc36ja.u1",   0x000000, 0x00101c, BAD_DUMP CRC(02c411b8) /* updated hash */ SHA1(c862675b82f91b003a3c55d2a03c1d42d906a4c5) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gcc36ja.u6",   0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -3741,8 +3745,8 @@ ROM_END
 ROM_START( ddrexpro )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gcc36ja.u1",   0x000000, 0x001014, BAD_DUMP CRC(c1601287) SHA1(929691a78f7bb6dd830f832f301116df0da1619b) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gcc36ja.u1",   0x000000, 0x00101c, BAD_DUMP CRC(02c411b8) /* updated hash */ SHA1(c862675b82f91b003a3c55d2a03c1d42d906a4c5) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gcc36ja.u6",   0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -3754,8 +3758,8 @@ ROM_END
 ROM_START( ddrexproc )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gcc36ja.u1",   0x000000, 0x001014, BAD_DUMP CRC(c1601287) SHA1(929691a78f7bb6dd830f832f301116df0da1619b) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gcc36ja.u1",   0x000000, 0x00101c, BAD_DUMP CRC(02c411b8) /* updated hash */ SHA1(c862675b82f91b003a3c55d2a03c1d42d906a4c5) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gcc36ja.u6",   0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -3767,8 +3771,8 @@ ROM_END
 ROM_START( ddrexplus )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gcc36ja.u1",   0x000000, 0x001014, BAD_DUMP CRC(c1601287) SHA1(929691a78f7bb6dd830f832f301116df0da1619b) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gcc36ja.u1",   0x000000, 0x00101c, BAD_DUMP CRC(02c411b8) /* updated hash */ SHA1(c862675b82f91b003a3c55d2a03c1d42d906a4c5) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gcc36ja.u6",   0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -3783,8 +3787,8 @@ ROM_END
 ROM_START( ddrmegamix )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gcc36ja.u1",   0x000000, 0x001014, BAD_DUMP CRC(c1601287) SHA1(929691a78f7bb6dd830f832f301116df0da1619b) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gcc36ja.u1",   0x000000, 0x00101c, BAD_DUMP CRC(02c411b8) /* updated hash */ SHA1(c862675b82f91b003a3c55d2a03c1d42d906a4c5) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gcc36ja.u6",   0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -3800,7 +3804,7 @@ ROM_START( ddru )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gn845ua.u1",   0x000000, 0x000224, BAD_DUMP CRC(c9e7fced) SHA1(aac4dde100091bc64d397f53484a0ffbf68b8101) )
+	ROM_LOAD( "gn845ua.u1",   0x000000, 0x000224, BAD_DUMP CRC(a248d576) /* updated hash */ SHA1(081bcc86c72314159c6560681b4d03cef9e231a7) /* updated hash */ )
 
 	DISK_REGION( "cdrom0" )
 	DISK_IMAGE_READONLY( "845uaa02", 0, BAD_DUMP SHA1(d3f9290d4dadb5e9b82ebe77abf7b99d1a89f716) )
@@ -3810,7 +3814,7 @@ ROM_START( ddrj )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gc845jb.u1",   0x000000, 0x000224, BAD_DUMP CRC(a16f42b8) SHA1(da4f1eb3eb2b28cb3a0bc74bb9b9945970f56ac2) )
+	ROM_LOAD( "gc845jb.u1",   0x000000, 0x000224, BAD_DUMP CRC(cac06b23) /* updated hash */ SHA1(6df13364d07308c19d4d4c3c92730637989619f1) /* updated hash */ )
 
 	DISK_REGION( "cdrom0" )
 	DISK_IMAGE_READONLY( "845jba02", 0, SHA1(e4be989f6a655857af8e7336c9a7acf82e51f123) )
@@ -3880,7 +3884,7 @@ ROM_START( ddra )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gn845aa.u1",   0x000000, 0x000224, BAD_DUMP CRC(327c4851) SHA1(f0939224af706fd103a67aae9c96518c1db90ac9) )
+	ROM_LOAD( "gn845aa.u1",   0x000000, 0x000224, BAD_DUMP CRC(59d361ca) /* updated hash */ SHA1(7014768c660e591f63622442c842f442c0d8e0ea) /* updated hash */ )
 
 	DISK_REGION( "cdrom0" )
 	DISK_IMAGE_READONLY( "845aaa02", 0, SHA1(9b786de9b1085009c088de0d40425976c1f8df7b) )
@@ -3890,7 +3894,7 @@ ROM_START( ddrkara )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gq921jbb.u1", 0x000000, 0x000224, BAD_DUMP CRC(4c91aecf) SHA1(4b8318523d6691b2124afceafba78e6bac8ba75f) )
+	ROM_LOAD( "gq921jbb.u1", 0x000000, 0x000224, BAD_DUMP CRC(56fe552c) /* updated hash */ SHA1(51ccf6a64b478fd44a8e2d64c7a0f34138b680d2) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gq921jbb.u6", 0x000000, 0x000008, BAD_DUMP CRC(af09e43c) SHA1(d8372f2d6e0ae07061b496a2242a63e5bc2e54dc) )
@@ -3903,7 +3907,7 @@ ROM_START( ddr2m )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gn895jaa.u1",  0x000000, 0x000224, BAD_DUMP CRC(363f427e) SHA1(adec886a07b9bd91f142f286b04fc6582205f037) )
+	ROM_LOAD( "gn895jaa.u1",  0x000000, 0x000224, BAD_DUMP CRC(5d906be5) /* updated hash */ SHA1(4ea9c5506aaaf1726f2a39d0a37a8df35a6aad47) /* updated hash */ )
 
 	DISK_REGION( "cdrom0" )
 	DISK_IMAGE_READONLY( "895jaa02", 0, BAD_DUMP SHA1(cfe3a6f3ed62ba388b07045e29e22472d17dcfe4) )
@@ -3913,7 +3917,7 @@ ROM_START( ddr2mc )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gn896ja.u1",  0x000000, 0x000224, BAD_DUMP CRC(cbc984c5) SHA1(6c0cd78a41000999b4ffbd9fb3707738b50a9b50) )
+	ROM_LOAD( "gn896ja.u1",  0x000000, 0x000224, BAD_DUMP CRC(5d906be5) /* updated hash */ SHA1(4ea9c5506aaaf1726f2a39d0a37a8df35a6aad47) /* updated hash */ )
 
 	DISK_REGION( "cdrom0" )
 	DISK_IMAGE_READONLY( "896jaa01", 0, BAD_DUMP SHA1(f802a0e2ba0147eb71c54d92af409c3010a5715f) )
@@ -3926,7 +3930,7 @@ ROM_START( ddr2mc2 )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "ge984ja.u1",  0x000000, 0x000224, BAD_DUMP CRC(cbc984c5) SHA1(6c0cd78a41000999b4ffbd9fb3707738b50a9b50) )
+	ROM_LOAD( "ge984ja.u1",  0x000000, 0x000224, BAD_DUMP CRC(a066ad5e) /* updated hash */ SHA1(1783c62d7396e4e7f8d723b7bc07e45285dc122d) /* updated hash */ )
 
 	DISK_REGION( "cdrom0" )
 	DISK_IMAGE_READONLY( "ge984a01,ddr", 0, SHA1(badd15656f2316f81b0a45026b5ef10287d1480b) )
@@ -3939,7 +3943,7 @@ ROM_START( ddr2ml )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "ge885jaa.u1",  0x000000, 0x000224, BAD_DUMP CRC(cbc984c5) SHA1(6c0cd78a41000999b4ffbd9fb3707738b50a9b50) )
+	ROM_LOAD( "ge885jaa.u1",  0x000000, 0x000224, BAD_DUMP CRC(a066ad5e) /* updated hash */ SHA1(1783c62d7396e4e7f8d723b7bc07e45285dc122d) /* updated hash */ )
 
 	DISK_REGION( "cdrom0" )
 	DISK_IMAGE_READONLY( "885jab01", 0, SHA1(c2bbb9e2e6f34e07f57e7076726af81df39f55c9) )
@@ -3952,7 +3956,7 @@ ROM_START( ddr2mla )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "ge885jaa.u1",  0x000000, 0x000224, BAD_DUMP CRC(cbc984c5) SHA1(6c0cd78a41000999b4ffbd9fb3707738b50a9b50) )
+	ROM_LOAD( "ge885jaa.u1",  0x000000, 0x000224, BAD_DUMP CRC(a066ad5e) /* updated hash */ SHA1(1783c62d7396e4e7f8d723b7bc07e45285dc122d) /* updated hash */ )
 
 	DISK_REGION( "cdrom0" )
 	DISK_IMAGE_READONLY( "885jaa02", 0, SHA1(f02bb09f41533c6ec496a662d815e85b304fcc72) )
@@ -3962,10 +3966,10 @@ ROM_START( ddr3ma )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000084, "cassette:install:eeprom", 0 )
-	ROM_LOAD( "ge887aa.u1",   0x000000, 0x000084, BAD_DUMP CRC(4ce86d32) SHA1(94cdb9873a7f7503acc3b763e9b49ec6af53533f) )
+	ROM_LOAD( "ge887aa.u1",   0x000000, 0x000084, BAD_DUMP CRC(68e01a7b) /* updated hash */ SHA1(a0094ae0f78ef4246957f998b1493973b3bb67ec) /* updated hash */ )
 
 	ROM_REGION( 0x0000084, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gn887aa.u1",   0x000000, 0x000084, BAD_DUMP CRC(bb14f9bd) SHA1(9d0adf5a32d8bbcaaea2f701f5c7a5d51ee0b8bf) )
+	ROM_LOAD( "gn887aa.u1",   0x000000, 0x000084, BAD_DUMP CRC(0c095e3d) /* updated hash */ SHA1(0a5b3d4ba917f55b29ad80d989c20675c14b3cad) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:install:id", 0 )
 	ROM_LOAD( "ge887aa.u6",   0x000000, 0x000008, BAD_DUMP CRC(af09e43c) SHA1(d8372f2d6e0ae07061b496a2242a63e5bc2e54dc) )
@@ -3981,10 +3985,10 @@ ROM_START( ddr3mj )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000084, "cassette:install:eeprom", 0 )
-	ROM_LOAD( "ge887ja.u1",   0x000000, 0x000084, BAD_DUMP CRC(3a377cec) SHA1(5bf3107a89547bd7697d9f0ab8f67240e101a559) )
+	ROM_LOAD( "ge887ja.u1",   0x000000, 0x000084, BAD_DUMP CRC(cc8838ee) /* updated hash */ SHA1(b4db610103c0c5ba473f725b3b8b7f987ac3eaec) /* updated hash */ )
 
 	ROM_REGION( 0x0000084, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gn887ja.u1",   0x000000, 0x000084, BAD_DUMP CRC(2f633432) SHA1(bce44f20a5a7318af6aea4fdfa8af64ddb76047c) )
+	ROM_LOAD( "gn887ja.u1",   0x000000, 0x000084, BAD_DUMP CRC(987e93b2) /* updated hash */ SHA1(9892b479fdc2c54b2e23783c69e270aa60596673) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:install:id", 0 )
 	ROM_LOAD( "ge887ja.u6",   0x000000, 0x000008, BAD_DUMP CRC(af09e43c) SHA1(d8372f2d6e0ae07061b496a2242a63e5bc2e54dc) )
@@ -4000,10 +4004,10 @@ ROM_START( ddr3mk )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000084, "cassette:install:eeprom", 0 )
-	ROM_LOAD( "ge887kb.u1",   0x000000, 0x000084, BAD_DUMP CRC(4ce86d32) SHA1(94cdb9873a7f7503acc3b763e9b49ec6af53533f) )
+	ROM_LOAD( "ge887kb.u1",   0x000000, 0x000084, BAD_DUMP CRC(68e01a7b) /* updated hash */ SHA1(a0094ae0f78ef4246957f998b1493973b3bb67ec) /* updated hash */ )
 
 	ROM_REGION( 0x0000084, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gn887kb.u1",   0x000000, 0x000084, BAD_DUMP CRC(bb14f9bd) SHA1(9d0adf5a32d8bbcaaea2f701f5c7a5d51ee0b8bf) )
+	ROM_LOAD( "gn887kb.u1",   0x000000, 0x000084, BAD_DUMP CRC(0c095e3d) /* updated hash */ SHA1(0a5b3d4ba917f55b29ad80d989c20675c14b3cad) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:install:id", 0 )
 	ROM_LOAD( "ge887kb.u6",   0x000000, 0x000008, BAD_DUMP CRC(af09e43c) SHA1(d8372f2d6e0ae07061b496a2242a63e5bc2e54dc) )
@@ -4019,10 +4023,10 @@ ROM_START( ddr3mka )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000084, "cassette:install:eeprom", 0 )
-	ROM_LOAD( "ge887ka.u1",   0x000000, 0x000084, BAD_DUMP CRC(4ce86d32) SHA1(94cdb9873a7f7503acc3b763e9b49ec6af53533f) )
+	ROM_LOAD( "ge887ka.u1",   0x000000, 0x000084, BAD_DUMP CRC(68e01a7b) /* updated hash */ SHA1(a0094ae0f78ef4246957f998b1493973b3bb67ec) /* updated hash */ )
 
 	ROM_REGION( 0x0000084, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gn887ka.u1",   0x000000, 0x000084, BAD_DUMP CRC(bb14f9bd) SHA1(9d0adf5a32d8bbcaaea2f701f5c7a5d51ee0b8bf) )
+	ROM_LOAD( "gn887ka.u1",   0x000000, 0x000084, BAD_DUMP CRC(0c095e3d) /* updated hash */ SHA1(0a5b3d4ba917f55b29ad80d989c20675c14b3cad) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:install:id", 0 )
 	ROM_LOAD( "ge887ka.u6",   0x000000, 0x000008, BAD_DUMP CRC(af09e43c) SHA1(d8372f2d6e0ae07061b496a2242a63e5bc2e54dc) )
@@ -4038,10 +4042,10 @@ ROM_START( ddr3mp )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:install:eeprom", 0 )
-	ROM_LOAD( "gea22ja.u1",   0x000000, 0x000224, BAD_DUMP CRC(ef370ff7) SHA1(cb7a043f8bfa535e54ae9af728031d1018ed0734) )
+	ROM_LOAD( "gea22ja.u1",   0x000000, 0x000224, BAD_DUMP CRC(adfc9021) /* updated hash */ SHA1(bb161b9c1bd358cb72e61197a9fafd58c44adb7c) /* updated hash */ )
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gca22ja.u1",   0x000000, 0x001014, BAD_DUMP CRC(6883c82c) SHA1(6fef1dc7150066eee427db685b6c5fb350b7768d) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gca22ja.u1",   0x000000, 0x00101c, BAD_DUMP CRC(7b96a064) /* updated hash */ SHA1(99e78b06977464033f644c3dadddfc3366a206de) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:install:id", 0 )
 	ROM_LOAD( "gea22ja.u6",   0x000000, 0x000008, BAD_DUMP CRC(af09e43c) SHA1(d8372f2d6e0ae07061b496a2242a63e5bc2e54dc) )
@@ -4057,10 +4061,10 @@ ROM_START( ddr4m )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:install:eeprom", 0 )
-	ROM_LOAD( "gea33aa.u1",   0x000000, 0x000224, BAD_DUMP CRC(7bd2a24f) SHA1(62c73a54c4ed7697cf81ddbf3d13d4b0ca827be5) )
+	ROM_LOAD( "gea33aa.u1",   0x000000, 0x000224, BAD_DUMP CRC(a9bf9a0e) /* updated hash */ SHA1(7210ff9606746bc94bfba28e3522ee79222da32c) /* updated hash */ )
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gca33aa.u1",   0x000000, 0x001014, BAD_DUMP CRC(f6feb2bd) SHA1(dfd5bd532338849289e2e4c155c0ca86e79b9ae5) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gca33aa.u1",   0x000000, 0x00101c, BAD_DUMP CRC(16707ea5) /* updated hash */ SHA1(152dafd0920e6d7df8f707680c6883c9056e1023) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:install:id", 0 )
 	ROM_LOAD( "gea33aa.u6",   0x000000, 0x000008, BAD_DUMP CRC(af09e43c) SHA1(d8372f2d6e0ae07061b496a2242a63e5bc2e54dc) )
@@ -4076,10 +4080,10 @@ ROM_START( ddr4mj )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:install:eeprom", 0 )
-	ROM_LOAD( "a33jaa.u1",    0x000000, 0x000224, BAD_DUMP CRC(10f1e9b8) SHA1(985bd26638964beebba5de4c7cda772b402d2e59) )
+	ROM_LOAD( "a33jaa.u1",    0x000000, 0x000224, BAD_DUMP CRC(adfc9021) /* updated hash */ SHA1(bb161b9c1bd358cb72e61197a9fafd58c44adb7c) /* updated hash */ )
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gca33ja.u1",   0x000000, 0x001014, BAD_DUMP CRC(e5230867) SHA1(44aea9ccc90d81e7f41e5e9a62b28fcbdd75363b) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gca33ja.u1",   0x000000, 0x00101c, BAD_DUMP CRC(93168499) /* updated hash */ SHA1(764d7864ae8a14c2eab66e846c2156a90b0ae361) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:install:id", 0 )
 	ROM_LOAD( "a33jaa.u6",    0x000000, 0x000008, BAD_DUMP CRC(af09e43c) SHA1(d8372f2d6e0ae07061b496a2242a63e5bc2e54dc) )
@@ -4095,10 +4099,10 @@ ROM_START( ddr4ms )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:install:eeprom", 0 )
-	ROM_LOAD( "gea33ab.u1",   0x000000, 0x000224, BAD_DUMP CRC(32fb3d13) SHA1(3ca6c77438f96b13d2c05f13a10fcff89a1403a2) )
+	ROM_LOAD( "gea33ab.u1",   0x000000, 0x000224, BAD_DUMP CRC(4ca14f40) /* updated hash */ SHA1(90cdcaea12f1305c1068496df80ef1069625e398) /* updated hash */ )
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gca33ab.u1",   0x000000, 0x001014, BAD_DUMP CRC(312ac13f) SHA1(05d733edc03cfc5ea03db6c683f59ed6ff860b5a) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gca33ab.u1",   0x000000, 0x00101c, BAD_DUMP CRC(2842cc27) /* updated hash */ SHA1(cf93235ecc0dfe6d25c82334817d87bc45277d26) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:install:id", 0 )
 	ROM_LOAD( "gea33ab.u6",   0x000000, 0x000008, BAD_DUMP CRC(af09e43c) SHA1(d8372f2d6e0ae07061b496a2242a63e5bc2e54dc) )
@@ -4114,10 +4118,10 @@ ROM_START( ddr4msj )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:install:eeprom", 0 )
-	ROM_LOAD( "a33jba.u1",    0x000000, 0x000224, BAD_DUMP CRC(babf6fdb) SHA1(a2ef6b855d42072f0d3c72c8de9aff1f867de3f7) )
+	ROM_LOAD( "a33jba.u1",    0x000000, 0x000224, BAD_DUMP CRC(b458d46a) /* updated hash */ SHA1(791b938e0a65131238e66fe86efa5f83d9225332) /* updated hash */ )
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gca33jb.u1",   0x000000, 0x001014, BAD_DUMP CRC(00e4b531) SHA1(f421fc33642c5a3cd89fb14dc8cd601bdddd1f55) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gca33jb.u1",   0x000000, 0x00101c, BAD_DUMP CRC(ad24361b) /* updated hash */ SHA1(9a1411d6f2afcb6a2d1823bd935c1922f61d7f96) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:install:id", 0 )
 	ROM_LOAD( "a33jba.u6",    0x000000, 0x000008, BAD_DUMP CRC(af09e43c) SHA1(d8372f2d6e0ae07061b496a2242a63e5bc2e54dc) )
@@ -4133,10 +4137,10 @@ ROM_START( ddr4mp )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:install:eeprom", 0 )
-	ROM_LOAD( "gea34ja.u1",   0x000000, 0x000224, BAD_DUMP CRC(10f1e9b8) SHA1(985bd26638964beebba5de4c7cda772b402d2e59) )
+	ROM_LOAD( "gea34ja.u1",   0x000000, 0x000224, BAD_DUMP CRC(adfc9021) /* updated hash */ SHA1(bb161b9c1bd358cb72e61197a9fafd58c44adb7c) /* updated hash */ )
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gca34ja.u1",   0x000000, 0x001014, BAD_DUMP CRC(e9b6ce56) SHA1(f040fba2b2b446baa840026dcd10f9785f8cc0a3) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gca34ja.u1",   0x000000, 0x00101c, BAD_DUMP CRC(fde7173a) /* updated hash */ SHA1(29bf39ce5b3210aa27bb0098258389c7fc05bec4) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:install:id", 0 )
 	ROM_LOAD( "gea34ja.u6",   0x000000, 0x000008, BAD_DUMP CRC(af09e43c) SHA1(d8372f2d6e0ae07061b496a2242a63e5bc2e54dc) )
@@ -4155,10 +4159,10 @@ ROM_START( ddr4mps )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:install:eeprom", 0 )
-	ROM_LOAD( "gea34jb.u1",   0x000000, 0x000224, BAD_DUMP CRC(babf6fdb) SHA1(a2ef6b855d42072f0d3c72c8de9aff1f867de3f7) )
+	ROM_LOAD( "gea34jb.u1",   0x000000, 0x000224, BAD_DUMP CRC(b458d46a) /* updated hash */ SHA1(791b938e0a65131238e66fe86efa5f83d9225332) /* updated hash */ )
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gca34jb.u1",   0x000000, 0x001014, BAD_DUMP CRC(0c717300) SHA1(00d21f39fe90494ffec2f8799767cc46a9cd2b00) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gca34jb.u1",   0x000000, 0x00101c, BAD_DUMP CRC(c3d5a5b8) /* updated hash */ SHA1(af6e39bedbc26cf076bd779fdee11a61e5138ce5) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:install:id", 0 )
 	ROM_LOAD( "gea34jb.u6",   0x000000, 0x000008, BAD_DUMP CRC(af09e43c) SHA1(d8372f2d6e0ae07061b496a2242a63e5bc2e54dc) )
@@ -4176,8 +4180,8 @@ ROM_END
 ROM_START( ddr5m )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gca27ja.u1",   0x000000, 0x001014, BAD_DUMP CRC(ec526036) SHA1(f47d94d19268fdfa3ae9d42db9f2e2f9be318f2b) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gca27ja.u1",   0x000000, 0x00101c, BAD_DUMP CRC(698b9854) /* updated hash */ SHA1(87037b443e3a6f9a17564a73d350069436a58aee) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gca27ja.u6",   0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -4189,8 +4193,8 @@ ROM_END
 ROM_START( ddr5ms )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gca27ja.u1",   0x000000, 0x001014, BAD_DUMP CRC(ec526036) SHA1(f47d94d19268fdfa3ae9d42db9f2e2f9be318f2b) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gca27ja.u1",   0x000000, 0x00101c, BAD_DUMP CRC(698b9854) /* updated hash */ SHA1(87037b443e3a6f9a17564a73d350069436a58aee) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gca27ja.u6",   0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -4203,7 +4207,7 @@ ROM_START( ddrbocd )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gn895jaa.u1",  0x000000, 0x000224, BAD_DUMP CRC(363f427e) SHA1(adec886a07b9bd91f142f286b04fc6582205f037) )
+	ROM_LOAD( "gn895jaa.u1",  0x000000, 0x000224, BAD_DUMP CRC(5d906be5) /* updated hash */ SHA1(4ea9c5506aaaf1726f2a39d0a37a8df35a6aad47) /* updated hash */ )
 
 	DISK_REGION( "cdrom0" )
 	DISK_IMAGE_READONLY( "892jaa01", 0, BAD_DUMP SHA1(46ace0feef48a2a6643c3cb4ac9164ba0beeea94) )
@@ -4216,10 +4220,10 @@ ROM_START( ddrs2k )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000084, "cassette:install:eeprom", 0 )
-	ROM_LOAD( "ge905aa.u1",   0x000000, 0x000084, BAD_DUMP CRC(36d18e2f) SHA1(e976047dfbee62de9ad9e5de8e7629a24c29d581) )
+	ROM_LOAD( "ge905aa.u1",   0x000000, 0x000084, BAD_DUMP CRC(b7a75390) /* updated hash */ SHA1(8ad65f4d9fa949296b5b21e7a12be0bde8ffec38) /* updated hash */ )
 
 	ROM_REGION( 0x0000084, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gc905aa.u1",   0x000000, 0x000084, BAD_DUMP CRC(21073a3e) SHA1(afa12404ceb462b9016a41c40775da87aa09cfeb) )
+	ROM_LOAD( "gc905aa.u1",   0x000000, 0x000084, BAD_DUMP CRC(961a9dbe) /* updated hash */ SHA1(c112af1da26eee8da237655ed28d9bae2bc5728a) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:install:id", 0 )
 	ROM_LOAD( "ge905aa.u6",   0x000000, 0x000008, BAD_DUMP CRC(af09e43c) SHA1(d8372f2d6e0ae07061b496a2242a63e5bc2e54dc) )
@@ -4234,8 +4238,8 @@ ROM_END
 ROM_START( ddrmax )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gcb19ja.u1",   0x000000, 0x001014, BAD_DUMP CRC(2255626a) SHA1(cb70c4b551265ffc6cc41f7bd2678696e8067060) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gcb19ja.u1",   0x000000, 0x00101c, BAD_DUMP CRC(978b9997) /* updated hash */ SHA1(c048878eab102e296779c1c473df87bf78f62960) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gcb19ja.u6",   0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -4247,8 +4251,8 @@ ROM_END
 ROM_START( ddrmax2 )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gcb20ja.u1",   0x000000, 0x001014, BAD_DUMP CRC(fb7e0f58) SHA1(e6da23257a2a2ba7c69e817a91a0a8864f009386) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gcb20ja.u1",   0x000000, 0x00101c, BAD_DUMP CRC(243730d0) /* updated hash */ SHA1(e1c12f2c41e3713c641f660db699919f90a84e19) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gcb20ja.u6",   0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -4261,10 +4265,10 @@ ROM_START( ddrs2kj )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000084, "cassette:install:eeprom", 0 )
-	ROM_LOAD( "ge905ja.u1",   0x000000, 0x000084, BAD_DUMP CRC(a077b0a1) SHA1(8f247b38c933a104a325ebf1f1691ef260480e1a) )
+	ROM_LOAD( "ge905ja.u1",   0x000000, 0x000084, BAD_DUMP CRC(f3b65e55) /* updated hash */ SHA1(24656affd3fe3a0a594e2cd0aeb91eb6ceb996b8) /* updated hash */ )
 
 	ROM_REGION( 0x0000084, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gc905ja.u1",   0x000000, 0x000084, BAD_DUMP CRC(b7a104b0) SHA1(0f6901e41640f729f8a084a33148a9b900475594) )
+	ROM_LOAD( "gc905ja.u1",   0x000000, 0x000084, BAD_DUMP CRC(00bca330) /* updated hash */ SHA1(c83bd38846698cdfba9d7d40c51a59720a75bfee) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:install:id", 0 )
 	ROM_LOAD( "ge905ja.u6",   0x000000, 0x000008, BAD_DUMP CRC(af09e43c) SHA1(d8372f2d6e0ae07061b496a2242a63e5bc2e54dc) )
@@ -4280,7 +4284,7 @@ ROM_START( ddrsbm )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000084, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gq894ja.u1",   0x000000, 0x000084, BAD_DUMP CRC(cc3a47de) SHA1(f6e2e101870370b1e295a4a9ed546aa2d8bc2010) )
+	ROM_LOAD( "gq894ja.u1",   0x000000, 0x000084, BAD_DUMP CRC(10b85f6b) /* updated hash */ SHA1(c15ec333c8bb0c33edb8d31bf4f309aa0db9ff55) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gq894ja.u6",   0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -4292,8 +4296,8 @@ ROM_END
 ROM_START( ddrusa )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gka44ua.u1",   0x000000, 0x001014, BAD_DUMP CRC(2ef7c4f1) SHA1(9004d27179ece86883d01b3e6bbfeebc1b478d57) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gka44ua.u1",   0x000000, 0x00101c, BAD_DUMP CRC(662e4be3) /* updated hash */ SHA1(f43d1ea7014a01cd055030e38a10a746f31cec1b) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gka44ua.u6",   0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -4306,7 +4310,7 @@ ROM_START( drmn )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gq881ja.u1",   0x000000, 0x000224, BAD_DUMP CRC(7dca0b3f) SHA1(db6d5c527e2a99133b516e01433024d3173848c6) )
+	ROM_LOAD( "gq881ja.u1",   0x000000, 0x000224, BAD_DUMP CRC(ff3a2868) /* updated hash */ SHA1(3949fe928cc435ceca8bb2fe8b5a558d91542dfd) /* updated hash */ )
 
 	ROM_REGION( 0x200000, "29f016a.31h", 0 ) /* onboard flash */
 	ROM_LOAD( "gq881ja.31h",  0x000000, 0x200000, CRC(a5b86ece) SHA1(9696f0c512501574bae6e436306675894bb2352e) )
@@ -4324,7 +4328,7 @@ ROM_START( drmna )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gq881ja.u1",   0x000000, 0x000224, BAD_DUMP CRC(7dca0b3f) SHA1(db6d5c527e2a99133b516e01433024d3173848c6) )
+	ROM_LOAD( "gq881ja.u1",   0x000000, 0x000224, BAD_DUMP CRC(ff3a2868) /* updated hash */ SHA1(3949fe928cc435ceca8bb2fe8b5a558d91542dfd) /* updated hash */ )
 
 	ROM_REGION( 0x200000, "29f016a.31h", 0 ) /* onboard flash */
 	ROM_LOAD( "gq881ja.31h",  0x000000, 0x200000, CRC(a5b86ece) SHA1(9696f0c512501574bae6e436306675894bb2352e) )
@@ -4346,10 +4350,10 @@ ROM_START( drmn2m )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:install:eeprom", 0 )
-	ROM_LOAD( "ge912ja.u1",   0x000000, 0x000224, BAD_DUMP CRC(1246fe5b) SHA1(b58d4f4c95e13abf639d645223565544bd79a58a) )
+	ROM_LOAD( "ge912ja.u1",   0x000000, 0x000224, BAD_DUMP CRC(508d618d) /* updated hash */ SHA1(d30ba54ccc86072c10962632603028206ff08d4b) /* updated hash */ )
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gn912ja.u1",   0x000000, 0x001014, BAD_DUMP CRC(34deea99) SHA1(f179e22eaf30453bb94177ed9c25d7996f020c99) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gn912ja.u1",   0x000000, 0x00101c, BAD_DUMP CRC(bc5495c6) /* updated hash */ SHA1(a6e85022082dbe8f66ce0f6260cf2f2a67c1f7d9) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:install:id", 0 )
 	ROM_LOAD( "ge912ja.u6",   0x000000, 0x000008, BAD_DUMP CRC(af09e43c) SHA1(d8372f2d6e0ae07061b496a2242a63e5bc2e54dc) )
@@ -4365,10 +4369,10 @@ ROM_START( drmn2mpu )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:install:eeprom", 0 )
-	ROM_LOAD( "ge912ja.u1",   0x000000, 0x000224, BAD_DUMP CRC(1246fe5b) SHA1(b58d4f4c95e13abf639d645223565544bd79a58a) )
+	ROM_LOAD( "ge912ja.u1",   0x000000, 0x000224, BAD_DUMP CRC(508d618d) /* updated hash */ SHA1(d30ba54ccc86072c10962632603028206ff08d4b) /* updated hash */ )
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gn912ja.u1",   0x000000, 0x001014, BAD_DUMP CRC(34deea99) SHA1(f179e22eaf30453bb94177ed9c25d7996f020c99) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gn912ja.u1",   0x000000, 0x00101c, BAD_DUMP CRC(bc5495c6) /* updated hash */ SHA1(a6e85022082dbe8f66ce0f6260cf2f2a67c1f7d9) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:install:id", 0 )
 	ROM_LOAD( "ge912ja.u6",   0x000000, 0x000008, BAD_DUMP CRC(af09e43c) SHA1(d8372f2d6e0ae07061b496a2242a63e5bc2e54dc) )
@@ -4387,10 +4391,10 @@ ROM_START( drmn3m )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:install:eeprom", 0 )
-	ROM_LOAD( "a23jaa.u1",    0x000000, 0x000224, BAD_DUMP CRC(90e544fa) SHA1(1feb617c36bad41aa720a6e5d3ec9e5cb2030567) )
+	ROM_LOAD( "a23jaa.u1",    0x000000, 0x000224, BAD_DUMP CRC(508d618d) /* updated hash */ SHA1(d30ba54ccc86072c10962632603028206ff08d4b) /* updated hash */ )
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gca23ja.u1",   0x000000, 0x001014, BAD_DUMP CRC(5af1b5da) SHA1(cf862ef9ab60e8da89af96266943137827e4a261) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gca23ja.u1",   0x000000, 0x00101c, BAD_DUMP CRC(52264b6e) /* updated hash */ SHA1(504db9d666271f7ae784c1cdbe37df0a93be0f1d) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:install:id", 0 )
 	ROM_LOAD( "a23jaa.u6",    0x000000, 0x000008, BAD_DUMP CRC(af09e43c) SHA1(d8372f2d6e0ae07061b496a2242a63e5bc2e54dc) )
@@ -4405,8 +4409,8 @@ ROM_END
 ROM_START( drmn4m )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gea25jaa.u1",   0x000000, 0x001014, BAD_DUMP CRC(356bbbf4) SHA1(a20a8fcaed2dce50451346b1683739c96067feb1) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gea25jaa.u1",   0x000000, 0x00101c, BAD_DUMP CRC(497a95ee) /* updated hash */ SHA1(0ec25657573b8750d5ea25420e8d4f410d9cf7ee) /* updated hash */ )
 
 	ROM_REGION( 0x200000, "29f016a.31m", 0 ) /* onboard flash */
 	ROM_LOAD( "gea25jaa.31m", 0x000000, 0x200000, CRC(a0dd0ef4) SHA1(be4c1d3f2eb3c484b515be12b692c30cc780c36c) )
@@ -4426,8 +4430,8 @@ ROM_END
 ROM_START( drmn5m )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gcb05jaa.u1",   0x000000, 0x001014, BAD_DUMP CRC(6b629d68) SHA1(d01ef0677cd72c05f5f354fc6c4d9022b3506c1e) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gcb05jaa.u1",   0x000000, 0x00101c, BAD_DUMP CRC(06b8328c) /* updated hash */ SHA1(8253e644348a6be13f702ff56bb259e58bdeca43) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gcb05jaa.u6",   0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -4442,8 +4446,8 @@ ROM_END
 ROM_START( drmn6m )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gcb16jaa.u1",   0x000000, 0x001014, BAD_DUMP CRC(f6933041) SHA1(1839bb99d2db9413c58a2ed95e9039d2c7dd62ba) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gcb16jaa.u1",   0x000000, 0x00101c, BAD_DUMP CRC(4ba20386) /* updated hash */ SHA1(9f3585969b87abe09356ff3dfbc0a0cefc3dc7f3) /* updated hash */ )
 
 	ROM_REGION( 0x200000, "29f016a.31m", 0 ) /* onboard flash */
 	ROM_LOAD( "gcb16jaa.31m",  0x000000, 0x200000, CRC(19de3e53) SHA1(bbb7a247bdd617a124330a946c2e8dd565b2a09c) )
@@ -4463,8 +4467,8 @@ ROM_END
 ROM_START( drmn7m )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gcc07jba.u1",   0x000000, 0x001014, BAD_DUMP CRC(8d9bcf10) SHA1(3d486df924ba41669675d62982396aebf8d12052) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gcc07jba.u1",   0x000000, 0x00101c, BAD_DUMP CRC(2249e95d) /* updated hash */ SHA1(b38168ce0cf6451dff2bf185ea107b034019bbbd) /* updated hash */ )
 
 	ROM_REGION( 0x200000, "29f016a.31m", 0 ) /* onboard flash */
 	ROM_LOAD( "gcc07jba.31m",  0x000000, 0x200000, CRC(7120d1ce) SHA1(4df9828150120762b99c5b212bc7a91b0d525bce) )
@@ -4484,8 +4488,8 @@ ROM_END
 ROM_START( drmn7ma )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gcc07jaa.u1",   0x000000, 0x001014, BAD_DUMP CRC(b675b39b) SHA1(9639db913821641cee619d7cc520de5d0c3ae7fa) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gcc07jaa.u1",   0x000000, 0x00101c, BAD_DUMP CRC(d0e542f1) /* updated hash */ SHA1(4bb8b6037241c170cde386b1b3d2608902c3ebfe) /* updated hash */ )
 
 	ROM_REGION( 0x200000, "29f016a.31m", 0 ) /* onboard flash */
 	ROM_LOAD( "gcc07jaa.31m",  0x000000, 0x200000, CRC(1e1cbfe3) SHA1(6c942820f915ea0e01f0e736d70780ad8408aa69) )
@@ -4505,8 +4509,8 @@ ROM_END
 ROM_START( drmn8m )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gcc38jaa.u1",   0x000000, 0x001014, BAD_DUMP CRC(aaa03630) SHA1(4976b0c2e1b4458840a165bd889861d62289ad89) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gcc38jaa.u1",   0x000000, 0x00101c, BAD_DUMP CRC(2c1f4a02) /* updated hash */ SHA1(ae2faac9753187a09a8fd6f7c7b8180419372bc8) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gcc38jaa.u6",   0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -4521,8 +4525,8 @@ ROM_END
 ROM_START( drmn9m )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gcd09jaa.u1",   0x000000, 0x001014, BAD_DUMP CRC(a1201529) SHA1(4a82f2ee9b049a16c00b7dcd905c43c1a06d60ee) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gcd09jaa.u1",   0x000000, 0x00101c, BAD_DUMP CRC(f8e8f6ab) /* updated hash */ SHA1(2442e707ffd93c5f299944690dd627fa86603cef) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gcd09jaa.u6",   0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -4537,8 +4541,8 @@ ROM_END
 ROM_START( drmn10m )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gcd40jaa.u1",   0x000000, 0x001014, BAD_DUMP CRC(ef0983a7) SHA1(06127b9fd786eca64eea50c40f7f73717b631e59) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gcd40jaa.u1",   0x000000, 0x00101c, BAD_DUMP CRC(576546db) /* updated hash */ SHA1(b48477e15ce116cd9da7c60603cc92e850ccaff2) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gcd40jaa.u6",   0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -4553,8 +4557,8 @@ ROM_END
 ROM_START( dmx )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "ge874ja.u1",   0x000000, 0x001014, BAD_DUMP CRC(c5536373) SHA1(1492221f7dd9485f7745ecb0a982a88c8e768e53) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "ge874ja.u1",   0x000000, 0x00101c, BAD_DUMP CRC(a91d6a11) /* updated hash */ SHA1(3e0645efa79c8482ab55e668b6da672dee5dc2bf) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "ge874ja.u6",   0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -4566,8 +4570,8 @@ ROM_END
 ROM_START( dmx2m )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gca39ja.u1",   0x000000, 0x001014, BAD_DUMP CRC(ecc75eb7) SHA1(af66ced28ba5e79ae32ae0ef12d2ebe4207f3822) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gca39ja.u1",   0x000000, 0x00101c, BAD_DUMP CRC(55cb15ed) /* updated hash */ SHA1(00edea9923cbb626a1f8088d2b88404a8e21413a) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gca39ja.u6",   0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -4579,8 +4583,8 @@ ROM_END
 ROM_START( dmx2majp )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gca38ja.u1",   0x000000, 0x001014, BAD_DUMP CRC(99a746b8) SHA1(333236e59a707ecaf840a66f9b947ceade2cf2c9) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gca38ja.u1",   0x000000, 0x00101c, BAD_DUMP CRC(e11cb50d) /* updated hash */ SHA1(ccc67896ce88c159c11ac4c0d3ec9ef3375d1620) /* updated hash */ )
 
 	ROM_REGION( 0x200000, "29f016a.31m", 0 ) /* onboard flash */
 	ROM_LOAD( "gca38ja.31m",  0x000000, 0x200000, CRC(a0f54ab5) SHA1(a5ae67d7619393779c79a2e227cac0675eeef538) )
@@ -4597,8 +4601,8 @@ ROM_END
 ROM_START( dncfrks )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gk874ka.u1",   0x000000, 0x001014, BAD_DUMP CRC(7a6f4672) SHA1(2e009e57760e92f48070a69cff5597c37a4783a2) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gk874ka.u1",   0x000000, 0x00101c, BAD_DUMP CRC(b118006d) /* updated hash */ SHA1(0e83113a9bfef061b25c361dd8d7abbaa3eefd6a) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gk874ka.u6",   0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -4611,7 +4615,7 @@ ROM_START( dsem )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "ge936ea.u1",   0x000000, 0x000224, BAD_DUMP CRC(0f5b7ae3) SHA1(646dd49da1216cc2d3d6920bc9b3447d55ebfbf0) )
+	ROM_LOAD( "ge936ea.u1",   0x000000, 0x000224, BAD_DUMP CRC(c7e3a7f9) /* updated hash */ SHA1(7120c0ef3c3dac23713922f9447d5eac1b91c54d) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "ge936ea.u6",   0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -4624,8 +4628,8 @@ ROM_START( dsem2 )
 	SYS573_BIOS_A
 	ROM_DEFAULT_BIOS("dsem2")
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gkc23ea.u1",   0x000000, 0x001014, BAD_DUMP CRC(aec2421a) SHA1(5ea9e9ce6161ebc99a50db0b7304385511bd4553) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gkc23ea.u1",   0x000000, 0x00101c, BAD_DUMP CRC(2d6df705) /* updated hash */ SHA1(63c8caac0c3e84bf4a952edfab93a208b5aa2d05) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gkc23ea.u6",   0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -4638,10 +4642,10 @@ ROM_START( dsfdct )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000084, "cassette:install:eeprom", 0 )
-	ROM_LOAD( "ge887ja_gn887ja.u1",   0x000000, 0x000084, BAD_DUMP CRC(08a60147) SHA1(0d39dca5e9e17fff0e64f296c8416e4ca23fdc1b) )
+	ROM_LOAD( "ge887ja_gn887ja.u1",   0x000000, 0x000084, BAD_DUMP CRC(bfbba6c7) /* updated hash */ SHA1(eb082fe7bb1bbc3656391a0617075010281b8726) /* updated hash */ )
 
 	ROM_REGION( 0x0000084, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gc910jc.u1",   0x000000, 0x000084, BAD_DUMP CRC(3c1ca973) SHA1(32211a72e3ac88b2723f82dac0b26f93031b3a9c) )
+	ROM_LOAD( "gc910jc.u1",   0x000000, 0x000084, BAD_DUMP CRC(e09eb1c6) /* updated hash */ SHA1(046d5552c774ea2b9141fff45c13a926c18f705c) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:install:id", 0 )
 	ROM_LOAD( "ge887ja_gn887ja.u6",   0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -4657,10 +4661,10 @@ ROM_START( dsfdcta )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000084, "cassette:install:eeprom", 0 )
-	ROM_LOAD( "gn884ja.u1",  0x000000, 0x000084, BAD_DUMP CRC(ce6b98ce) SHA1(75549d9470345ce06d2706d373b19416d97e5b9a) )
+	ROM_LOAD( "gn884ja.u1",  0x000000, 0x000084, BAD_DUMP CRC(12e9807b) /* updated hash */ SHA1(4bbd4696b9345030daf8922775463cea3ee792c5) /* updated hash */ )
 
 	ROM_REGION( 0x0000084, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gc910ja.u1",   0x000000, 0x000084, BAD_DUMP CRC(59a23808) SHA1(fcff1c68ff6cfbd391ac997a40fb5253fc62de82) )
+	ROM_LOAD( "gc910ja.u1",   0x000000, 0x000084, BAD_DUMP CRC(eebf9f88) /* updated hash */ SHA1(afc5f63f4b4251edfe12e9bbc6a788ddb76c0985) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:install:id", 0 )
 	ROM_LOAD( "gn884ja.u6",  0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -4676,10 +4680,10 @@ ROM_START( dsfdr )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:install:eeprom", 0 )
-	ROM_LOAD( "gea37ja.u1",   0x000000, 0x000224, BAD_DUMP CRC(5321055e) SHA1(d06b0dca9caba8249d71340469ad9083b02fd087) )
+	ROM_LOAD( "gea37ja.u1",   0x000000, 0x000224, BAD_DUMP CRC(adfc9021) /* updated hash */ SHA1(bb161b9c1bd358cb72e61197a9fafd58c44adb7c) /* updated hash */ )
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gca37ja.u1",   0x000000, 0x001014, BAD_DUMP CRC(b6d9e7f9) SHA1(bc5f491de53a96d46745df09bc94e7853052296c) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gca37ja.u1",   0x000000, 0x00101c, BAD_DUMP CRC(974e7bc0) /* updated hash */ SHA1(837188259e51d88099776c386a2ec01861700889) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:install:id", 0 )
 	ROM_LOAD( "gea37ja.u6",    0x000000, 0x000008, BAD_DUMP CRC(af09e43c) SHA1(d8372f2d6e0ae07061b496a2242a63e5bc2e54dc) )
@@ -4695,7 +4699,7 @@ ROM_START( dsftkd )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000084, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gn884ja.u1",  0x000000, 0x000084, BAD_DUMP CRC(ce6b98ce) SHA1(75549d9470345ce06d2706d373b19416d97e5b9a) )
+	ROM_LOAD( "gn884ja.u1",  0x000000, 0x000084, BAD_DUMP CRC(12e9807b) /* updated hash */ SHA1(4bbd4696b9345030daf8922775463cea3ee792c5) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gn884ja.u6",  0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -4708,7 +4712,7 @@ ROM_START( dstage )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000084, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gn845eb.u1",  0x000000, 0x000084, BAD_DUMP CRC(82b52af5) SHA1(3fb9efe76439fa17a9a759aaebc3dc066b432947) )
+	ROM_LOAD( "gn845eb.u1",  0x000000, 0x000084, BAD_DUMP CRC(35a88d75) /* updated hash */ SHA1(122317074a96f36cdfc33cd26851bab3d514da3c) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gn884eb.u6",  0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -4721,7 +4725,7 @@ ROM_START( dstagea )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gn845ea.u1",   0x000000, 0x000224, BAD_DUMP CRC(db643af7) SHA1(881221da640b883302e657b906ea0a4e74555679) )
+	ROM_LOAD( "gn845ea.u1",   0x000000, 0x000224, BAD_DUMP CRC(b0cb136c) /* updated hash */ SHA1(ff9471517d94caaf6f8e07c0aa4f70762cbcd6ee) /* updated hash */ )
 
 	DISK_REGION( "cdrom0" )
 	DISK_IMAGE_READONLY( "845uaa02", 0, BAD_DUMP SHA1(d3f9290d4dadb5e9b82ebe77abf7b99d1a89f716) )
@@ -4731,7 +4735,7 @@ ROM_START( fbait2bc )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gc865ua.u1", 0x000000, 0x000224, BAD_DUMP CRC(ea8f0b4b) SHA1(363b1ea1a520b239ba8bca867366bbe8a9977a43) )
+	ROM_LOAD( "gc865ua.u1", 0x000000, 0x000224, BAD_DUMP CRC(e9f61a3d) /* updated hash */ SHA1(367914f142811ca592700c43570b4498a32434cd) /* updated hash */ )
 
 	DISK_REGION( "cdrom0" )
 	DISK_IMAGE_READONLY( "865uab02", 0, BAD_DUMP SHA1(d14dc066d4c16fba1e9b31d5f042ad249c4b5137) )
@@ -4741,7 +4745,7 @@ ROM_START( fbaitbc )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "ge765ua.u1", 0x000000, 0x000224, BAD_DUMP CRC(588748c6) SHA1(ea1ead61e0dcb324ef7b6106cae00bcf6702d6c4) )
+	ROM_LOAD( "ge765ua.u1", 0x000000, 0x000224, BAD_DUMP CRC(5bfe59b0) /* updated hash */ SHA1(a15ae8e95a4fe6a3fa212297af8324b075b315c9) /* updated hash */ )
 
 	DISK_REGION( "cdrom0" )
 	DISK_IMAGE_READONLY( "765uab02", 0, BAD_DUMP SHA1(07b09e763e4b90108aa924b518221b16667a7133) )
@@ -4751,7 +4755,7 @@ ROM_START( fbaitmc )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gx889ea.u1", 0x000000, 0x000224, BAD_DUMP CRC(753ad84e) SHA1(e024cefaaee7c9945ccc1f9a3d896b8560adce2e) )
+	ROM_LOAD( "gx889ea.u1", 0x000000, 0x000224, BAD_DUMP CRC(ceadb821) /* updated hash */ SHA1(12da44b0c4f4d4af133d1e8e0089602c0a3d8411) /* updated hash */ )
 
 	DISK_REGION( "cdrom0" )
 	DISK_IMAGE_READONLY( "889ea", 0, BAD_DUMP SHA1(0b567bf2f03ee8089e0b021ea502a53b3f6fe7ac) )
@@ -4761,7 +4765,7 @@ ROM_START( fbaitmca )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gx889aa.u1", 0x000000, 0x000224, BAD_DUMP CRC(9c22aae8) SHA1(c107b0bf7fa76708f2d4f6aaf2cf27b3858378a3) )
+	ROM_LOAD( "gx889aa.u1", 0x000000, 0x000224, BAD_DUMP CRC(27b5ca87) /* updated hash */ SHA1(5c3c822b1bd8c03aabdebcd927cf4479fdfc3bff) /* updated hash */ )
 
 	DISK_REGION( "cdrom0" )
 	DISK_IMAGE_READONLY( "889aa", 0, BAD_DUMP SHA1(0b567bf2f03ee8089e0b021ea502a53b3f6fe7ac) )
@@ -4771,7 +4775,7 @@ ROM_START( fbaitmcj )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gx889ja.u1", 0x000000, 0x000224, BAD_DUMP CRC(6278603c) SHA1(d6b59e270cfe4016e12565aedec8a4f0702e1a6f) )
+	ROM_LOAD( "gx889ja.u1", 0x000000, 0x000224, BAD_DUMP CRC(d9ef0053) /* updated hash */ SHA1(56503e668693af092e680fada47314ca4dcfea5f) /* updated hash */ )
 
 	DISK_REGION( "cdrom0" )
 	DISK_IMAGE_READONLY( "889ja", 0, BAD_DUMP SHA1(0b567bf2f03ee8089e0b021ea502a53b3f6fe7ac) )
@@ -4781,7 +4785,7 @@ ROM_START( fbaitmcu )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gx889ua.u1", 0x000000, 0x000224, BAD_DUMP CRC(67b91e54) SHA1(4d94bfab08e2bf6e34ee606dd3c4e345d8e5d158) )
+	ROM_LOAD( "gx889ua.u1", 0x000000, 0x000224, BAD_DUMP CRC(dc2e7e3b) /* updated hash */ SHA1(461910918392037f9e33eb7ed2ac8e494c141fe1) /* updated hash */ )
 
 	DISK_REGION( "cdrom0" )
 	DISK_IMAGE_READONLY( "889ua", 0, BAD_DUMP SHA1(0b567bf2f03ee8089e0b021ea502a53b3f6fe7ac) )
@@ -4791,7 +4795,7 @@ ROM_START( fghtmn )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gq918eaa.u1",  0x000000, 0x000224, CRC(f3342ff5) SHA1(d3d6ecc22396f74b99ad7aab7908cd542c518977) )
+	ROM_LOAD( "gq918eaa.u1",  0x000000, 0x000224, CRC(4bf384d9) /* updated hash */ SHA1(094d541efb27ad4f2faf799b141069b78db6ad6b) /* updated hash */ )
 
 	ROM_REGION( 0x200000, "29f016a.31m", 0 ) /* onboard flash */
 	ROM_LOAD( "gq918xxb.31m", 0x000000, 0x200000, CRC(3653b5d7) SHA1(1deb44335b7a38506fb30da40e0ca61b96aea7bb) )
@@ -4809,7 +4813,7 @@ ROM_START( fghtmna )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gq918aaa.u1",  0x000000, 0x000224, CRC(1a2c5d53) SHA1(ab7e44a83e8cd271e2bf8580881a3050d35641df) )
+	ROM_LOAD( "gq918aaa.u1",  0x000000, 0x000224, CRC(a2ebf67f) /* updated hash */ SHA1(e845ffd517c23f5d577898267bec1572bb9559ef) /* updated hash */ )
 
 	ROM_REGION( 0x200000, "29f016a.31m", 0 ) /* onboard flash */
 	ROM_LOAD( "gq918xxb.31m", 0x000000, 0x200000, CRC(3653b5d7) SHA1(1deb44335b7a38506fb30da40e0ca61b96aea7bb) )
@@ -4827,7 +4831,7 @@ ROM_START( fghtmnk )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gq918kaa.u1",  0x000000, 0x000224, CRC(cf32990b) SHA1(bf49b8560f008696b45a3f7f03fa7b3395635b0f) )
+	ROM_LOAD( "gq918kaa.u1",  0x000000, 0x000224, CRC(77f53227) /* updated hash */ SHA1(649d3fbf47369487f366a8d6192e79612be4ec83) /* updated hash */ )
 
 	ROM_REGION( 0x200000, "29f016a.31m", 0 ) /* onboard flash */
 	ROM_LOAD( "gq918xxb.31m", 0x000000, 0x200000, CRC(3653b5d7) SHA1(1deb44335b7a38506fb30da40e0ca61b96aea7bb) )
@@ -4845,7 +4849,7 @@ ROM_START( fghtmnu )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gq918uaa.u1",  0x000000, 0x000224, CRC(e1b7e9ef) SHA1(5767f47cb9a689601fb92c6a494563c5ffdde04c) )
+	ROM_LOAD( "gq918uaa.u1",  0x000000, 0x000224, CRC(597042c3) /* updated hash */ SHA1(5bc16259c0c0d55bbb2142bae79cc9be3dc52304) /* updated hash */ )
 
 	ROM_REGION( 0x200000, "29f016a.31m", 0 ) /* onboard flash */
 	ROM_LOAD( "gq918xxb.31m", 0x000000, 0x200000, CRC(3653b5d7) SHA1(1deb44335b7a38506fb30da40e0ca61b96aea7bb) )
@@ -4927,7 +4931,7 @@ ROM_START( gbbchmp )
 	ROM_CONTINUE( 0x000000, 0x100000 )
 
 	ROM_REGION( 0x0000084, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gcb48ja.u1",   0x000000, 0x000084, BAD_DUMP CRC(500b8b5b) SHA1(82dc5ace95b37034b9527dd3f74e2bd289dd6838) )
+	ROM_LOAD( "gcb48ja.u1",   0x000000, 0x000084, BAD_DUMP CRC(879ff48d) /* updated hash */ SHA1(c548173c5adfda08a82a04e0d0fbcfc529ed41a0) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gcb48ja.u6",   0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -4987,14 +4991,14 @@ ROM_START( gchgchmp )
 	ROM_CONTINUE( 0x000000, 0x100000 )
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "ge877jaa.u1",  0x000000, 0x000224, CRC(06d0e427) SHA1(cf61c421c0ea236b492d49a00b4608062bbe9063) )
+	ROM_LOAD( "ge877jaa.u1",  0x000000, 0x000224, CRC(6e2f06ff) /* updated hash */ SHA1(79901dfcc5b1bd89cf464246c27fc9657aff3f05) /* updated hash */ )
 ROM_END
 
 ROM_START( gtrfrks )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gq886eac.u1",  0x000000, 0x000224, BAD_DUMP CRC(06bd6c4f) SHA1(61930e467ad135e2f31393ff5af981ed52f3bef9) )
+	ROM_LOAD( "gq886eac.u1",  0x000000, 0x000224, BAD_DUMP CRC(3b38dccf) /* updated hash */ SHA1(c313d025b4faed73ab021b76dbf0c51c9d701eb3) /* updated hash */ )
 
 	DISK_REGION( "cdrom0" )
 	DISK_IMAGE_READONLY( "886__d02", 0, BAD_DUMP SHA1(8d6681d6cacd054a047ad984184fa0dfa383ecb9) )
@@ -5004,7 +5008,7 @@ ROM_START( gtrfrksu )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gq886uac.u1",  0x000000, 0x000224, BAD_DUMP CRC(143eaa55) SHA1(51a4fa3693f1cb1646a8986003f9b6cc1ae8b630) )
+	ROM_LOAD( "gq886uac.u1",  0x000000, 0x000224, BAD_DUMP CRC(29bb1ad5) /* updated hash */ SHA1(797ba61b6407fc0d0531e58129a9230e1484dc11) /* updated hash */ )
 
 	DISK_REGION( "cdrom0" )
 	DISK_IMAGE_READONLY( "886__d02", 0, BAD_DUMP SHA1(8d6681d6cacd054a047ad984184fa0dfa383ecb9) )
@@ -5014,7 +5018,7 @@ ROM_START( gtrfrksj )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gq886jac.u1",  0x000000, 0x000224, BAD_DUMP CRC(11ffd43d) SHA1(27f4f4d782604379254fb98c3c57e547aa4b321f) )
+	ROM_LOAD( "gq886jac.u1",  0x000000, 0x000224, BAD_DUMP CRC(2c7a64bd) /* updated hash */ SHA1(01bd46989a897dbd023603e5cabbd7deb85825ff) /* updated hash */ )
 
 	DISK_REGION( "cdrom0" )
 	DISK_IMAGE_READONLY( "886__d02", 0, BAD_DUMP SHA1(8d6681d6cacd054a047ad984184fa0dfa383ecb9) )
@@ -5024,7 +5028,7 @@ ROM_START( gtrfrksa )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gq886aac.u1",  0x000000, 0x000224, BAD_DUMP CRC(efa51ee9) SHA1(3374d936de69c287e0161bc526546441c2943555) )
+	ROM_LOAD( "gq886aac.u1",  0x000000, 0x000224, BAD_DUMP CRC(d220ae69) /* updated hash */ SHA1(dfdd29197222cb621b05f9b9091cff9a20cd846e) /* updated hash */ )
 
 	DISK_REGION( "cdrom0" )
 	DISK_IMAGE_READONLY( "886__d02", 0, BAD_DUMP SHA1(8d6681d6cacd054a047ad984184fa0dfa383ecb9) )
@@ -5034,7 +5038,7 @@ ROM_START( gtrfrksc )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gq886eac.u1",  0x000000, 0x000224, BAD_DUMP CRC(06bd6c4f) SHA1(61930e467ad135e2f31393ff5af981ed52f3bef9) )
+	ROM_LOAD( "gq886eac.u1",  0x000000, 0x000224, BAD_DUMP CRC(3b38dccf) /* updated hash */ SHA1(c313d025b4faed73ab021b76dbf0c51c9d701eb3) /* updated hash */ )
 
 	DISK_REGION( "cdrom0" )
 	DISK_IMAGE_READONLY( "886__c02", 0, BAD_DUMP SHA1(80293512c4b914ef98acb1bbc7e3a2ed944a0dad) )
@@ -5044,7 +5048,7 @@ ROM_START( gtrfrksuc )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gq886uac.u1",  0x000000, 0x000224, BAD_DUMP CRC(143eaa55) SHA1(51a4fa3693f1cb1646a8986003f9b6cc1ae8b630) )
+	ROM_LOAD( "gq886uac.u1",  0x000000, 0x000224, BAD_DUMP CRC(29bb1ad5) /* updated hash */ SHA1(797ba61b6407fc0d0531e58129a9230e1484dc11) /* updated hash */ )
 
 	DISK_REGION( "cdrom0" )
 	DISK_IMAGE_READONLY( "886__c02", 0, BAD_DUMP SHA1(80293512c4b914ef98acb1bbc7e3a2ed944a0dad) )
@@ -5054,7 +5058,7 @@ ROM_START( gtrfrksjc )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gq886jac.u1",  0x000000, 0x000224, BAD_DUMP CRC(11ffd43d) SHA1(27f4f4d782604379254fb98c3c57e547aa4b321f) )
+	ROM_LOAD( "gq886jac.u1",  0x000000, 0x000224, BAD_DUMP CRC(2c7a64bd) /* updated hash */ SHA1(01bd46989a897dbd023603e5cabbd7deb85825ff) /* updated hash */ )
 
 	DISK_REGION( "cdrom0" )
 	DISK_IMAGE_READONLY( "886__c02", 0, BAD_DUMP SHA1(80293512c4b914ef98acb1bbc7e3a2ed944a0dad) )
@@ -5064,17 +5068,17 @@ ROM_START( gtrfrksac )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gq886aac.u1",  0x000000, 0x000224, BAD_DUMP CRC(efa51ee9) SHA1(3374d936de69c287e0161bc526546441c2943555) )
+	ROM_LOAD( "gq886aac.u1",  0x000000, 0x000224, BAD_DUMP CRC(d220ae69) /* updated hash */ SHA1(dfdd29197222cb621b05f9b9091cff9a20cd846e) /* updated hash */ )
 
 	DISK_REGION( "cdrom0" )
 	DISK_IMAGE_READONLY( "886__c02", 0, BAD_DUMP SHA1(80293512c4b914ef98acb1bbc7e3a2ed944a0dad) )
 ROM_END
 
-ROM_START(gtrfrk2m)
+ROM_START( gtrfrk2m )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000084, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gq883jad.u1",  0x000000, 0x000084, BAD_DUMP CRC(687868c4) SHA1(1230e74e4cf17953febe501df56d8bbec1de9356) )
+	ROM_LOAD( "gq883jad.u1",  0x000000, 0x000084, BAD_DUMP CRC(3b4f65b0) /* updated hash */ SHA1(ddec1da89feb848ba412b70064bf45ca4ba50426) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gq883jad.u6",  0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -5087,7 +5091,7 @@ ROM_START( gtrfrk2ma )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000084, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gq883eaa.u1",  0x000000, 0x000084, BAD_DUMP CRC(4440ab9f) SHA1(74742e850d17daf09941482d93bf0ac1912dbb7f) )
+	ROM_LOAD( "gq883eaa.u1",  0x000000, 0x000084, BAD_DUMP CRC(1777a6eb) /* updated hash */ SHA1(6d5fd8fd63bf96de31a1b2d6e372aa728b5deaab) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gq883jad.u6",  0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -5100,7 +5104,7 @@ ROM_START( gtrfrk2mua )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000084, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gq883uaa.u1",  0x000000, 0x000084, BAD_DUMP CRC(3f9697a6) SHA1(a05c0e4bb934cc24fe851475a250b70551aac5dd) )
+	ROM_LOAD( "gq883uaa.u1",  0x000000, 0x000084, BAD_DUMP CRC(6ca19ad2) /* updated hash */ SHA1(5ef4a1c65966b646a8808ec1d97893d3df40819f) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gq883jad.u6",  0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -5113,7 +5117,7 @@ ROM_START( gtrfrk2mja )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000084, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gq883jaa.u1",  0x000000, 0x000084, BAD_DUMP CRC(687868c4) SHA1(1230e74e4cf17953febe501df56d8bbec1de9356) )
+	ROM_LOAD( "gq883jaa.u1",  0x000000, 0x000084, BAD_DUMP CRC(3b4f65b0) /* updated hash */ SHA1(ddec1da89feb848ba412b70064bf45ca4ba50426) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gq883jad.u6",  0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -5126,7 +5130,7 @@ ROM_START( gtrfrk2mka )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000084, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gq883kaa.u1",  0x000000, 0x000084, BAD_DUMP CRC(67e71110) SHA1(29da052c30109ebb9695721da83cd9019fae3a6d) )
+	ROM_LOAD( "gq883kaa.u1",  0x000000, 0x000084, BAD_DUMP CRC(34d01c64) /* updated hash */ SHA1(98fa0ff0d1f7f179648d4c37dd89d0cf5a322e64) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gq883jad.u6",  0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -5139,7 +5143,7 @@ ROM_START( gtrfrk2maa )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000084, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gq883aaa.u1",  0x000000, 0x000084, BAD_DUMP CRC(2c696501) SHA1(2f0930f77ae68641ecf02ea3b129e1716467cddb) )
+	ROM_LOAD( "gq883aaa.u1",  0x000000, 0x000084, BAD_DUMP CRC(7f5e6875) /* updated hash */ SHA1(44a217e674c82443a7876dab46dc56af75010ccf) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gq883jad.u6",  0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -5152,7 +5156,7 @@ ROM_START( gtrfrk2ml1 )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000084, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gq883jad.u1",  0x000000, 0x000084, BAD_DUMP CRC(687868c4) SHA1(1230e74e4cf17953febe501df56d8bbec1de9356) )
+	ROM_LOAD( "gq883jad.u1",  0x000000, 0x000084, BAD_DUMP CRC(3b4f65b0) /* updated hash */ SHA1(ddec1da89feb848ba412b70064bf45ca4ba50426) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gq883jad.u6",  0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -5165,7 +5169,7 @@ ROM_START( gtrfrk2ml2 )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000084, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gq883jad.u1",  0x000000, 0x000084, BAD_DUMP CRC(687868c4) SHA1(1230e74e4cf17953febe501df56d8bbec1de9356) )
+	ROM_LOAD( "gq883jad.u1",  0x000000, 0x000084, BAD_DUMP CRC(3b4f65b0) /* updated hash */ SHA1(ddec1da89feb848ba412b70064bf45ca4ba50426) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gq883jad.u6",  0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -5178,10 +5182,10 @@ ROM_START( gtrfrk3m )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:install:eeprom", 0 )
-	ROM_LOAD( "949jaa.u1",    0x000000, 0x000224, BAD_DUMP CRC(96c21d71) SHA1(871f1f0429154a486e547e182534db1557008dd6) )
+	ROM_LOAD( "949jaa.u1",    0x000000, 0x000224, BAD_DUMP CRC(e98b0389) /* updated hash */ SHA1(bbc5d54946625d140b1b431cbbb09118b49d39f1) /* updated hash */ )
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "ge949jab.u1",  0x000000, 0x001014, BAD_DUMP CRC(8645e17f) SHA1(e8a833384cb6bdb05870fcd44e7c8ed48a03c852) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "ge949jab.u1",  0x000000, 0x00101c, BAD_DUMP CRC(2a4b38bb) /* updated hash */ SHA1(64c949b6bfe49461c510c369b56e1d28eeb1dd73) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:install:id", 0 )
 	ROM_LOAD( "949jaa.u6",    0x000000, 0x000008, BAD_DUMP CRC(af09e43c) SHA1(d8372f2d6e0ae07061b496a2242a63e5bc2e54dc) )
@@ -5200,10 +5204,10 @@ ROM_START( gtfrk3ma )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:install:eeprom", 0 )
-	ROM_LOAD( "949jaa.u1",    0x000000, 0x000224, BAD_DUMP CRC(96c21d71) SHA1(871f1f0429154a486e547e182534db1557008dd6) )
+	ROM_LOAD( "949jaa.u1",    0x000000, 0x000224, BAD_DUMP CRC(e98b0389) /* updated hash */ SHA1(bbc5d54946625d140b1b431cbbb09118b49d39f1) /* updated hash */ )
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "ge949jab.u1",  0x000000, 0x001014, BAD_DUMP CRC(8645e17f) SHA1(e8a833384cb6bdb05870fcd44e7c8ed48a03c852) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "ge949jab.u1",  0x000000, 0x00101c, BAD_DUMP CRC(2a4b38bb) /* updated hash */ SHA1(64c949b6bfe49461c510c369b56e1d28eeb1dd73) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:install:id", 0 )
 	ROM_LOAD( "949jaa.u6",    0x000000, 0x000008, BAD_DUMP CRC(af09e43c) SHA1(d8372f2d6e0ae07061b496a2242a63e5bc2e54dc) )
@@ -5218,8 +5222,8 @@ ROM_END
 ROM_START( gtfrk3mb )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "ge949jaa.u1",  0x000000, 0x001014, BAD_DUMP CRC(61f35ee1) SHA1(0a2b66742364d76ec18647b2761590bd49229625) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "ge949jaa.u1",  0x000000, 0x00101c, BAD_DUMP CRC(2a4b38bb) /* updated hash */ SHA1(64c949b6bfe49461c510c369b56e1d28eeb1dd73) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "ge949jaa.u6",  0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -5232,10 +5236,10 @@ ROM_START( gtrfrk4m )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:install:eeprom", 0 )
-	ROM_LOAD( "a24jaa.u1",    0x000000, 0x000224, BAD_DUMP CRC(29e326fe) SHA1(41a600105b08accc9d7ebd2b8ae08c0863758aa0) )
+	ROM_LOAD( "a24jaa.u1",    0x000000, 0x000224, BAD_DUMP CRC(e98b0389) /* updated hash */ SHA1(bbc5d54946625d140b1b431cbbb09118b49d39f1) /* updated hash */ )
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gea24ja.u1",   0x000000, 0x001014, BAD_DUMP CRC(d1fccf11) SHA1(6dcd79f3171d6e4bd7e1149901638f8ea58ff623) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gea24ja.u1",   0x000000, 0x00101c, BAD_DUMP CRC(475a0d37) /* updated hash */ SHA1(27a35e607384a576903ea98d2ec153ba5940d9c6) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:install:id", 0 )
 	ROM_LOAD( "a24jaa.u6",    0x000000, 0x000008, BAD_DUMP CRC(af09e43c) SHA1(d8372f2d6e0ae07061b496a2242a63e5bc2e54dc) )
@@ -5250,8 +5254,8 @@ ROM_END
 ROM_START( gtrfrk5m )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gea26jaa.u1",  0x000000, 0x001014, BAD_DUMP CRC(c2725fca) SHA1(b70a3266c61af5cbe0478a6f3dd850ebcab980dc) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gea26jaa.u1",  0x000000, 0x00101c, BAD_DUMP CRC(f01f89bb) /* updated hash */ SHA1(608f932e330da14eaef7c2ffde5578ccc6f6d8ae) /* updated hash */ )
 
 	ROM_REGION( 0x200000, "29f016a.31m", 0 ) /* onboard flash */
 	ROM_LOAD( "gea26jaa.31m", 0x000000, 0x200000, CRC(1a25e660) SHA1(dbd8fad0bac307723c70d00763cadf4261a7ed73) )
@@ -5268,8 +5272,8 @@ ROM_END
 ROM_START( gtrfrk6m )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gcb06ja.u1",   0x000000, 0x001014, BAD_DUMP CRC(673c98ab) SHA1(b1d889bf4fc5e425056acb6b72b2c563966fb7d7) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gcb06ja.u1",   0x000000, 0x00101c, BAD_DUMP CRC(53ddd979) /* updated hash */ SHA1(6d36c4ec53e31c85bfe2dfca8c11934d3829378d) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gcb06ja.u6",   0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -5281,8 +5285,8 @@ ROM_END
 ROM_START( gtrfrk7m )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gcb17jaa.u1",   0x000000, 0x001014, BAD_DUMP CRC(5a338c31) SHA1(0fd9ee306335858dd6bef680a62557a8bf055cc3) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gcb17jaa.u1",   0x000000, 0x00101c, BAD_DUMP CRC(acecd4bb) /* updated hash */ SHA1(1692ebdf6940da1f944c0fb081a035750f38d93f) /* updated hash */ )
 
 	ROM_REGION( 0x200000, "29f016a.31m", 0 ) /* onboard flash */
 	ROM_LOAD( "gcb17jaa.31m", 0x000000, 0x200000, CRC(1e1cbfe3) SHA1(6c942820f915ea0e01f0e736d70780ad8408aa69) )
@@ -5299,8 +5303,8 @@ ROM_END
 ROM_START( gtrfrk8m )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gcc08jba.u1",   0x000000, 0x001014, BAD_DUMP CRC(db4b3027) SHA1(65ca32fcacda18954a4e8352dbb9bf583dfdd121) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gcc08jba.u1",   0x000000, 0x00101c, BAD_DUMP CRC(9a1adf4d) /* updated hash */ SHA1(637c386460eeb989df65a08dd401a6c44f2bc3d2) /* updated hash */ )
 
 	ROM_REGION( 0x200000, "29f016a.31m", 0 ) /* onboard flash */
 	ROM_LOAD( "gcc08jba.31m", 0x000000, 0x200000, CRC(ddef5efe) SHA1(7c3a219eacf63f55894e81cb0e41753176191708) )
@@ -5317,8 +5321,8 @@ ROM_END
 ROM_START( gtrfrk8ma )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gcc08jaa.u1",   0x000000, 0x001014, BAD_DUMP CRC(9c58f22b) SHA1(41ade23bac86e437b1f12c5730b8cce292ffe4f8) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gcc08jaa.u1",   0x000000, 0x00101c, BAD_DUMP CRC(d42ccbd6) /* updated hash */ SHA1(8d92fee4595866e544c316531b5e9d350a1ae015) /* updated hash */ )
 
 	ROM_REGION( 0x200000, "29f016a.31m", 0 ) /* onboard flash */
 	ROM_LOAD( "gcc08jaa.31m", 0x000000, 0x200000, CRC(aa723d4c) SHA1(5f55ddaf7f21b624deac99cc40b89989cd6f3a3d) )
@@ -5335,8 +5339,8 @@ ROM_END
 ROM_START( gtrfrk9m )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gcc39jaa.u1",   0x000000, 0x001014, BAD_DUMP CRC(afb75814) SHA1(027dc2ae3444d10c14169f1f354ffcc928f62fb3) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gcc39jaa.u1",   0x000000, 0x00101c, BAD_DUMP CRC(5c99ac45) /* updated hash */ SHA1(c1f97c13bdec4670c8227438d7e25a9c1222ee19) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gcc39jaa.u6",   0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -5348,8 +5352,8 @@ ROM_END
 ROM_START( gtfrk10m )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gcd10jab.u1",   0x000000, 0x001014, BAD_DUMP CRC(43520577) SHA1(a0749e766688032fe6558707b564288b95da9b8d) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gcd10jab.u1",   0x000000, 0x00101c, BAD_DUMP CRC(f5560166) /* updated hash */ SHA1(52c9e7a1d546be1f9b80b1a10fd3b9561887c310) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gcd10jab.u6",   0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -5364,8 +5368,8 @@ ROM_END
 ROM_START( gtfrk10ma )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gcd10jaa.u1",   0x000000, 0x001014, BAD_DUMP CRC(43520577) SHA1(a0749e766688032fe6558707b564288b95da9b8d) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gcd10jaa.u1",   0x000000, 0x00101c, BAD_DUMP CRC(c6d8589f) /* updated hash */ SHA1(f346c8e5dde8b3ae3ecc6ebcbc4b7dc463bcdc6b) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gcd10jaa.u6",   0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -5377,8 +5381,8 @@ ROM_END
 ROM_START( gtfrk10mb )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gcd10jab.u1",   0x000000, 0x001014, BAD_DUMP CRC(43520577) SHA1(a0749e766688032fe6558707b564288b95da9b8d) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gcd10jab.u1",   0x000000, 0x00101c, BAD_DUMP CRC(f5560166) /* updated hash */ SHA1(52c9e7a1d546be1f9b80b1a10fd3b9561887c310) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gcd10jab.u6",   0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -5390,8 +5394,8 @@ ROM_END
 ROM_START( gtfrk11m )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gcd39ja.u1",   0x000000, 0x001014, BAD_DUMP CRC(9bd81d0a) SHA1(c95f6d7317bf88177f7217de4ba4376485d5cdbf) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gcd39ja.u1",   0x000000, 0x00101c, BAD_DUMP CRC(0cea3062) /* updated hash */ SHA1(b48f0e8ba6ab78b233bd3ea898b1f8be59afceb6) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gcd39ja.u6",   0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -5613,7 +5617,7 @@ ROM_START( hypbbc2p )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000084, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gx908ja.u1",  0x000000, 0x000084, BAD_DUMP CRC(fb6c0635) SHA1(0d974462a0a244ffb1a651adb316242cde427756) )
+	ROM_LOAD( "gx908ja.u1",  0x000000, 0x000084, BAD_DUMP CRC(8900eaff) /* updated hash */ SHA1(aea4449c2453875694dfa92451d46dace710faf2) /* updated hash */ )
 
 	DISK_REGION( "cdrom0" )
 	DISK_IMAGE_READONLY( "908a02", 0, BAD_DUMP SHA1(573194ca9938c30415fc88dcc0c0152dd3024d71) )
@@ -5623,7 +5627,7 @@ ROM_START( hypbbc2pk )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000084, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gx908ka.u1",  0x000000, 0x000084, BAD_DUMP CRC(f4f37fe1) SHA1(30f90cdb2d092e4f8d6c14cfd4ca4945e6d352cb) )
+	ROM_LOAD( "gx908ka.u1",  0x000000, 0x000084, BAD_DUMP CRC(869f932b) /* updated hash */ SHA1(db5f96536ede2c16fc5fd5ab6a8efdf0f03be43b) /* updated hash */ )
 
 	DISK_REGION( "cdrom0" )
 	DISK_IMAGE_READONLY( "908a02", 0, BAD_DUMP SHA1(573194ca9938c30415fc88dcc0c0152dd3024d71) )
@@ -5633,7 +5637,7 @@ ROM_START( jppyex98 )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gc811ja.u1", 0x000000, 0x000224, BAD_DUMP CRC(e0f93270) SHA1(02a110bf692d5d1aa15e66132e3c4f60aa3f0f3c) )
+	ROM_LOAD( "gc811ja.u1", 0x000000, 0x000224, BAD_DUMP CRC(fd70efbe) /* updated hash */ SHA1(206fd4a6424723f082856c19617461897d127638) /* updated hash */ )
 
 	DISK_REGION( "cdrom0" )
 	DISK_IMAGE_READONLY( "811jaa02", 0, BAD_DUMP SHA1(e9580172d58b38841f643651ae0bcaf24fd5f118) )
@@ -5643,7 +5647,7 @@ ROM_START( konam80a )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gc826aa.u1", 0x000000, 0x000224, BAD_DUMP CRC(9b38b959) SHA1(6b4fca340a9b1c2ae21ad3903c1ac1e39ab08b1a) )
+	ROM_LOAD( "gc826aa.u1", 0x000000, 0x000224, BAD_DUMP CRC(da4cff17) /* updated hash */ SHA1(9a7b074d15b7d861132d9588c753cd18a469590f) /* updated hash */ )
 
 	DISK_REGION( "cdrom0" )
 	DISK_IMAGE_READONLY( "826aaa01", 0, BAD_DUMP SHA1(be5f8b31fd18ba631fe98c2132c56abf20193419) )
@@ -5653,7 +5657,7 @@ ROM_START( konam80j )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gc826ja.u1", 0x000000, 0x000224, BAD_DUMP CRC(e9e861e8) SHA1(45841db0b42d096213d9539a8d076d39391dca6d) )
+	ROM_LOAD( "gc826ja.u1", 0x000000, 0x000224, BAD_DUMP CRC(0479ef71) /* updated hash */ SHA1(043c01f115dd1434273729d06be3ba9c2d7b7a86) /* updated hash */ )
 
 	DISK_REGION( "cdrom0" )
 	DISK_IMAGE_READONLY( "826jaa01", 0, SHA1(be5f8b31fd18ba631fe98c2132c56abf20193419) )
@@ -5663,7 +5667,7 @@ ROM_START( konam80k )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gc826ka.u1", 0x000000, 0x000224, BAD_DUMP CRC(d41f7e38) SHA1(73e2bb132e23be72e72ea5b0686ccad28e47574a) )
+	ROM_LOAD( "gc826ka.u1", 0x000000, 0x000224, BAD_DUMP CRC(b4d57749) /* updated hash */ SHA1(8edbc08bc160350aa45dc4eb75dff29bcfd3d8f0) /* updated hash */ )
 
 	DISK_REGION( "cdrom0" )
 	DISK_IMAGE_READONLY( "826kaa01", 0, BAD_DUMP SHA1(be5f8b31fd18ba631fe98c2132c56abf20193419) )
@@ -5673,7 +5677,7 @@ ROM_START( konam80s )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gc826ea.u1", 0x000000, 0x000224, BAD_DUMP CRC(6ce4c619) SHA1(d2be08c213c0a74e30b7ebdd93946374cc64457f) )
+	ROM_LOAD( "gc826ea.u1", 0x000000, 0x000224, BAD_DUMP CRC(7c12ec3f) /* updated hash */ SHA1(7989ed47fe551116a821c7d4bc4de6bbb22eff29) /* updated hash */ )
 
 	DISK_REGION( "cdrom0" )
 	DISK_IMAGE_READONLY( "826eaa01", 0, BAD_DUMP SHA1(be5f8b31fd18ba631fe98c2132c56abf20193419) )
@@ -5683,7 +5687,7 @@ ROM_START( konam80u )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gc826ua.u1", 0x000000, 0x000224, BAD_DUMP CRC(0577379b) SHA1(3988a2a5ef1f1d5981c4767cbed05b73351be903) )
+	ROM_LOAD( "gc826ua.u1", 0x000000, 0x000224, BAD_DUMP CRC(077fefab) /* updated hash */ SHA1(2b3db957b6b767854ffeb99edd767040cb981489) /* updated hash */ )
 
 	DISK_REGION( "cdrom0" )
 	DISK_IMAGE_READONLY( "826uaa01", 0, SHA1(be5f8b31fd18ba631fe98c2132c56abf20193419) )
@@ -5692,8 +5696,8 @@ ROM_END
 ROM_START( mamboagg )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gqa40jab.u1",  0x000000, 0x001014, BAD_DUMP CRC(fd9e7c1f) SHA1(6dd4790589d48803f58328d099c908f0565b2c01) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gqa40jab.u1",  0x000000, 0x00101c, BAD_DUMP CRC(1466776e) /* updated hash */ SHA1(74033fe4edb36282520de59e18e603956f8c2d56) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gqa40jab.u6",  0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -5705,8 +5709,8 @@ ROM_END
 ROM_START( mamboagga )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gqa40jrb.u1",  0x000000, 0x001014, BAD_DUMP CRC(367e4c0c) SHA1(bad21aa8818749282dd97cf00c34b7b049096ceb) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gqa40jrb.u1",  0x000000, 0x00101c, BAD_DUMP CRC(e686b6dd) /* updated hash */ SHA1(ff4d37088eae1d74c7d6807035d46c81261f8a0f) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gqa40jrb.u6",  0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -5718,8 +5722,8 @@ ROM_END
 ROM_START( mrtlbeat )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "geb47jb.u1",   0x000000, 0x001014, BAD_DUMP CRC(90079ff5) SHA1(8273ee3349dd13207836b0ebf72ad5fa67fef68a) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "geb47jb.u1",   0x000000, 0x00101c, BAD_DUMP CRC(4fc3965b) /* updated hash */ SHA1(7359b73593d679db493f62d5467d976555f80f9a) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "geb47jb.u6",   0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -5732,7 +5736,7 @@ ROM_START( powyakex )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gx802ja.u1", 0x000000, 0x000224, BAD_DUMP CRC(ea8bdda3) SHA1(780034ab08871631ef0e3e9b779ca89e016c26a8) )
+	ROM_LOAD( "gx802ja.u1", 0x000000, 0x000224, BAD_DUMP CRC(82743f7b) /* updated hash */ SHA1(9019de5f38e79477327e4dde23e1e572e8450d67) /* updated hash */ )
 
 	DISK_REGION( "cdrom0" )
 	DISK_IMAGE_READONLY( "802jab02", 0, SHA1(460cc9f0b2514ec1da06b0a1d7b52fe43220d181) )
@@ -5742,7 +5746,7 @@ ROM_START( pcnfrk )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gq881ea.u1",   0x000000, 0x000224, BAD_DUMP CRC(6a88b34d) SHA1(2cc454ae099e948d5c5728c821484ddab195ad94) )
+	ROM_LOAD( "gq881ea.u1",   0x000000, 0x000224, BAD_DUMP CRC(e878901a) /* updated hash */ SHA1(5c58c6b580b6d864d42e1fc0dd4852cfe4bbe02b) /* updated hash */ )
 
 	ROM_REGION( 0x200000, "29f016a.31h", 0 ) /* onboard flash */
 	ROM_LOAD( "gq881ea.31h",  0x000000, 0x200000, CRC(a5b86ece) SHA1(9696f0c512501574bae6e436306675894bb2352e) )
@@ -5760,7 +5764,7 @@ ROM_START( pcnfrka )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gq881aa.u1",   0x000000, 0x000224, BAD_DUMP CRC(8390c1eb) SHA1(9ad0385c319aae318bc6efdd705a459957c669da) )
+	ROM_LOAD( "gq881aa.u1",   0x000000, 0x000224, BAD_DUMP CRC(0160e2bc) /* updated hash */ SHA1(d18cb24c1ebf4ab4492ab2a2d863e522a7b47692) /* updated hash */ )
 
 	ROM_REGION( 0x200000, "29f016a.31h", 0 ) /* onboard flash */
 	ROM_LOAD( "gq881aa.31h",  0x000000, 0x200000, CRC(a5b86ece) SHA1(9696f0c512501574bae6e436306675894bb2352e) )
@@ -5778,7 +5782,7 @@ ROM_START( pcnfrkk )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gq881ka.u1",   0x000000, 0x000224, BAD_DUMP CRC(568e05b3) SHA1(37fdf0ca45b9303bdd4e38990f9e91ff7de2a82c) )
+	ROM_LOAD( "gq881ka.u1",   0x000000, 0x000224, BAD_DUMP CRC(d47e26e4) /* updated hash */ SHA1(c74209be867eeb4196e2c3a6cf2ef6c89ba9faf4) /* updated hash */ )
 
 	ROM_REGION( 0x200000, "29f016a.31h", 0 ) /* onboard flash */
 	ROM_LOAD( "gq881ka.31h",  0x000000, 0x200000, CRC(a5b86ece) SHA1(9696f0c512501574bae6e436306675894bb2352e) )
@@ -5796,7 +5800,7 @@ ROM_START( drmnu )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gq881ua.u1",   0x000000, 0x000224, BAD_DUMP CRC(780b7557) SHA1(37f10437cf42310caf9ed8ea03e3ea342d59e59f) )
+	ROM_LOAD( "gq881ua.u1",   0x000000, 0x000224, BAD_DUMP CRC(fafb5600) /* updated hash */ SHA1(b18c0ca09e563be710f3c3fcfc408a62131c6d18) /* updated hash */ )
 
 	ROM_REGION( 0x200000, "29f016a.31h", 0 ) /* onboard flash */
 	ROM_LOAD( "gq881ua.31h",  0x000000, 0x200000, CRC(a5b86ece) SHA1(9696f0c512501574bae6e436306675894bb2352e) )
@@ -5814,10 +5818,10 @@ ROM_START( pcnfrk2m )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:install:eeprom", 0 )
-	ROM_LOAD( "ge912aa.u1",   0x000000, 0x000224, BAD_DUMP CRC(22c34654) SHA1(8173bde15b2fb89a72752253d832e05074ae3484) )
+	ROM_LOAD( "ge912aa.u1",   0x000000, 0x000224, BAD_DUMP CRC(aed7ab59) /* updated hash */ SHA1(41103d383c35dab0b074e336b1b07dd346a855ee) /* updated hash */ )
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gn912aa.u1",   0x000000, 0x001014, BAD_DUMP CRC(431b76c8) SHA1(fc4b20ad05b09b127918ee24634984cfa3df3647) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gn912aa.u1",   0x000000, 0x00101c, BAD_DUMP CRC(0767c90e) /* updated hash */ SHA1(f416b4fcda879c9712c01c0f3c534b32ad72de1a) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:install:id", 0 )
 	ROM_LOAD( "ge912aa.u6",   0x000000, 0x000008, BAD_DUMP CRC(af09e43c) SHA1(d8372f2d6e0ae07061b496a2242a63e5bc2e54dc) )
@@ -5833,10 +5837,10 @@ ROM_START( pcnfrk2mk )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:install:eeprom", 0 )
-	ROM_LOAD( "ge912ka.u1",   0x000000, 0x000224, BAD_DUMP CRC(b3d5ca9a) SHA1(3dd9034e1a3a78a03bef975186b7ac6b01e3131a) )
+	ROM_LOAD( "ge912ka.u1",   0x000000, 0x000224, BAD_DUMP CRC(7bc96f01) /* updated hash */ SHA1(ea6a51a6b10c56beb68c949b6939e9d2fef3f44e) /* updated hash */ )
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gn912ka.u1",   0x000000, 0x001014, BAD_DUMP CRC(c6af0c1a) SHA1(042d23bcfabc2a7fb6d7a038978805968e229395) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gn912ka.u1",   0x000000, 0x00101c, BAD_DUMP CRC(f31a598b) /* updated hash */ SHA1(0a5d21580d447434b0e59159a89f54f939ab09cd) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:install:id", 0 )
 	ROM_LOAD( "ge912ka.u6",   0x000000, 0x000008, BAD_DUMP CRC(af09e43c) SHA1(d8372f2d6e0ae07061b496a2242a63e5bc2e54dc) )
@@ -5852,10 +5856,10 @@ ROM_START( pcnfrk3m )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:install:eeprom", 0 )
-	ROM_LOAD( "a23aaa.u1",    0x000000, 0x000224, BAD_DUMP CRC(01dfcff6) SHA1(c2c86074fcf82b75a7c7aa56cf6daaae1646443c) )
+	ROM_LOAD( "a23aaa.u1",    0x000000, 0x000224, BAD_DUMP CRC(aed7ab59) /* updated hash */ SHA1(41103d383c35dab0b074e336b1b07dd346a855ee) /* updated hash */ )
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gca23aa.u1",   0x000000, 0x001014, BAD_DUMP CRC(6b3fc1d4) SHA1(f8e58d4af3663914b8c0e94e7078b6360728edc1) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gca23aa.u1",   0x000000, 0x00101c, BAD_DUMP CRC(d740b152) /* updated hash */ SHA1(6c581f02d8e4c0a2f7c0a55a0f69b855c6a790c9) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:install:id", 0 )
 	ROM_LOAD( "a23aaa.u6",    0x000000, 0x000008, BAD_DUMP CRC(af09e43c) SHA1(d8372f2d6e0ae07061b496a2242a63e5bc2e54dc) )
@@ -5871,10 +5875,10 @@ ROM_START( pcnfrk3mk )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:install:eeprom", 0 )
-	ROM_LOAD( "a23kaa.u1",    0x000000, 0x000224, BAD_DUMP CRC(d71c4b5c) SHA1(3911c5dd933c30e6e44c8cf417bb4c284ecb4b80) )
+	ROM_LOAD( "a23kaa.u1",    0x000000, 0x000224, BAD_DUMP CRC(7bc96f01) /* updated hash */ SHA1(ea6a51a6b10c56beb68c949b6939e9d2fef3f44e) /* updated hash */ )
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gca23ka.u1",   0x000000, 0x001014, BAD_DUMP CRC(f392349c) SHA1(e7eb7979db276de560d5820163a70d97e6c023d8) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gca23ka.u1",   0x000000, 0x00101c, BAD_DUMP CRC(60e2e151) /* updated hash */ SHA1(0b34c138e178f7f821e33ef7e023a4ce5b8fb788) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:install:id", 0 )
 	ROM_LOAD( "a23kaa.u6",    0x000000, 0x000008, BAD_DUMP CRC(af09e43c) SHA1(d8372f2d6e0ae07061b496a2242a63e5bc2e54dc) )
@@ -5889,8 +5893,8 @@ ROM_END
 ROM_START( pcnfrk4m )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gea25aaa.u1",   0x000000, 0x001014, BAD_DUMP CRC(04a5cffa) SHA1(ce7316ebdddeee326b0f4301f9a7c56498a95e70) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gea25aaa.u1",   0x000000, 0x00101c, BAD_DUMP CRC(cc1c6fd2) /* updated hash */ SHA1(7717409cdb84d9e6199f5c203f6f7b67e01e77b9) /* updated hash */ )
 
 	ROM_REGION( 0x200000, "29f016a.31m", 0 ) /* onboard flash */
 	ROM_LOAD( "gea25aaa.31m", 0x000000, 0x200000, CRC(557093c2) SHA1(80e8eecf3248e890f9cce70859b6092725c4918c) )
@@ -5910,8 +5914,8 @@ ROM_END
 ROM_START( pcnfrk4mk )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gka25kaa.u1",   0x000000, 0x001014, CRC(c30f390a) SHA1(a67a4639539b65d17486667fbf13e298cd337470) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gka25kaa.u1",   0x000000, 0x00101c, CRC(5c5f6fd1) /* updated hash */ SHA1(38522376c66c40ae6bf26247a6e5e0ca0530f2b7) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gka25kaa.u6",   0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -5923,8 +5927,8 @@ ROM_END
 ROM_START( pcnfrk5m )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gcb05aaa.u1",   0x000000, 0x001014, BAD_DUMP CRC(db30ec65) SHA1(5c6c0906feda1400961a9214b2dcd3a8f498dc48) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gcb05aaa.u1",   0x000000, 0x00101c, BAD_DUMP CRC(b94bafee) /* updated hash */ SHA1(9d9fab9ceb45098b274bffcc563f9ef7fa81970b) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gcb05aaa.u6",   0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -5936,8 +5940,8 @@ ROM_END
 ROM_START( pcnfrk5mk )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gcb05kaa.u1",   0x000000, 0x001014, BAD_DUMP CRC(f2a0e121) SHA1(d6ffa3513885a78662bcac9db4f17f0c10951962) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gcb05kaa.u1",   0x000000, 0x00101c, BAD_DUMP CRC(9b94abcb) /* updated hash */ SHA1(1f180b4d48cea5f4c5e0c67d2096f17b4cf2155c) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gcb05kaa.u6",   0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -5949,8 +5953,8 @@ ROM_END
 ROM_START( pcnfrk6m )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gcb16aaa.u1",   0x000000, 0x001014, BAD_DUMP CRC(da44cbd5) SHA1(aa64758524998c001791ffc4095b89e7ae1a6d8e) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gcb16aaa.u1",   0x000000, 0x00101c, BAD_DUMP CRC(8d1b393c) /* updated hash */ SHA1(c6b7dd8479e5518ac2a1dd9f8c117ed5e963a6d9) /* updated hash */ )
 
 	ROM_REGION( 0x200000, "29f016a.31m", 0 ) /* onboard flash */
 	ROM_LOAD( "gcb16aaa.31m",  0x000000, 0x200000, CRC(52c9334b) SHA1(2288f729611aefe93a470f8ef88a211582136e86) )
@@ -5967,8 +5971,8 @@ ROM_END
 ROM_START( pcnfrk7m )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gcc07aaa.u1",   0x000000, 0x001014, BAD_DUMP CRC(9aa2480f) SHA1(d9e82294323500c8e9d6012d2fe0d033c3afd4d0) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gcc07aaa.u1",   0x000000, 0x00101c, BAD_DUMP CRC(165c784b) /* updated hash */ SHA1(6a36d37836ba2a567432b0b77c192e6294c47904) /* updated hash */ )
 
 	ROM_REGION( 0x200000, "29f016a.31m", 0 ) /* onboard flash */
 	ROM_LOAD( "gcc07aaa.31m",  0x000000, 0x200000, CRC(e32a680d) SHA1(fcdf8bc9ff2290350b2653588047c78ec6c5f4a8) )
@@ -5985,8 +5989,8 @@ ROM_END
 ROM_START( pcnfrk8m )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gcc38aaa.u1",   0x000000, 0x001014, BAD_DUMP CRC(98eba308) SHA1(46a58a747c2e5fc5889dca9f0f555740c4983a83) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gcc38aaa.u1",   0x000000, 0x00101c, BAD_DUMP CRC(79b94a18) /* updated hash */ SHA1(c89ebaee78a71fec0abb2598f412b2571a5d8bae) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gcc38aaa.u6",   0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -5998,8 +6002,8 @@ ROM_END
 ROM_START( pcnfrk9m )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gcd09aba.u1",   0x000000, 0x001014, BAD_DUMP CRC(315336e6) SHA1(83bc64ef952460e28b5a7b237746e2813c9ce632) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gcd09aba.u1",   0x000000, 0x00101c, BAD_DUMP CRC(f98bd84e) /* updated hash */ SHA1(44a17d6758e73a42cc98134fe50f8605162621ac) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gcd09aba.u6",   0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -6011,8 +6015,8 @@ ROM_END
 ROM_START( pcnfrk10m )
 	SYS573_BIOS_A
 
-	ROM_REGION( 0x0001014, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gcd40aca.u1",   0x000000, 0x001014, BAD_DUMP CRC(dec7f7a9) SHA1(d88e003faefe7ad41e2ba049a07188ec4243d932) )
+	ROM_REGION( 0x000101c, "cassette:game:eeprom", 0 )
+	ROM_LOAD( "gcd40aca.u1",   0x000000, 0x00101c, BAD_DUMP CRC(d203bce7) /* updated hash */ SHA1(2fa46d5b41cf5e91c383e13b8c6c51d1a0fd22c1) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gcd40aca.u6",   0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -6025,7 +6029,7 @@ ROM_START( pnchmn )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gq918jaa.u1",  0x000000, 0x000224, BAD_DUMP CRC(e4769787) SHA1(d60c6598c7c58b5cd8f86350ebf7f3f32c1ebe9b) )
+	ROM_LOAD( "gq918jaa.u1",  0x000000, 0x000224, BAD_DUMP CRC(5cb13cab) /* updated hash */ SHA1(7b4e084df560c317f5530d6d5f4052ec51ecc683) /* updated hash */ )
 
 	ROM_REGION( 0x200000, "29f016a.31m", 0 ) /* onboard flash */
 	ROM_LOAD( "gq918xxb.31m", 0x000000, 0x200000, CRC(3653b5d7) SHA1(1deb44335b7a38506fb30da40e0ca61b96aea7bb) )
@@ -6043,7 +6047,7 @@ ROM_START( pnchmna )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gq918jab.u1",  0x000000, 0x000224, BAD_DUMP CRC(e4769787) SHA1(d60c6598c7c58b5cd8f86350ebf7f3f32c1ebe9b) )
+	ROM_LOAD( "gq918jab.u1",  0x000000, 0x000224, BAD_DUMP CRC(5cb13cab) /* updated hash */ SHA1(7b4e084df560c317f5530d6d5f4052ec51ecc683) /* updated hash */ )
 
 	ROM_REGION( 0x200000, "29f016a.31m", 0 ) /* onboard flash */
 	ROM_LOAD( "gq918xxb.31m", 0x000000, 0x200000, CRC(3653b5d7) SHA1(1deb44335b7a38506fb30da40e0ca61b96aea7bb) )
@@ -6061,7 +6065,7 @@ ROM_START( pnchmn2 )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000224, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gqa09ja.u1",   0x000000, 0x000224, BAD_DUMP CRC(e1e4108f) SHA1(0605e2c7a7dcb2f4928350e96d2ffcc2ede4a762) )
+	ROM_LOAD( "gqa09ja.u1",   0x000000, 0x000224, BAD_DUMP CRC(5923bba3) /* updated hash */ SHA1(97b099779f20f4169c3171c73f55048fb5314c50) /* updated hash */ )
 
 	ROM_REGION( 0x200000, "29f016a.31m", 0 ) /* onboard flash */
 	ROM_LOAD( "gqa09ja.31m",  0x000000, 0x200000, CRC(b1043a91) SHA1(b474439c1a7da7855d9b6d2162d4a522f499d6ab) )
@@ -6079,7 +6083,7 @@ ROM_START( salarymc )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000084, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gca18jaa.u1",  0x000000, 0x000084, CRC(c9197f67) SHA1(8e95a89008f756a79295f2cb557c39efca1351e7) )
+	ROM_LOAD( "gca18jaa.u1",  0x000000, 0x000084, CRC(c4e827e3) /* updated hash */ SHA1(9429eedcc793d84223c5494b50e64b906e2fa8e1) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gca18jaa.u6",  0x000000, 0x000008, CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -6092,7 +6096,7 @@ ROM_START( stepchmp )
 	SYS573_BIOS_A
 
 	ROM_REGION( 0x0000084, "cassette:game:eeprom", 0 )
-	ROM_LOAD( "gq930ja.u1",  0x000000, 0x000084, BAD_DUMP CRC(de141979) SHA1(fc91a8384852cb940ec1461c8a561118e9850c85) )
+	ROM_LOAD( "gq930ja.u1",  0x000000, 0x000084, BAD_DUMP CRC(d3e541fd) /* updated hash */ SHA1(157812a2afeb287804c659115a2a7f8bb7fd2ee9) /* updated hash */ )
 
 	ROM_REGION( 0x000008, "cassette:game:id", 0 )
 	ROM_LOAD( "gq930ja.u6",  0x000000, 0x000008, BAD_DUMP CRC(ce84419e) SHA1(839e8ee080ecfc79021a06417d930e8b32dfc6a1) )
@@ -6182,8 +6186,8 @@ GAME( 1999, fbaitmcu,  fbaitmc,  fbaitbc,    fbaitmc,   ksys573_state, empty_ini
 GAME( 1999, fbaitmcj,  fbaitmc,  fbaitbc,    fbaitmc,   ksys573_state, empty_init,    ROT0,  "Konami", "Fisherman's Bait - Marlin Challenge (GX889 VER. JA)", MACHINE_IMPERFECT_SOUND )
 GAME( 1999, fbaitmca,  fbaitmc,  fbaitbc,    fbaitmc,   ksys573_state, empty_init,    ROT0,  "Konami", "Fisherman's Bait - Marlin Challenge (GX889 VER. AA)", MACHINE_IMPERFECT_SOUND )
 GAME( 1999, ddr2m,     sys573,   ddr,        ddr,       ksys573_state, init_ddr,      ROT0,  "Konami", "Dance Dance Revolution 2nd Mix (GN895 VER. JAA)", MACHINE_IMPERFECT_SOUND )
-GAME( 1999, ddr2ml,    ddr2m,    ddr2ml,     ddr,       ksys573_state, init_ddr,      ROT0,  "Konami", "Dance Dance Revolution 2nd Mix - Link Ver (GE885 VER. JAB)", MACHINE_IMPERFECT_SOUND )
-GAME( 1999, ddr2mla,   ddr2m,    ddr2ml,     ddr,       ksys573_state, init_ddr,      ROT0,  "Konami", "Dance Dance Revolution 2nd Mix - Link Ver (GE885 VER. JAA)", MACHINE_IMPERFECT_SOUND )
+GAME( 1999, ddr2ml,    ddr2m,    ddr2ml,     ddr,       ksys573_state, init_ddr,      ROT0,  "Konami", "Dance Dance Revolution 2nd Mix - Link Ver (GE885 VER. JBB)", MACHINE_IMPERFECT_SOUND )
+GAME( 1999, ddr2mla,   ddr2m,    ddr2ml,     ddr,       ksys573_state, init_ddr,      ROT0,  "Konami", "Dance Dance Revolution 2nd Mix - Link Ver (GE885 VER. JBA)", MACHINE_IMPERFECT_SOUND )
 GAME( 1999, ddrbocd,   ddr2m,    ddrbocd,    ddr,       ksys573_state, init_ddr,      ROT0,  "Konami", "Dance Dance Revolution Best of Cool Dancers (GE892 VER. JAA)", MACHINE_IMPERFECT_SOUND )
 GAME( 1999, ddr2mc,    ddr2m,    ddr,        ddr,       ksys573_state, init_ddr,      ROT0,  "Konami", "Dance Dance Revolution 2nd Mix with beatmaniaIIDX CLUB VERSiON (GE896 VER. JAA)", MACHINE_IMPERFECT_SOUND )
 GAME( 1999, ddr2mc2,   ddr2m,    ddr2mc2,    ddr,       ksys573_state, init_ddr,      ROT0,  "Konami", "Dance Dance Revolution 2nd Mix with beatmaniaIIDX substream CLUB VERSiON 2 (GE984 VER. JAA)", MACHINE_IMPERFECT_SOUND )
@@ -6286,7 +6290,7 @@ GAME( 2003, drmn8m,    pcnfrk8m, drmn4m,     drmn,      ksys573_state, empty_ini
 GAME( 2003, gtrfrk9m,  sys573,   gtrfrk7m,   gtrfrks,   ksys573_state, empty_init,    ROT0,  "Konami", "Guitar Freaks 9th Mix (G*C39 VER. JAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
 GAME( 2003, pcnfrk9m,  sys573,   drmn9m,     drmn,      ksys573_state, empty_init,    ROT0,  "Konami", "Percussion Freaks 9th Mix eAmusement (G*D09 VER. ABA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
 GAME( 2003, drmn9m,    pcnfrk9m, drmn9m,     drmn,      ksys573_state, empty_init,    ROT0,  "Konami", "DrumMania 9th Mix (G*D09 VER. JAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
-GAME( 2003, gtfrk10m,  sys573,   gtfrk10m,   gtrfrks,   ksys573_state, empty_init,    ROT0,  "Konami", "Guitar Freaks 10th Mix (G*D10 VER. JAB)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
+GAME( 2003, gtfrk10m,  sys573,   gtfrk10m,   gtrfrks,   ksys573_state, empty_init,    ROT0,  "Konami", "Guitar Freaks 10th Mix (G*D10 VER. JBA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
 GAME( 2003, gtfrk10ma, gtfrk10m, gtfrk10m,   gtrfrks,   ksys573_state, empty_init,    ROT0,  "Konami", "Guitar Freaks 10th Mix (G*D10 VER. JAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
 GAME( 2003, gtfrk10mb, gtfrk10m, gtfrk10mb,  gtrfrks,   ksys573_state, empty_init,    ROT0,  "Konami", "Guitar Freaks 10th Mix eAmusement (G*D10 VER. JBA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
 GAME( 2004, gtfrk11m,  sys573,   gtfrk11m,   gtrfrks,   ksys573_state, empty_init,    ROT0,  "Konami", "Guitar Freaks 11th Mix (G*D39 VER. JAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
