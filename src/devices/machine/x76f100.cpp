@@ -46,7 +46,8 @@ x76f100_device::x76f100_device( const machine_config &mconfig, const char *tag, 
 	m_bit( 0 ),
 	m_byte( 0 ),
 	m_command( 0 ),
-	m_password_retry_counter( 0 )
+	m_password_retry_counter( 0 ),
+	m_is_password_accepted ( false )
 {
 }
 
@@ -65,6 +66,7 @@ void x76f100_device::device_start()
 	save_item( NAME( m_byte ) );
 	save_item( NAME( m_command ) );
 	save_item( NAME( m_password_retry_counter ) );
+	save_item( NAME( m_is_password_accepted ) );
 	save_item( NAME( m_write_buffer ) );
 	save_item( NAME( m_response_to_reset ) );
 	save_item( NAME( m_write_password ) );
@@ -87,6 +89,7 @@ void x76f100_device::device_reset()
 	m_byte = 0;
 	m_command = 0;
 	m_password_retry_counter = 0;
+	m_is_password_accepted = false;
 }
 
 WRITE_LINE_MEMBER( x76f100_device::write_cs )
@@ -244,6 +247,25 @@ WRITE_LINE_MEMBER( x76f100_device::write_scl )
 						if( m_byte == sizeof( m_write_buffer ) )
 						{
 							m_state = STATE_VERIFY_PASSWORD;
+
+							// Perform the password acceptance check before verify password because
+							// password verify ack is meant to be spammed and will quickly overflow the
+							// retry counter. This becomes an issue with System 573 games that use the
+							// X76F100 as an install cartridge. The boot process first tries to use the
+							// game cartridge password and if not accepted will try the install cartridge
+							// password and then enter installation mode if accepted.
+							m_is_password_accepted = memcmp( password(), m_write_buffer, sizeof( m_write_buffer ) ) == 0;
+							if( !m_is_password_accepted )
+							{
+								m_password_retry_counter++;
+								if ( m_password_retry_counter >= 8 )
+								{
+									std::fill( std::begin( m_read_password ), std::end( m_read_password ), 0 );
+									std::fill( std::begin( m_write_password ), std::end( m_write_password ), 0 );
+									std::fill( std::begin( m_data ), std::end( m_data ), 0 );
+									m_password_retry_counter = 0;
+								}
+							}
 						}
 						break;
 
@@ -254,22 +276,13 @@ WRITE_LINE_MEMBER( x76f100_device::write_scl )
 						if( m_shift == COMMAND_ACK_PASSWORD )
 						{
 							/* todo: this should take 10ms before it returns ok. */
-							if( memcmp( password(), m_write_buffer, sizeof( m_write_buffer ) ) == 0 )
+							if( m_is_password_accepted )
 							{
 								password_ok();
 							}
 							else
 							{
 								m_sdar = 1;
-
-								m_password_retry_counter++;
-								if ( m_password_retry_counter > 8 )
-								{
-									std::fill( std::begin( m_read_password ), std::end( m_read_password ), 0 );
-									std::fill( std::begin( m_write_password ), std::end( m_write_password ), 0 );
-									std::fill( std::begin( m_data ), std::end( m_data ), 0 );
-									m_password_retry_counter = 0;
-								}
 							}
 						}
 						break;
