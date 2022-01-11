@@ -13,8 +13,8 @@
 #include "machine/timehelp.h"
 
 #define LOG_CMD  (1 << 0)
- // #define VERBOSE      (LOG_CMD)
- // #define LOG_OUTPUT_STREAM std::cout
+// #define VERBOSE      (LOG_CMD)
+// #define LOG_OUTPUT_STREAM std::cout
 
 #include "logmacro.h"
 
