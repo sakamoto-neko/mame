@@ -34,7 +34,10 @@
 
 k573mcal_device::k573mcal_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock) :
 	jvs_device(mconfig, KONAMI_573_MASTER_CALENDAR, tag, owner, clock),
-	m_in1(*this, "IN1")
+	m_in1(*this, "IN1"),
+	seconds(0),
+	mainId(0),
+	subId(0)
 {
 }
 
@@ -209,7 +212,7 @@ INPUT_PORTS_START( k573mcal )
 	PORT_START("IN1")
 	// Default the area to 3 because it's unused and will force you to actively select the region to initialize.
 	// For all but the earliest games it will show a message saying "this game only supports regions x, y, z".
-	// This is also a good way to discover new variants that that exist on the disc but were locked away due to the security cart.
+	// This is also a good way to discover new bootable variants that exist on the disc but were previously unknown.
 	PORT_DIPNAME(0x0f, 0x03, "Area")
 	PORT_DIPSETTING(0x00, "JA")
 	PORT_DIPSETTING(0x01, "UA")

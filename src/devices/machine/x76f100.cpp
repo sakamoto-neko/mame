@@ -170,7 +170,7 @@ int x76f100_device::data_offset()
 	// Technically there are 4 bits assigned to sector values but since the data array is only 112 bytes,
 	// it will try reading out of bounds when the sector is 14 (= starts at 112) or 15 (= starts at 120).
 	// TODO: Verify what happens on real hardware when reading/writing sectors 14 and 15
-	if ( offset >= sizeof ( m_data ) )
+	if( offset >= sizeof ( m_data ) )
 		return -1;
 
 	return offset;
@@ -265,7 +265,7 @@ WRITE_LINE_MEMBER( x76f100_device::write_scl )
 							if( !m_is_password_accepted )
 							{
 								m_password_retry_counter++;
-								if ( m_password_retry_counter >= 8 )
+								if( m_password_retry_counter >= 8 )
 								{
 									std::fill( std::begin( m_read_password ), std::end( m_read_password ), 0 );
 									std::fill( std::begin( m_write_password ), std::end( m_write_password ), 0 );
@@ -300,11 +300,11 @@ WRITE_LINE_MEMBER( x76f100_device::write_scl )
 
 						if( m_byte == sizeof( m_write_buffer ) )
 						{
-							if ( m_command == COMMAND_CHANGE_WRITE_PASSWORD )
+							if( m_command == COMMAND_CHANGE_WRITE_PASSWORD )
 							{
 								std::copy( std::begin( m_write_buffer ), std::end( m_write_buffer ), std::begin( m_write_password ) );
 							}
-							else if ( m_command == COMMAND_CHANGE_READ_PASSWORD )
+							else if( m_command == COMMAND_CHANGE_READ_PASSWORD )
 							{
 								std::copy( std::begin( m_write_buffer ), std::end( m_write_buffer ), std::begin( m_read_password ) );
 							}
@@ -314,7 +314,7 @@ WRITE_LINE_MEMBER( x76f100_device::write_scl )
 								{
 									int offset = data_offset();
 
-									if ( offset != -1 )
+									if( offset != -1 )
 									{
 										verboselog( 1, "-> data[ %03x ]: %02x\n", offset, m_write_buffer[ m_byte ] );
 										m_data[ offset ] = m_write_buffer[ m_byte ];
@@ -354,7 +354,7 @@ WRITE_LINE_MEMBER( x76f100_device::write_scl )
 						case STATE_READ_DATA:
 							offset = data_offset();
 
-							if ( offset != -1 )
+							if( offset != -1 )
 							{
 								m_shift = m_data[ offset ];
 								verboselog( 1, "<- data[ %02x ]: %02x\n", offset, m_shift );

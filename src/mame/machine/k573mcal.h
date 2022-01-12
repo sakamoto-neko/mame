@@ -42,7 +42,7 @@ protected:
 private:
 	required_ioport m_in1;
 
-	uint8_t seconds = 0;
+	uint8_t seconds;
 	uint32_t mainId;
 	uint32_t subId;
 };
