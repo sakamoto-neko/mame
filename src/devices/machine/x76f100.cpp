@@ -169,7 +169,8 @@ int x76f100_device::data_offset()
 
 	// Technically there are 4 bits assigned to sector values but since the data array is only 112 bytes,
 	// it will try reading out of bounds when the sector is 14 (= starts at 112) or 15 (= starts at 120).
-	if ( block_offset >= 14 || offset >= sizeof ( m_data ) )
+	// TODO: Verify what happens on real hardware when reading/writing sectors 14 and 15
+	if ( offset >= sizeof ( m_data ) )
 		return -1;
 
 	return offset;
@@ -373,7 +374,7 @@ WRITE_LINE_MEMBER( x76f100_device::write_scl )
 					m_bit++;
 				}
 				else
-					{
+				{
 					m_bit = 0;
 					m_sdar = 0;
 
