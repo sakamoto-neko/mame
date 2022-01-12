@@ -7,7 +7,7 @@
  *
  * This is a high level emulation of the PIC used in some of the System 573 security cartridges.
  *
- * Referred to internally as "NS2K001".
+ * Referred to internally in game code as "NS2K001".
  *
  */
 
@@ -314,9 +314,7 @@ uint16_t zs01_device::calc_crc( uint8_t *buffer, uint32_t length )
 
 int zs01_device::data_offset()
 {
-	int block = ( ( m_write_buffer[ 0 ] & 2 ) << 10 ) | m_write_buffer[ 1 ];
-
-	return block * SIZE_DATA_BUFFER;
+	return m_write_buffer[1] * SIZE_DATA_BUFFER;
 }
 
 WRITE_LINE_MEMBER( zs01_device::write_scl )
@@ -391,19 +389,25 @@ WRITE_LINE_MEMBER( zs01_device::write_scl )
 						{
 							decrypt( m_write_buffer, m_write_buffer, sizeof( m_write_buffer ), m_command_key, 0xff );
 
+							// TODO: What is bit 1 of m_write_buffer[0]?
+
+							// Bit 2 seems to be set when the sector is >= 4 and the sector is not 0xfc
 							if( ( m_write_buffer[ 0 ] & 4 ) != 0 )
+							{
 								decrypt2( &m_write_buffer[ 2 ], &m_write_buffer[ 2 ], SIZE_DATA_BUFFER, m_data_key, m_rand_byte );
+							}
 
 							uint16_t crc = calc_crc( m_write_buffer, 10 );
+							uint16_t msg_crc = ( ( m_write_buffer[ 10 ] << 8 ) | m_write_buffer[ 11 ] );
 
 							verboselog( 1, "-> command: %02x (%s)\n", m_write_buffer[ 0 ], ( m_write_buffer[ 0 ] & 1 ) ? "READ" : "WRITE" );
 							verboselog( 1, "-> address: %04x\n", data_offset() );
 							verboselog( 1, "-> data: %02x%02x%02x%02x%02x%02x%02x%02x\n",
 								m_write_buffer[ 2 ], m_write_buffer[ 3 ], m_write_buffer[ 4 ], m_write_buffer[ 5 ],
 								m_write_buffer[ 6 ], m_write_buffer[ 7 ], m_write_buffer[ 8 ], m_write_buffer[ 9 ] );
-							verboselog( 1, "-> crc: %04x vs %02x%02x %s\n", crc, m_write_buffer[ 10 ], m_write_buffer[ 11 ], crc == ( ( m_write_buffer[ 10 ] << 8 ) | m_write_buffer[ 11 ] ) ? "" : "(FAIL)");
+							verboselog( 1, "-> crc: %04x vs %04x %s\n", crc, msg_crc, crc == msg_crc ? "" : "(BAD)");
 
-							if( crc == ( ( m_write_buffer[ 10 ] << 8 ) | m_write_buffer[ 11 ] ) )
+							if( crc == msg_crc )
 							{
 								auto offset = data_offset();
 
@@ -420,7 +424,6 @@ WRITE_LINE_MEMBER( zs01_device::write_scl )
 									case 0x7e8:
 										{
 											// Erase
-											// TODO: Is it possible to erase even
 											std::fill( std::begin( m_data ), std::end( m_data ), 0 );
 											std::fill( std::begin( m_data_key ), std::end( m_data_key ), 0 );
 										}
@@ -509,8 +512,6 @@ WRITE_LINE_MEMBER( zs01_device::write_scl )
 							verboselog( 1, "<- data: %02x%02x%02x%02x%02x%02x%02x%02x\n",
 								m_read_buffer[ 2 ], m_read_buffer[ 3 ], m_read_buffer[ 4 ], m_read_buffer[ 5 ],
 								m_read_buffer[ 6 ], m_read_buffer[ 7 ], m_read_buffer[ 8 ], m_read_buffer[ 9 ] );
-
-							verboselog(1, "\n");
 
 							m_rand_byte = m_read_buffer[ 1 ];
 
