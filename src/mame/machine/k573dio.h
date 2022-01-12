@@ -110,8 +110,6 @@ private:
 
 	bool is_ddrsbm_fpga;
 	u16 crypto_key1;
-
-	uint16_t network_id;
 };
 
 DECLARE_DEVICE_TYPE(KONAMI_573_DIGITAL_IO_BOARD, k573dio_device)
