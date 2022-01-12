@@ -332,7 +332,7 @@ uint16_t zs01_device::calc_crc( uint8_t *buffer, uint32_t length )
 
 int zs01_device::data_offset()
 {
-	return m_write_buffer[1] * SIZE_DATA_BUFFER;
+	return m_write_buffer[ 1 ] * SIZE_DATA_BUFFER;
 }
 
 WRITE_LINE_MEMBER( zs01_device::write_scl )

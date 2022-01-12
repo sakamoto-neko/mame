@@ -3,18 +3,19 @@
 /*
  * Konami 573 Master Calendar
  *
- * Not much is known about the actual details of the device.
- * The device itself allows for reprogramming the security cartridge.
+ * This device was made for development/factory use only.
+ * It will override the game when connected and always boot into the master calendar-specific code.
+ * Every game has a master calendar-specific boot sequence but a few that don't have code to initialize security cartridges.
+ *
+ * The only games that this does not work on that have a security cart are ddr2mc2, ddr2ml, and ddr2mla (all variants of 885jaa02).
+ * Those games will boot into a screen that shows the game code, clock, and date with nothing else.
+ * For these games it's possible to set Sys573 DIPSW 1 with the master calendar connected and it will do a checksum of the game's data
+ * and attempt to write it to "c:/tmp/chksum.dat" on the host debugger PC but will crash in MAME.
  *
  * DIPSW 2 and 3 on the System 573 directly are also used to specify the "spec" of the game.
  * For example, setting DIPSW allows you to switch between GN and GE specs in earlier games.
  *
  * Some games require you to hold service/F2 (and set Sys573 DIPSW 3?) during boot to initialize the installation cartridge.
- *
- * The only games that this does not work on are ddr2mc2, ddr2ml, and ddr2mla (all variants of 885jaa02).
- * Those games will boot into a screen that shows the game code, clock, and date with nothing else.
- * When the master calendar is connected it's possible to set Sys573 DIPSW 1 and it will do a checksum of the game's data
- * and attempt to write it to "c:/tmp/chksum.dat" on the host debugger PC but will crash in MAME.
  *
  */
 
@@ -205,13 +206,15 @@ int k573mcal_device::handle_message(const uint8_t* send_buffer, uint32_t send_si
 }
 
 INPUT_PORTS_START( k573mcal )
-	// These values are only for later versions of the bootloader. Earlier versions use different region values.
 	PORT_START("IN1")
+	// Default the area to 3 because it's unused and will force you to actively select the region to initialize.
+	// For all but the earliest games it will show a message saying "this game only supports regions x, y, z".
+	// This is also a good way to discover new variants that that exist on the disc but were locked away due to the security cart.
 	PORT_DIPNAME(0x0f, 0x03, "Area")
 	PORT_DIPSETTING(0x00, "JA")
 	PORT_DIPSETTING(0x01, "UA")
 	PORT_DIPSETTING(0x02, "EA")
-	PORT_DIPSETTING(0x03, "3")
+	PORT_DIPSETTING(0x03, "3") // Unused
 	PORT_DIPSETTING(0x04, "AA")
 	PORT_DIPSETTING(0x05, "KA")
 	PORT_DIPSETTING(0x06, "JY/AY")
@@ -219,7 +222,7 @@ INPUT_PORTS_START( k573mcal )
 	PORT_DIPSETTING(0x08, "JB")
 	PORT_DIPSETTING(0x09, "UB")
 	PORT_DIPSETTING(0x0a, "EB")
-	PORT_DIPSETTING(0x0b, "11")
+	PORT_DIPSETTING(0x0b, "11") // Unused
 	PORT_DIPSETTING(0x0c, "AB")
 	PORT_DIPSETTING(0x0d, "KB")
 	PORT_DIPSETTING(0x0e, "JZ/AZ")
