@@ -486,9 +486,9 @@ WRITE_LINE_MEMBER( x76f041_device::write_scl )
 						if( m_byte == sizeof( m_password_temp ) )
 						{
 							// Read in the password twice and if the two copies match then write it to the password field
-							if( memcmp( &m_password_temp[ 0 ], &m_password_temp[ 8 ], sizeof( m_write_password) ) == 0 )
+							if( memcmp( &m_password_temp[ 0 ], &m_password_temp[ 8 ], sizeof( m_write_password ) ) == 0 )
 							{
-								std::copy( std::begin( m_password_temp ), std::end( m_password_temp ), std::begin ( m_write_password ) );
+								std::copy_n( std::begin( m_password_temp ), sizeof( m_write_password ), std::begin ( m_write_password ) );
 							}
 							else {
 								m_sdar = 1;
@@ -508,7 +508,7 @@ WRITE_LINE_MEMBER( x76f041_device::write_scl )
 						{
 							if( memcmp( &m_password_temp[ 0 ], &m_password_temp[ 8 ], sizeof( m_read_password ) ) == 0 )
 							{
-								std::copy( std::begin( m_password_temp ), std::end( m_password_temp ), std::begin ( m_read_password ) );
+								std::copy_n( std::begin( m_password_temp ), sizeof( m_read_password ), std::begin ( m_read_password ) );
 							}
 							else {
 								m_sdar = 1;
@@ -528,7 +528,7 @@ WRITE_LINE_MEMBER( x76f041_device::write_scl )
 						{
 							if( memcmp( &m_password_temp[ 0 ], &m_password_temp[ 8 ], sizeof( m_configuration_password ) ) == 0 )
 							{
-								memcpy( m_configuration_password, m_password_temp, sizeof( m_configuration_password ) );
+								std::copy_n( std::begin( m_password_temp ), sizeof( m_configuration_password ), std::begin ( m_configuration_password ) );
 							}
 							else {
 								m_sdar = 1;
