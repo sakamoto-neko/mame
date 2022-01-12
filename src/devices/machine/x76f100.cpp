@@ -362,7 +362,7 @@ WRITE_LINE_MEMBER( x76f100_device::write_scl )
 							else
 							{
 								m_shift = 0;
-								verboselog( 1, "<- attempted to read out of bounds \n" );
+								verboselog( 1, "<- attempted to read out of bounds\n" );
 							}
 
 							break;
