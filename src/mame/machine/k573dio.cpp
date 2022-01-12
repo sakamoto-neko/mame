@@ -49,7 +49,7 @@
   | AK4309B   CN18         29.450MHz  MAS3507D    |
   |                                               |
   |                           CN3                 |
-  | HYC24855  RCA-1/2                             |
+  | HYC2485S  RCA-1/2                             |
   |-----------------------------------------------|
 
   Notes:
@@ -73,7 +73,7 @@
   CN18        - 6 pin connector
   MAS3507D    - IM MAS3507D D8 9173 51 HM U 072953.000 ES  MPEG 1/2 Layer 2/3 Audio Decoder
   CN3         - Connector joining this PCB to the MAIN PCB
-  HYC2485S    - ?
+  HYC2485S    - RS485 transceiver
   RCA-1/2     - RCA connectors for network communication
 
 */
