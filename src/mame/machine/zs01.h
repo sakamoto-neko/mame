@@ -110,6 +110,8 @@ private:
 
 	uint8_t m_configuration_registers[ 8 ];
 
+	// The game code claims that the data section is 112 bytes in size
+	// TODO: Verify data section size
 	uint8_t m_data[ 4096 ];
 };
 
