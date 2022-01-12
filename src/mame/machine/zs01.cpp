@@ -79,6 +79,24 @@ void zs01_device::device_start()
 	save_item( NAME( m_configuration_registers ) );
 }
 
+void zs01_device::device_reset()
+{
+	memset( m_write_buffer, 0, sizeof( m_write_buffer ) );
+	memset( m_read_buffer, 0, sizeof( m_read_buffer ) );
+	memset( m_response_key, 0, sizeof( m_response_key ) );
+
+	m_cs = 0;
+	m_rst = 0;
+	m_scl = 0;
+	m_sdaw = 0;
+	m_sdar = 0;
+	m_state = STATE_STOP;
+	m_shift = 0;
+	m_bit = 0;
+	m_byte = 0;
+	m_previous_byte = 0;
+}
+
 WRITE_LINE_MEMBER( zs01_device::write_rst )
 {
 	if( m_rst != state )
@@ -493,7 +511,7 @@ WRITE_LINE_MEMBER( zs01_device::write_scl )
 								m_read_buffer[ 0 ] = STATUS_ERROR;
 
 								m_configuration_registers[ CONFIG_RC ]++;
-								if ( m_configuration_registers[ CONFIG_RC ] > m_configuration_registers[ CONFIG_RR ] )
+								if ( m_configuration_registers[ CONFIG_RC ] >= m_configuration_registers[ CONFIG_RR ] )
 								{
 									// Too many bad reads, erase data
 									std::fill( std::begin( m_data ), std::end( m_data ), 0 );
