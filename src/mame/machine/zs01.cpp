@@ -419,7 +419,7 @@ WRITE_LINE_MEMBER( zs01_device::write_scl )
 							uint16_t msg_crc = ( ( m_write_buffer[ 10 ] << 8 ) | m_write_buffer[ 11 ] );
 
 							verboselog( 1, "-> command: %02x (%s)\n", m_write_buffer[ 0 ], ( m_write_buffer[ 0 ] & 1 ) ? "READ" : "WRITE" );
-							verboselog( 1, "-> address: %04x\n", data_offset() );
+							verboselog( 1, "-> address: %04x (%02x)\n", data_offset(), m_write_buffer[ 1 ] );
 							verboselog( 1, "-> data: %02x%02x%02x%02x%02x%02x%02x%02x\n",
 								m_write_buffer[ 2 ], m_write_buffer[ 3 ], m_write_buffer[ 4 ], m_write_buffer[ 5 ],
 								m_write_buffer[ 6 ], m_write_buffer[ 7 ], m_write_buffer[ 8 ], m_write_buffer[ 9 ] );
@@ -427,8 +427,6 @@ WRITE_LINE_MEMBER( zs01_device::write_scl )
 
 							if( crc == msg_crc )
 							{
-								auto offset = data_offset();
-
 								m_configuration_registers[ CONFIG_RC ] = 0; // Reset password fail counter
 
 								switch( m_write_buffer[ 0 ] & 1 )
@@ -437,29 +435,29 @@ WRITE_LINE_MEMBER( zs01_device::write_scl )
 									memset( &m_read_buffer[ 0 ], 0, sizeof( m_write_buffer ) );
 									m_read_buffer[ 0 ] = STATUS_OK;
 
-									if ( offset == 0x7e8 )
+									if ( m_write_buffer[ 1 ] == 0xfd )
 									{
 										// Erase
 										std::fill( std::begin( m_data ), std::end( m_data ), 0 );
 										std::fill( std::begin( m_data_key ), std::end( m_data_key ), 0 );
 									}
-									else if ( offset == 0x7f0 )
+									else if ( m_write_buffer[ 1 ] == 0xfe )
 									{
 										// Configuration register
 										memcpy( m_configuration_registers, &m_write_buffer[ 2 ], SIZE_DATA_BUFFER );
 									}
-									else if ( offset == 0x7f8 )
+									else if ( m_write_buffer[ 1 ] == 0xff )
 									{
 										// Set password
 										memcpy( m_data_key, &m_write_buffer[ 2 ], SIZE_DATA_BUFFER );
 									}
-									else if ( offset < sizeof ( m_data ) )
+									else if ( data_offset() < sizeof ( m_data ) )
 									{
-										memcpy( &m_data[ offset ], &m_write_buffer[ 2 ], SIZE_DATA_BUFFER );
+										memcpy( &m_data[ data_offset() ], &m_write_buffer[ 2 ], SIZE_DATA_BUFFER );
 									}
 									else
 									{
-										verboselog( 1, "-> unknown offset: %04x\n", data_offset() );
+										verboselog( 1, "-> unknown write offset: %04x (%02x)\n", data_offset(), m_write_buffer[ 1 ] );
 									}
 
 									break;
@@ -467,7 +465,7 @@ WRITE_LINE_MEMBER( zs01_device::write_scl )
 								case COMMAND_READ:
 									m_read_buffer[ 0 ] = STATUS_OK;
 
-									if ( offset == 0x7e0 )
+									if ( m_write_buffer[ 1 ] == 0xfc )
 									{
 										// TODO: Unknown serial
 										// The serial is verified by the same algorithm as the one read from 0x7e8 (DS2401 serial), so maybe it's the same or related.
@@ -476,7 +474,7 @@ WRITE_LINE_MEMBER( zs01_device::write_scl )
 											m_read_buffer[2 + i] = m_ds2401->direct_read(SIZE_DATA_BUFFER - i - 1);
 										}
 									}
-									else if ( offset == 0x7e8 )
+									else if ( m_write_buffer[ 1 ] == 0xfd )
 									{
 										// DS2401 serial
 										/* TODO: use read/write to talk to the ds2401, which will require a timer. */
@@ -485,18 +483,18 @@ WRITE_LINE_MEMBER( zs01_device::write_scl )
 											m_read_buffer[ 2 + i ] = m_ds2401->direct_read( SIZE_DATA_BUFFER - i - 1 );
 										}
 									}
-									else if ( offset == 0x7f0 )
+									else if ( m_write_buffer[ 1 ] == 0xfe )
 									{
 										// Configuration register
 										memcpy( &m_read_buffer[ 2 ], m_configuration_registers, SIZE_DATA_BUFFER );
 									}
-									else if ( offset < sizeof ( m_data ) )
+									else if ( data_offset() < sizeof ( m_data ) )
 									{
-										memcpy( &m_read_buffer[ 2 ], &m_data[ offset ], SIZE_DATA_BUFFER );
+										memcpy( &m_read_buffer[ 2 ], &m_data[ data_offset() ], SIZE_DATA_BUFFER );
 									}
 									else
 									{
-										verboselog( 1, "-> unknown offset: %04x\n", data_offset() );
+										verboselog( 1, "-> unknown read offset: %04x (%02x)\n", data_offset(), m_write_buffer[ 1 ] );
 									}
 
 									memcpy( m_response_key, &m_write_buffer[ 2 ], sizeof( m_response_key ) );
