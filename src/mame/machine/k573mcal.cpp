@@ -5,6 +5,17 @@
  *
  * Not much is known about the actual details of the device.
  * The device itself allows for reprogramming the security cartridge.
+ *
+ * DIPSW 2 and 3 on the System 573 directly are also used to specify the "spec" of the game.
+ * For example, setting DIPSW allows you to switch between GN and GE specs in earlier games.
+ *
+ * Some games require you to hold service/F2 (and set Sys573 DIPSW 3?) during boot to initialize the installation cartridge.
+ *
+ * The only games that this does not work on are ddr2mc2, ddr2ml, and ddr2mla (all variants of 885jaa02).
+ * Those games will boot into a screen that shows the game code, clock, and date with nothing else.
+ * When the master calendar is connected it's possible to set Sys573 DIPSW 1 and it will do a checksum of the game's data
+ * and attempt to write it to "c:/tmp/chksum.dat" on the host debugger PC but will crash in MAME.
+ *
  */
 
 #include "emu.h"
