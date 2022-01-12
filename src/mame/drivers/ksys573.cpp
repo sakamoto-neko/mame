@@ -2492,7 +2492,7 @@ void ksys573_state::konami573(machine_config &config)
 	SYS573_JVS_HOST(config, m_sys573_jvs_host, 0);
 
 	// Uncomment for generating new security cartridges
-	// Warning: Does not play well with memory card reader (JVS chaining issue in MAME?)
+	// Warning: Does not play well with memory card reader (JVS chaining issue?)
 	//KONAMI_573_MASTER_CALENDAR(config, "k573mcal", 0, m_sys573_jvs_host);
 
 	rs232_port_device& rs232_network(RS232_PORT(config, "rs232_network", default_rs232_devices, nullptr));
