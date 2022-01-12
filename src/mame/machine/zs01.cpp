@@ -419,74 +419,68 @@ WRITE_LINE_MEMBER( zs01_device::write_scl )
 									memset( &m_read_buffer[ 0 ], 0, sizeof( m_write_buffer ) );
 									m_read_buffer[ 0 ] = STATUS_OK;
 
-									switch (offset)
+									if ( offset == 0x7e8 )
 									{
-									case 0x7e8:
-										{
-											// Erase
-											std::fill( std::begin( m_data ), std::end( m_data ), 0 );
-											std::fill( std::begin( m_data_key ), std::end( m_data_key ), 0 );
-										}
-										break;
-
-									case 0x7f0:
-										{
-											// Configuration register
-											memcpy( m_configuration_registers, &m_write_buffer[ 2 ], SIZE_DATA_BUFFER );
-										}
-										break;
-
-									case 0x7f8:
-										{
-											// Set password
-											memcpy( m_data_key, &m_write_buffer[ 2 ], SIZE_DATA_BUFFER );
-										}
-										break;
-
-									default:
-										memcpy( &m_data[ offset ], &m_write_buffer[ 2 ], SIZE_DATA_BUFFER );
-										break;
+										// Erase
+										std::fill( std::begin( m_data ), std::end( m_data ), 0 );
+										std::fill( std::begin( m_data_key ), std::end( m_data_key ), 0 );
 									}
+									else if ( offset == 0x7f0 )
+									{
+										// Configuration register
+										memcpy( m_configuration_registers, &m_write_buffer[ 2 ], SIZE_DATA_BUFFER );
+									}
+									else if ( offset == 0x7f8 )
+									{
+										// Set password
+										memcpy( m_data_key, &m_write_buffer[ 2 ], SIZE_DATA_BUFFER );
+									}
+									else if ( offset < sizeof ( m_data ) )
+									{
+										memcpy( &m_data[ offset ], &m_write_buffer[ 2 ], SIZE_DATA_BUFFER );
+									}
+									else
+									{
+										verboselog( 1, "-> invalid offset: %04x\n", data_offset() );
+										printf("-> invalid offset: %04x\n", data_offset());
+									}
+
 									break;
 
 								case COMMAND_READ:
 									m_read_buffer[ 0 ] = STATUS_OK;
 
-									// TODO: What happens if you try reading the password through 0x7f8?
-									switch (offset)
+									if ( offset == 0x7e0 )
 									{
-									case 0x7e0:
+										// TODO: Unknown serial
+										// The serial is verified by the same algorithm as the one read from 0x7e8 (DS2401 serial), so maybe it's the same or related.
+										for (int i = 0; i < SIZE_DATA_BUFFER; i++)
 										{
-											// TODO: Unknown serial
-											// The serial is verified by the same algorithm as the one read from 0x7e8 (DS2401 serial), so maybe it's the same or related.
-											for( int i = 0; i < SIZE_DATA_BUFFER; i++ )
-											{
-												m_read_buffer[ 2 + i ] = m_ds2401->direct_read( SIZE_DATA_BUFFER - i - 1 );
-											}
+											m_read_buffer[2 + i] = m_ds2401->direct_read(SIZE_DATA_BUFFER - i - 1);
 										}
-										break;
-
-									case 0x7e8:
+									}
+									else if ( offset == 0x7e8 )
+									{
+										// DS2401 serial
+										/* TODO: use read/write to talk to the ds2401, which will require a timer. */
+										for( int i = 0; i < SIZE_DATA_BUFFER; i++ )
 										{
-											// DS2401 serial
-											/* TODO: use read/write to talk to the ds2401, which will require a timer. */
-											for( int i = 0; i < SIZE_DATA_BUFFER; i++ )
-											{
-												m_read_buffer[ 2 + i ] = m_ds2401->direct_read( SIZE_DATA_BUFFER - i - 1 );
-											}
+											m_read_buffer[ 2 + i ] = m_ds2401->direct_read( SIZE_DATA_BUFFER - i - 1 );
 										}
-										break;
-
-									case 0x7f0:
-										{
-											// Configuration register
-											memcpy( &m_read_buffer[ 2 ], m_configuration_registers, SIZE_DATA_BUFFER );
-										}
-										break;
-
-									default:
+									}
+									else if ( offset == 0x7f0 )
+									{
+										// Configuration register
+										memcpy( &m_read_buffer[ 2 ], m_configuration_registers, SIZE_DATA_BUFFER );
+									}
+									else if ( offset < sizeof ( m_data ) )
+									{
 										memcpy( &m_read_buffer[ 2 ], &m_data[ offset ], SIZE_DATA_BUFFER );
-										break;
+									}
+									else
+									{
+										verboselog( 1, "-> invalid offset: %04x\n", data_offset() );
+										printf("-> invalid offset: %04x\n", data_offset());
 									}
 
 									memcpy( m_response_key, &m_write_buffer[ 2 ], sizeof( m_response_key ) );
@@ -656,7 +650,7 @@ void zs01_device::nvram_default()
 	memset( m_configuration_registers, 0, sizeof( m_configuration_registers ) );
 	memset( m_data, 0, sizeof( m_data ) );
 
-	int expected_bytes = sizeof( m_response_to_reset ) + sizeof( m_command_key ) + sizeof( m_data_key ) + sizeof( m_data ) + sizeof( m_configuration_registers );
+	int expected_bytes = sizeof( m_response_to_reset ) + sizeof( m_command_key ) + sizeof( m_data_key ) + sizeof( m_configuration_registers ) + sizeof( m_data );
 
 	if (!m_region.found())
 	{
@@ -673,8 +667,8 @@ void zs01_device::nvram_default()
 		memcpy( m_response_to_reset, region, sizeof( m_response_to_reset ) ); region += sizeof( m_response_to_reset );
 		memcpy( m_command_key, region, sizeof( m_command_key ) ); region += sizeof( m_command_key );
 		memcpy( m_data_key, region, sizeof( m_data_key ) ); region += sizeof( m_data_key );
-		memcpy( m_data, region, sizeof( m_data ) ); region += sizeof( m_data );
 		memcpy( m_configuration_registers, region, sizeof( m_configuration_registers ) ); region += sizeof( m_configuration_registers );
+		memcpy( m_data, region, sizeof( m_data ) ); region += sizeof( m_data );
 	}
 }
 
@@ -683,8 +677,8 @@ void zs01_device::nvram_read( emu_file &file )
 	file.read( m_response_to_reset, sizeof( m_response_to_reset ) );
 	file.read( m_command_key, sizeof( m_command_key ) );
 	file.read( m_data_key, sizeof( m_data_key ) );
-	file.read( m_data, sizeof( m_data ) );
 	file.read( m_configuration_registers, sizeof( m_configuration_registers ) );
+	file.read( m_data, sizeof( m_data ) );
 }
 
 void zs01_device::nvram_write( emu_file &file )
@@ -692,6 +686,6 @@ void zs01_device::nvram_write( emu_file &file )
 	file.write( m_response_to_reset, sizeof( m_response_to_reset ) );
 	file.write( m_command_key, sizeof( m_command_key ) );
 	file.write( m_data_key, sizeof( m_data_key ) );
-	file.write( m_data, sizeof( m_data ) );
 	file.write( m_configuration_registers, sizeof( m_configuration_registers ) );
+	file.write( m_data, sizeof( m_data ) );
 }

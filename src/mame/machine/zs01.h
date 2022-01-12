@@ -102,17 +102,10 @@ private:
 	uint8_t m_read_buffer[ 12 ];
 	uint8_t m_response_key[ 8 ];
 	uint8_t m_response_to_reset[ 4 ];
-
-	// The command key persists through erasing so it's likely a fixed key
 	uint8_t m_command_key[ 8 ];
-
 	uint8_t m_data_key[ 8 ];
-
 	uint8_t m_configuration_registers[ 8 ];
-
-	// The game code claims that the data section is 112 bytes in size
-	// TODO: Verify data section size
-	uint8_t m_data[ 4096 ];
+	uint8_t m_data[ 112 ];
 };
 
 
