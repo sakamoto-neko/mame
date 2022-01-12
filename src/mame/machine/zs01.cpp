@@ -459,8 +459,7 @@ WRITE_LINE_MEMBER( zs01_device::write_scl )
 									}
 									else
 									{
-										verboselog( 1, "-> invalid offset: %04x\n", data_offset() );
-										printf("-> invalid offset: %04x\n", data_offset());
+										verboselog( 1, "-> unknown offset: %04x\n", data_offset() );
 									}
 
 									break;
@@ -497,8 +496,7 @@ WRITE_LINE_MEMBER( zs01_device::write_scl )
 									}
 									else
 									{
-										verboselog( 1, "-> invalid offset: %04x\n", data_offset() );
-										printf("-> invalid offset: %04x\n", data_offset());
+										verboselog( 1, "-> unknown offset: %04x\n", data_offset() );
 									}
 
 									memcpy( m_response_key, &m_write_buffer[ 2 ], sizeof( m_response_key ) );
