@@ -227,9 +227,6 @@ void x76f041_device::password_ok()
 
 void x76f041_device::load_address()
 {
-	/* todo: handle other bcr bits */
-	int bcr;
-
 	m_address = m_shift;
 
 	verboselog( 1, "-> address: %02x\n", m_address );
@@ -279,14 +276,7 @@ void x76f041_device::load_address()
 		return;
 	}
 
-	if( ( m_command & 1 ) == 0 )
-	{
-		bcr = m_configuration_registers[ CONFIG_BCR1 ];
-	}
-	else
-	{
-		bcr = m_configuration_registers[ CONFIG_BCR2 ];
-	}
+	int bcr = m_configuration_registers[ ( m_command & 1 ) ? CONFIG_BCR2 : CONFIG_BCR1 ];
 	if( ( m_address & 0x80 ) != 0 )
 	{
 		bcr >>= 4;
@@ -447,6 +437,36 @@ WRITE_LINE_MEMBER( x76f041_device::write_scl )
 
 						if( m_byte == sizeof( m_write_buffer ) )
 						{
+							int bcr = m_configuration_registers[ ( m_command & 1 ) ? CONFIG_BCR2 : CONFIG_BCR1 ];
+							if( ( m_address & 0x80 ) != 0 )
+							{
+								bcr >>= 4;
+							}
+
+							if ( ( bcr & ( BCR_Z | BCR_T ) ) == BCR_T )
+							{
+								// Bits in the data can only be set, not cleared, when in program only mode
+								bool is_unauthorized_write = false;
+
+								for( m_byte = 0; m_byte < sizeof( m_write_buffer ); m_byte++ )
+								{
+									int offset = data_offset();
+									if ( m_write_buffer[ m_byte ] < m_data[ offset ] )
+									{
+										verboselog( 1, "tried to unset bits while in program only mode\n" );
+										is_unauthorized_write = true;
+										break;
+									}
+								}
+
+								if ( is_unauthorized_write )
+								{
+									m_sdar = 1;
+									m_byte = 0;
+									break;
+								}
+							}
+
 							for( m_byte = 0; m_byte < sizeof( m_write_buffer ); m_byte++ )
 							{
 								int offset = data_offset();
