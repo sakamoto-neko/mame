@@ -402,7 +402,7 @@ WRITE_LINE_MEMBER( x76f041_device::write_scl )
 							m_state = STATE_VERIFY_PASSWORD;
 
 							// Perform the password acceptance check before verify password because
-							// password verify ack is meant to be spammed and will quickly overflow the
+							// password verify ack is spammed and will quickly overflow the
 							// retry counter.
 							m_is_password_accepted = memcmp( password(), m_write_buffer, sizeof( m_write_buffer ) ) == 0;
 							if( !m_is_password_accepted )

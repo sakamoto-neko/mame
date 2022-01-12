@@ -256,7 +256,7 @@ WRITE_LINE_MEMBER( x76f100_device::write_scl )
 							m_state = STATE_VERIFY_PASSWORD;
 
 							// Perform the password acceptance check before verify password because
-							// password verify ack is meant to be spammed and will quickly overflow the
+							// password verify ack is spammed and will quickly overflow the
 							// retry counter. This becomes an issue with System 573 games that use the
 							// X76F100 as an install cartridge. The boot process first tries to use the
 							// game cartridge password and if not accepted will try the install cartridge
