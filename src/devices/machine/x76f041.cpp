@@ -231,7 +231,7 @@ void x76f041_device::load_address()
 
 	verboselog( 1, "-> address: %02x\n", m_address );
 
-	if ( ( m_configuration_registers[ CONFIG_CR ] & CR_RETRY_COUNTER_ENABLE_BIT ) != 0 &&
+	if( ( m_configuration_registers[ CONFIG_CR ] & CR_RETRY_COUNTER_ENABLE_BIT ) != 0 &&
 		m_configuration_registers[ CONFIG_RR ] == m_configuration_registers[ CONFIG_RC ] &&
 		( m_configuration_registers[ CONFIG_CR ] & CR_UNAUTHORIZED_ACCESS_BITS ) == 0x80 )
 	{
@@ -243,10 +243,10 @@ void x76f041_device::load_address()
 		return;
 	}
 
-	if ( ( m_command & 0xe0 ) == COMMAND_CONFIGURATION )
+	if( ( m_command & 0xe0 ) == COMMAND_CONFIGURATION )
 	{
 		// Configuration commands can be used regardless of array control register bits
-		if ( m_address == CONFIGURATION_RESET_WRITE_PASSWORD ||
+		if( m_address == CONFIGURATION_RESET_WRITE_PASSWORD ||
 			m_address == CONFIGURATION_RESET_READ_PASSWORD ||
 			m_address == CONFIGURATION_MASS_PROGRAM ||
 			m_address == CONFIGURATION_MASS_ERASE )
@@ -264,7 +264,7 @@ void x76f041_device::load_address()
 		return;
 	}
 
-	if ( ( m_configuration_registers[ CONFIG_CR ] & CR_RETRY_COUNTER_ENABLE_BIT ) != 0 &&
+	if( ( m_configuration_registers[ CONFIG_CR ] & CR_RETRY_COUNTER_ENABLE_BIT ) != 0 &&
 		m_configuration_registers[ CONFIG_RR ] == m_configuration_registers[ CONFIG_RC ] &&
 		( m_configuration_registers[ CONFIG_CR ] & CR_UNAUTHORIZED_ACCESS_BITS ) != 0x80 )
 	{
@@ -443,7 +443,7 @@ WRITE_LINE_MEMBER( x76f041_device::write_scl )
 								bcr >>= 4;
 							}
 
-							if ( ( bcr & ( BCR_Z | BCR_T ) ) == BCR_T )
+							if( ( bcr & ( BCR_Z | BCR_T ) ) == BCR_T )
 							{
 								// Bits in the data can only be set, not cleared, when in program only mode
 								bool is_unauthorized_write = false;
@@ -451,7 +451,7 @@ WRITE_LINE_MEMBER( x76f041_device::write_scl )
 								for( m_byte = 0; m_byte < sizeof( m_write_buffer ); m_byte++ )
 								{
 									int offset = data_offset();
-									if ( m_write_buffer[ m_byte ] < m_data[ offset ] )
+									if( m_write_buffer[ m_byte ] < m_data[ offset ] )
 									{
 										verboselog( 1, "tried to unset bits while in program only mode\n" );
 										is_unauthorized_write = true;
@@ -459,7 +459,7 @@ WRITE_LINE_MEMBER( x76f041_device::write_scl )
 									}
 								}
 
-								if ( is_unauthorized_write )
+								if( is_unauthorized_write )
 								{
 									m_sdar = 1;
 									m_byte = 0;
