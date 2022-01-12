@@ -97,7 +97,7 @@ private:
 	int m_shift;
 	int m_bit;
 	int m_byte;
-	int m_rand_byte;
+	int m_previous_byte;
 	uint8_t m_write_buffer[ 12 ];
 	uint8_t m_read_buffer[ 12 ];
 	uint8_t m_response_key[ 8 ];

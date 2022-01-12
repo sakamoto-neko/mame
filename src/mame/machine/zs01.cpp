@@ -46,7 +46,7 @@ zs01_device::zs01_device( const machine_config &mconfig, const char *tag, device
 	m_shift( 0 ),
 	m_bit( 0 ),
 	m_byte( 0 ),
-	m_rand_byte( 0 )
+	m_previous_byte( 0 )
 {
 }
 
@@ -68,7 +68,7 @@ void zs01_device::device_start()
 	save_item( NAME( m_shift ) );
 	save_item( NAME( m_bit ) );
 	save_item( NAME( m_byte ) );
-	save_item( NAME( m_rand_byte ) );
+	save_item( NAME( m_previous_byte ) );
 	save_item( NAME( m_write_buffer ) );
 	save_item( NAME( m_read_buffer ) );
 	save_item( NAME( m_response_key ) );
@@ -394,7 +394,7 @@ WRITE_LINE_MEMBER( zs01_device::write_scl )
 							// Bit 2 seems to be set when the sector is >= 4 and the sector is not 0xfc
 							if( ( m_write_buffer[ 0 ] & 4 ) != 0 )
 							{
-								decrypt2( &m_write_buffer[ 2 ], &m_write_buffer[ 2 ], SIZE_DATA_BUFFER, m_data_key, m_rand_byte );
+								decrypt2( &m_write_buffer[ 2 ], &m_write_buffer[ 2 ], SIZE_DATA_BUFFER, m_data_key, m_previous_byte );
 							}
 
 							uint16_t crc = calc_crc( m_write_buffer, 10 );
@@ -507,7 +507,7 @@ WRITE_LINE_MEMBER( zs01_device::write_scl )
 								m_read_buffer[ 2 ], m_read_buffer[ 3 ], m_read_buffer[ 4 ], m_read_buffer[ 5 ],
 								m_read_buffer[ 6 ], m_read_buffer[ 7 ], m_read_buffer[ 8 ], m_read_buffer[ 9 ] );
 
-							m_rand_byte = m_read_buffer[ 1 ];
+							m_previous_byte = m_read_buffer[ 1 ];
 
 							crc = calc_crc( m_read_buffer, 10 );
 							m_read_buffer[ 10 ] = crc >> 8;
