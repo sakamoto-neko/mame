@@ -357,11 +357,12 @@ G: gun mania only, drives air soft gun (this game uses real BB bullet)
 #include "machine/linflash.h"
 #include "machine/k573cass.h"
 #include "machine/k573dio.h"
+#include "machine/k573kara.h"
 #include "machine/k573mcal.h"
 #include "machine/k573mcr.h"
 #include "machine/k573msu.h"
 #include "machine/k573npu.h"
-#include "machine/k573kara.h"
+#include "machine/k573rental.h"
 #include "machine/kwindy2.h"
 #include "machine/mb89371.h"
 #include "machine/ram.h"
@@ -551,6 +552,7 @@ public:
 	void drmn2m(machine_config &config);
 	void gtrfrk3m(machine_config &config);
 	void mamboagg(machine_config &config);
+	void mamboagga(machine_config &config);
 	void gtrfrks(machine_config &config);
 	void gchgchmp(machine_config &config);
 	void ddr5m(machine_config &config);
@@ -3018,16 +3020,25 @@ void ksys573_state::dmx(machine_config &config)
 
 void ksys573_state::mamboagg(machine_config &config)
 {
+	k573d(config);
+	subdevice<k573dio_device>("k573dio")->output_callback().set(FUNC(ksys573_state::mamboagg_output_callback));
+
+	casszi(config);
+}
+
+void ksys573_state::mamboagga(machine_config &config)
+{
 	// e-Amusement version checks the cabinet type through a device presumably connected to the serial port on the security catridge, similar to
 	// how GFDM connects the MSU and card readers through the network port on the security cartridge.
 	// Data is transmitted via PSX SIO1 to the serial device.
 	// During boot it will send "a5 c0" and wants to see a string of "a5 c0" back (at least repeated 3 times) before it will pass the e-Amusement 2
 	// communication error screen. I didn't observe any communication on serial after that, but I couldn't get in-game to test further.
 	// Arcade operators must input passwords to increase the rental credits allotted to the machine. The game is not playable without rental credits.
-	k573d(config);
-	subdevice<k573dio_device>("k573dio")->output_callback().set(FUNC(ksys573_state::mamboagg_output_callback));
+	mamboagg(config);
 
-	casszi(config);
+	auto rs232 = subdevice<rs232_port_device>("rs232_network");
+	rs232->option_add("k573rental", KONAMI_573_EAMUSE_RENTAL_DEVICE);
+	rs232->set_default_option("k573rental");
 }
 
 static INPUT_PORTS_START( konami573 )
@@ -6262,7 +6273,7 @@ GAME( 2001, ddr5m,     sys573,   ddr5m,      ddr,       ksys573_state, empty_ini
 GAME( 2021, ddr5ms,    ddr5m,    ddr5m,      ddrsolo2,  ksys573_state, empty_init,    ROT0,  "hack",   "Dance Dance Revolution 5th Mix Solo (hack)", MACHINE_IMPERFECT_SOUND )
 GAME( 2001, dmx2majp,  sys573,   dmx,        dmx,       ksys573_state, empty_init,    ROT0,  "Konami", "Dance Maniax 2nd Mix Append J-Paradise (G*A38 VER. JAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.9 */
 GAME( 2001, mamboagg,  sys573,   mamboagg,   mamboagg,  ksys573_state, empty_init,    ROT0,  "Konami", "Mambo A Go-Go (GQA40 VER. JAB)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
-GAME( 2001, mamboagga, mamboagg, mamboagg,   mamboagg,  ksys573_state, empty_init,    ROT0,  "Konami", "Mambo A Go-Go e-Amusement (GQA40 VER. JRB)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
+GAME( 2001, mamboagga, mamboagg, mamboagga,  mamboagg,  ksys573_state, empty_init,    ROT0,  "Konami", "Mambo A Go-Go e-Amusement (GQA40 VER. JRB)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
 GAME( 2001, pcnfrk5m,  sys573,   drmn4m,     drmn,      ksys573_state, empty_init,    ROT0,  "Konami", "Percussion Freaks 5th Mix (G*B05 VER. AAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.9 */
 GAME( 2001, pcnfrk5mk, pcnfrk5m, drmn4m,     drmn,      ksys573_state, empty_init,    ROT0,  "Konami", "Percussion Freaks 5th Mix (G*B05 VER. KAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.9 */
 GAME( 2001, drmn5m,    pcnfrk5m, drmn4m,     drmn,      ksys573_state, empty_init,    ROT0,  "Konami", "DrumMania 5th Mix (G*B05 VER. JAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.9 */
