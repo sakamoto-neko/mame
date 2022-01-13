@@ -105,7 +105,7 @@ void k573martial_device::send_io_packet()
 		}
 		else {
 			auto c = m_inputs[m_io_counter]->read();
-			m_io_state_sum = (m_io_state_sum + c & 0x7f) & 0x7f;
+			m_io_state_sum = (m_io_state_sum + (c & 0x7f)) & 0x7f;
 			transmit_register_setup(c);
 			m_io_counter++;
 		}
