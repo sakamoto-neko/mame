@@ -29,8 +29,7 @@ void k573rental_device::device_start()
 	stop_bits_t stopbits = STOP_BITS_1;
 
 	set_data_frame(startbits, databits, parity, stopbits);
-	set_tra_rate(txbaud);
-	set_rcv_rate(rxbaud);
+	set_rate(BAUDRATE);
 
 	output_rxd(1);
 	output_dcd(0);
@@ -70,7 +69,7 @@ void k573rental_device::tra_callback()
 
 void k573rental_device::tra_complete()
 {
-	m_timer_response->adjust(attotime::from_hz(txbaud));
+	m_timer_response->adjust(attotime::from_hz(BAUDRATE));
 }
 
 void k573rental_device::send_response()
@@ -98,6 +97,6 @@ void k573rental_device::rcv_complete()
 			m_response.push_back(0xc0);
 		}
 
-		m_timer_response->adjust(attotime::from_hz(txbaud));
+		m_timer_response->adjust(attotime::from_hz(BAUDRATE));
 	}
 }

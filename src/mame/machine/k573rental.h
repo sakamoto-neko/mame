@@ -34,6 +34,7 @@ protected:
 
 private:
 	static constexpr int TIMER_RESPONSE = 1;
+	static constexpr int BAUDRATE = 19200;
 
 	void send_response();
 
@@ -41,9 +42,6 @@ private:
 	uint8_t m_buffer[2];
 
 	std::deque<uint8_t> m_response;
-
-	const int txbaud = 19200;
-	const int rxbaud = 19200;
 };
 
 DECLARE_DEVICE_TYPE(KONAMI_573_EAMUSE_RENTAL_DEVICE, k573rental_device)
