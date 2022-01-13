@@ -39,7 +39,6 @@ void k573rental_device::device_start()
 	output_cts(0);
 
 	std::fill(std::begin(m_buffer), std::end(m_buffer), 0);
-	std::fill(std::begin(m_response), std::end(m_response), 0);
 	m_response.clear();
 
 	m_timer_response = timer_alloc(TIMER_RESPONSE);
@@ -61,7 +60,6 @@ void k573rental_device::device_timer(emu_timer& timer, device_timer_id id, int p
 void k573rental_device::device_reset()
 {
 	std::fill(std::begin(m_buffer), std::end(m_buffer), 0);
-	std::fill(std::begin(m_response), std::end(m_response), 0);
 	m_response.clear();
 }
 
