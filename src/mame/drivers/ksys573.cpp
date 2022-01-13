@@ -358,6 +358,7 @@ G: gun mania only, drives air soft gun (this game uses real BB bullet)
 #include "machine/k573cass.h"
 #include "machine/k573dio.h"
 #include "machine/k573kara.h"
+#include "machine/k573martial.h"
 #include "machine/k573mcal.h"
 #include "machine/k573mcr.h"
 #include "machine/k573msu.h"
@@ -566,6 +567,7 @@ public:
 	void dsem2(machine_config &config);
 	void dmx(machine_config &config);
 	void drmn(machine_config &config);
+	void mrtlbeat(machine_config& config);
 	void k573d(machine_config &config);
 	void k573k(machine_config &config);
 	void k573a(machine_config &config);
@@ -2694,7 +2696,7 @@ void ksys573_state::ddrusa(machine_config &config)
 	casszi(config);
 }
 
-void ksys573_state::ddr5m(machine_config &config)
+void ksys573_state::ddr5m(machine_config& config)
 {
 	k573d(config);
 	subdevice<k573dio_device>("k573dio")->output_callback().set(FUNC(ksys573_state::ddr_output_callback));
@@ -3039,6 +3041,19 @@ void ksys573_state::mamboagga(machine_config &config)
 	auto rs232 = subdevice<rs232_port_device>("rs232_network");
 	rs232->option_add("k573rental", KONAMI_573_EAMUSE_RENTAL_DEVICE);
 	rs232->set_default_option("k573rental");
+}
+
+void ksys573_state::mrtlbeat(machine_config &config)
+{
+	k573d(config);
+	subdevice<k573dio_device>("k573dio")->output_callback().set(FUNC(ksys573_state::ddr_output_callback));
+
+	pccard2_32mb(config);
+	casszi(config);
+
+	auto rs232 = subdevice<rs232_port_device>("rs232_network");
+	rs232->option_add("k573martial", KONAMI_573_MARTIAL_BEAT_IO);
+	rs232->set_default_option("k573martial");
 }
 
 static INPUT_PORTS_START( konami573 )
@@ -3599,6 +3614,21 @@ static INPUT_PORTS_START( gchgchmp )
 	PORT_BIT( 0x01000000, IP_ACTIVE_LOW, IPT_UNUSED ) /* P2 BUTTON4 */
 	PORT_BIT( 0x02000000, IP_ACTIVE_LOW, IPT_JOYSTICKRIGHT_DOWN ) PORT_8WAY PORT_PLAYER( 2 ) /* P2 BUTTON5 */
 	PORT_BIT( 0x08000000, IP_ACTIVE_LOW, IPT_UNUSED ) /* P2 BUTTON6 */
+INPUT_PORTS_END
+
+static INPUT_PORTS_START( mrtlbeat )
+	PORT_INCLUDE( konami573 )
+	PORT_INCLUDE( k573dio )
+
+	PORT_MODIFY( "IN2" )
+	PORT_BIT( 0xffff1f5f, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_BIT( 0x00008000, IP_ACTIVE_LOW, IPT_START1 ) PORT_NAME( "Start" )
+	PORT_BIT( 0x00002000, IP_ACTIVE_LOW, IPT_BUTTON2 ) PORT_NAME( "Select L" )
+	PORT_BIT( 0x00004000, IP_ACTIVE_LOW, IPT_BUTTON3 ) PORT_NAME( "Select R" )
+	PORT_BIT( 0x00000080, IP_ACTIVE_LOW, IPT_START2 ) PORT_NAME( "Cancel" )
+
+	PORT_MODIFY( "IN3" )
+	PORT_BIT( 0xfffffbff, IP_ACTIVE_LOW, IPT_UNUSED )
 INPUT_PORTS_END
 
 #define SYS573_BIOS_A \
@@ -6283,7 +6313,7 @@ GAME( 2001, drmn6m,    pcnfrk6m, drmn4m,     drmn,      ksys573_state, empty_ini
 GAME( 2001, gtrfrk7m,  sys573,   gtrfrk7m,   gtrfrks,   ksys573_state, empty_init,    ROT0,  "Konami", "Guitar Freaks 7th Mix (G*B17 VER. JAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
 GAME( 2001, ddrmax,    sys573,   ddr5m,      ddr,       ksys573_state, empty_init,    ROT0,  "Konami", "DDR Max - Dance Dance Revolution 6th Mix (G*B19 VER. JAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.9 */
 GAME( 2002, ddrmax2,   sys573,   ddr5m,      ddr,       ksys573_state, empty_init,    ROT0,  "Konami", "DDR Max 2 - Dance Dance Revolution 7th Mix (G*B20 VER. JAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
-GAME( 2002, mrtlbeat,  sys573,   ddr5m,      ddr,       ksys573_state, empty_init,    ROT0,  "Konami", "Martial Beat (G*B47 VER. JBA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.9 */
+GAME( 2002, mrtlbeat,  sys573,   mrtlbeat,   mrtlbeat,  ksys573_state, empty_init,    ROT0,  "Konami", "Martial Beat (G*B47 VER. JBA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.9 */
 GAME( 2002, gbbchmp,   sys573,   gbbchmp,    hyperbbc,  ksys573_state, init_serlamp,  ROT0,  "Konami", "Great Bishi Bashi Champ (GBA48 VER. JAB)", MACHINE_IMPERFECT_SOUND )
 GAME( 2002, pcnfrk7m,  sys573,   drmn4m,     drmn,      ksys573_state, empty_init,    ROT0,  "Konami", "Percussion Freaks 7th Mix (G*C07 VER. AAA)", MACHINE_IMPERFECT_SOUND ) /* BOOT VER 1.95 */
 GAME( 2002, drmn7m,    pcnfrk7m, drmn4m,     drmn,      ksys573_state, empty_init,    ROT0,  "Konami", "DrumMania 7th Mix power-up ver. (G*C07 VER. JBA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
