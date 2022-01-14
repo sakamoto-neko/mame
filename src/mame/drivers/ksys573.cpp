@@ -6287,7 +6287,6 @@ GAME( 2001, pcnfrk4mk, pcnfrk4m, drmn4m,     drmn,      ksys573_state, empty_ini
 GAME( 2001, drmn4m,    pcnfrk4m, drmn4m,     drmn,      ksys573_state, empty_init,    ROT0,  "Konami", "DrumMania 4th Mix (G*A25 VER. JAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.9 */
 GAME( 2001, gtrfrk5m,  sys573,   gtrfrk5m,   gtrfrks,   ksys573_state, empty_init,    ROT0,  "Konami", "Guitar Freaks 5th Mix (G*A26 VER. JAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.9 */
 GAME( 2001, ddr5m,     sys573,   ddr5m,      ddr,       ksys573_state, empty_init,    ROT0,  "Konami", "Dance Dance Revolution 5th Mix (G*A27 VER. JAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.9 */
-GAME( 2021, ddr5ms,    ddr5m,    ddr5m,      ddrsolo2,  ksys573_state, empty_init,    ROT0,  "hack",   "Dance Dance Revolution 5th Mix Solo (hack)", MACHINE_IMPERFECT_SOUND )
 GAME( 2001, dmx2majp,  sys573,   dmx,        dmx,       ksys573_state, empty_init,    ROT0,  "Konami", "Dance Maniax 2nd Mix Append J-Paradise (G*A38 VER. JAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.9 */
 GAME( 2001, mamboagg,  sys573,   mamboagg,   mamboagg,  ksys573_state, empty_init,    ROT0,  "Konami", "Mambo A Go-Go (GQA40 VER. JAB)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
 GAME( 2001, mamboagga, mamboagg, mamboagga,  mamboagg,  ksys573_state, empty_init,    ROT0,  "Konami", "Mambo A Go-Go e-Amusement (GQA40 VER. JRB)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
@@ -6309,10 +6308,6 @@ GAME( 2002, gtrfrk8m,  sys573,   gtrfrk7m,   gtrfrks,   ksys573_state, empty_ini
 GAME( 2002, gtrfrk8ma, gtrfrk8m, gtrfrk7m,   gtrfrks,   ksys573_state, empty_init,    ROT0,  "Konami", "Guitar Freaks 8th Mix (G*C08 VER. JAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
 GAME( 2002, dsem2,     sys573,   dsem2,      ddr,       ksys573_state, empty_init,    ROT0,  "Konami", "Dancing Stage Euro Mix 2 (G*C23 VER. EAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
 GAME( 2002, ddrextrm,  sys573,   ddr5m,      ddr,       ksys573_state, empty_init,    ROT0,  "Konami", "Dance Dance Revolution Extreme (G*C36 VER. JAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
-GAME( 2018, ddrexpro,  ddrextrm, ddr5m,      ddr,       ksys573_state, empty_init,    ROT0,  "hack",   "Dance Dance Revolution Extreme Pro (hack, v2)", MACHINE_IMPERFECT_SOUND )
-GAME( 2019, ddrexproc, ddrextrm, ddr5m,      ddr,       ksys573_state, empty_init,    ROT0,  "hack",   "Dance Dance Revolution Extreme Clarity (hack)", MACHINE_IMPERFECT_SOUND )
-GAME( 2019, ddrexplus, ddrextrm, ddr5m,      ddr,       ksys573_state, empty_init,    ROT0,  "hack",   "Dance Dance Revolution Extreme Plus (hack)", MACHINE_IMPERFECT_SOUND )
-GAME( 200?, ddrmegamix,ddrextrm, ddr5m,      ddr,       ksys573_state, empty_init,    ROT0,  "hack",   "Dance Dance Revolution Megamix (hack)", MACHINE_IMPERFECT_SOUND )
 GAME( 2003, pcnfrk8m,  sys573,   drmn4m,     drmn,      ksys573_state, empty_init,    ROT0,  "Konami", "Percussion Freaks 8th Mix (G*C38 VER. AAA)", MACHINE_IMPERFECT_SOUND ) /* BOOT VER 1.95 */
 GAME( 2003, drmn8m,    pcnfrk8m, drmn4m,     drmn,      ksys573_state, empty_init,    ROT0,  "Konami", "DrumMania 8th Mix (G*C38 VER. JAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
 GAME( 2003, gtrfrk9m,  sys573,   gtrfrk7m,   gtrfrks,   ksys573_state, empty_init,    ROT0,  "Konami", "Guitar Freaks 9th Mix (G*C39 VER. JAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
@@ -6324,3 +6319,9 @@ GAME( 2003, gtfrk10mb, gtfrk10m, gtfrk10mb,  gtrfrks,   ksys573_state, empty_ini
 GAME( 2004, gtfrk11m,  sys573,   gtfrk11m,   gtrfrks,   ksys573_state, empty_init,    ROT0,  "Konami", "Guitar Freaks 11th Mix (G*D39 VER. JAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
 GAME( 2004, pcnfrk10m, sys573,   drmn10m,    drmn,      ksys573_state, empty_init,    ROT0,  "Konami", "Percussion Freaks 10th Mix eAmusement (G*D40 VER. ACA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
 GAME( 2004, drmn10m,   pcnfrk10m,drmn10m,    drmn,      ksys573_state, empty_init,    ROT0,  "Konami", "DrumMania 10th Mix (G*D40 VER. JAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
+
+GAME( 2021, ddr5ms,    ddr5m,    ddr5m,      ddrsolo2,  ksys573_state, empty_init,    ROT0,  "hack",   "Dance Dance Revolution 5th Mix Solo (hack)", MACHINE_IMPERFECT_SOUND )
+GAME( 2018, ddrexpro,  ddrextrm, ddr5m,      ddr,       ksys573_state, empty_init,    ROT0,  "hack",   "Dance Dance Revolution Extreme Pro (hack, v2)", MACHINE_IMPERFECT_SOUND )
+GAME( 2019, ddrexproc, ddrextrm, ddr5m,      ddr,       ksys573_state, empty_init,    ROT0,  "hack",   "Dance Dance Revolution Extreme Clarity (hack)", MACHINE_IMPERFECT_SOUND )
+GAME( 2019, ddrexplus, ddrextrm, ddr5m,      ddr,       ksys573_state, empty_init,    ROT0,  "hack",   "Dance Dance Revolution Extreme Plus (hack)", MACHINE_IMPERFECT_SOUND )
+GAME( 200?, ddrmegamix,ddrextrm, ddr5m,      ddr,       ksys573_state, empty_init,    ROT0,  "hack",   "Dance Dance Revolution Megamix (hack)", MACHINE_IMPERFECT_SOUND )
