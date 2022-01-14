@@ -2133,10 +2133,7 @@ double konami573_cassette_xi_device::punchmania_inputs_callback(uint8_t input)
 						pad_position[ i ] -= diff * 3;
 				}
 				else {
-					if ( pad_motor[ i ] < 0 )
-						pad_position[ i ] -= diff;
-					else if ( pad_motor[ i ] > 0 )
-						pad_position[ i ] += diff;
+					pad_position[ i ] += diff * pad_motor[ i ];
 				}
 
 				if ( pad_position[ i ] > 150)
