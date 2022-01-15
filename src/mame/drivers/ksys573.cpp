@@ -2120,15 +2120,16 @@ double konami573_cassette_xi_device::punchmania_inputs_callback(uint8_t input)
 	// Set DIPSW 2 ("Screen Flip") to ON and press select left + start on the I/O test screen to see the simulated I/O in action.
 	constexpr double POT_MIN = 50;
 	constexpr double POT_MAX = 150;
+	constexpr double POT_RANGE = POT_MAX - POT_MIN;
 	constexpr int MOTOR_SPEED_MUL = 2;
 
 	ksys573_state *state = machine().driver_data<ksys573_state>();
 	double *pad_position = state->m_pad_position;
 	int *pad_motor_direction = state->m_pad_motor_direction;
 	int pads = state->m_pads->read();
-	auto curtime = machine().time();
-	auto elapsed = ( curtime - state->m_last_pad_update ).as_double();
-	auto diff = POT_MAX * elapsed * MOTOR_SPEED_MUL;
+	attotime curtime = machine().time();
+	double elapsed = ( curtime - state->m_last_pad_update ).as_double();
+	double diff = POT_RANGE * elapsed * MOTOR_SPEED_MUL;
 
 	for( int i = 0; i < 6; i++ )
 	{
@@ -2254,6 +2255,9 @@ void ksys573_state::punchmania_output_callback(offs_t offset, uint8_t data)
 void ksys573_state::init_pnchmn()
 {
 	gx700pwfbf_init( &ksys573_state::punchmania_output_callback );
+
+	save_item( NAME( m_pad_position ) );
+	save_item( NAME( m_pad_motor_direction ) );
 }
 
 /* GunMania */
