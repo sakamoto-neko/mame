@@ -1653,8 +1653,6 @@ license:CC0
 		<element name="left bottom pad" ref="left bottom pad"><bounds x="16" y="369" width="64" height="64"/></element>
 		<element name="left bottom lamp" ref="left bottom lamp"><bounds x="16" y="369" width="64" height="64" alpha="0.25" /></element>
 
-		<!--  -->
-
 		<element name="right top pad" ref="right top pad"><bounds x="752" y="209" width="64" height="64"/></element>
 		<element name="right top lamp" ref="right top lamp"><bounds x="752" y="209" width="64" height="64" alpha="0.25" /></element>
 
@@ -1663,8 +1661,6 @@ license:CC0
 
 		<element name="right bottom pad" ref="right bottom pad"><bounds x="752" y="369" width="64" height="64"/></element>
 		<element name="right bottom lamp" ref="right bottom lamp"><bounds x="752" y="369" width="64" height="64" alpha="0.25" /></element>
-
-		<!--  -->
 
 		<element name="select left right" ref="select left right"><bounds x="312" y="508" width="48" height="24" /></element>
 		<element name="start lamp" ref="start lamp"><bounds x="376" y="496" width="48" height="48" /></element>

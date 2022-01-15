@@ -638,8 +638,8 @@ public:
 
 	DECLARE_READ_LINE_MEMBER( jvs_rx_r );
 
-	double m_pad_position[6] = { 0 };
-	int m_pad_motor[6] = { 0 };
+	double m_pad_position[ 6 ] = { 0 };
+	int m_pad_motor_direction[ 6 ] = { 0 };
 	attotime m_last_pad_update;
 	optional_ioport m_pads;
 
@@ -1096,11 +1096,11 @@ void ksys573_state::machine_reset()
 	m_jvs_input_idx_r = m_jvs_input_idx_w = 0;
 	m_jvs_output_idx_w = m_jvs_output_len_w = 0;
 
-	std::fill_n(m_jvs_input_buffer, sizeof(m_jvs_input_buffer), 0);
-	std::fill_n(m_jvs_output_buffer, sizeof(m_jvs_output_buffer), 0);
+	std::fill_n( m_jvs_input_buffer, sizeof( m_jvs_input_buffer ), 0 );
+	std::fill_n( m_jvs_output_buffer, sizeof( m_jvs_output_buffer ), 0 );
 
-	std::fill(std::begin(m_pad_position), std::end(m_pad_position), 0);
-	std::fill(std::begin(m_pad_motor), std::end(m_pad_motor), 0);
+	std::fill( std::begin( m_pad_position ), std::end( m_pad_position ), 0 );
+	std::fill( std::begin( m_pad_motor_direction ), std::end( m_pad_motor_direction ), 0 );
 	m_last_pad_update = machine().time();
 }
 
@@ -2117,24 +2117,29 @@ WRITE_LINE_MEMBER( ksys573_state::mamboagg_lamps_b5 )
 double konami573_cassette_xi_device::punchmania_inputs_callback(uint8_t input)
 {
 	// The values 50 and 150 come from the game's internal I/O simulation mode.
-	// Set DIPSW 2 to ON and press select left + start on the I/O test screen to see the simulated I/O in action.
+	// Set DIPSW 2 ("Screen Flip") to ON and press select left + start on the I/O test screen to see the simulated I/O in action.
 	constexpr double POT_MIN = 50;
 	constexpr double POT_MAX = 150;
 	constexpr int MOTOR_SPEED_MUL = 2;
 
 	ksys573_state *state = machine().driver_data<ksys573_state>();
-	double* pad_position = state->m_pad_position;
-	int* pad_motor = state->m_pad_motor;
+	double *pad_position = state->m_pad_position;
+	int *pad_motor_direction = state->m_pad_motor_direction;
 	int pads = state->m_pads->read();
 	auto curtime = machine().time();
 	auto elapsed = ( curtime - state->m_last_pad_update ).as_double();
 	auto diff = POT_MAX * elapsed * MOTOR_SPEED_MUL;
 
-	for ( auto i = 0; i < 6; i++ ) {
-		if ( BIT( pads, i ) )
+	for( int i = 0; i < 6; i++ )
+	{
+		if( BIT( pads, i ) )
+		{
 			pad_position[ i ] = POT_MIN;
+		}
 		else
-			pad_position[ i ] = std::clamp( pad_position[ i ] + ( diff * pad_motor[ i ] ), POT_MIN, POT_MAX );
+		{
+			pad_position[ i ] = std::clamp( pad_position[ i ] + ( diff * pad_motor_direction[ i ] ), POT_MIN, POT_MAX );
+		}
 	}
 
 	machine().output().set_value( "left top pad", pad_position[ 0 ] );
@@ -2154,17 +2159,12 @@ double konami573_cassette_xi_device::punchmania_inputs_callback(uint8_t input)
 	case ADC083X_CH3: /* Right Top */
 	case ADC083X_CH4: /* Right Middle */
 	case ADC083X_CH5: /* Right Bottom */
-	{
 		return 5.0 - ( 5.0 * ( pad_position[ input ] / 255.0 ) );
-	}
-	case ADC083X_AGND:
-		return 0;
 	case ADC083X_COM:
 		return 0;
 	case ADC083X_VREF:
 		return 5;
 	}
-
 	return 5;
 }
 
@@ -2213,40 +2213,40 @@ void ksys573_state::punchmania_output_callback(offs_t offset, uint8_t data)
 		output().set_value( "right bottom lamp", !data );
 		break;
 	case 16:
-		m_pad_motor[ 0 ] = data ? 1 : 0; // left top motor +
+		m_pad_motor_direction[ 0 ] = data ? 1 : 0; // left top motor +
 		break;
 	case 17:
-		m_pad_motor[ 1 ] = data ? 1 : 0; // left middle motor +
+		m_pad_motor_direction[ 1 ] = data ? 1 : 0; // left middle motor +
 		break;
 	case 18:
-		m_pad_motor[ 1 ] = data ? -1 : 0; // left middle motor -
+		m_pad_motor_direction[ 1 ] = data ? -1 : 0; // left middle motor -
 		break;
 	case 19:
-		m_pad_motor[ 0 ] = data ? -1 : 0; // left top motor -
+		m_pad_motor_direction[ 0 ] = data ? -1 : 0; // left top motor -
 		break;
 	case 20:
-		m_pad_motor[ 2 ] = data ? 1 : 0; // left bottom motor +
+		m_pad_motor_direction[ 2 ] = data ? 1 : 0; // left bottom motor +
 		break;
 	case 21:
-		m_pad_motor[ 3 ] = data ? -1 : 0; // right top motor -
+		m_pad_motor_direction[ 3 ] = data ? -1 : 0; // right top motor -
 		break;
 	case 22:
-		m_pad_motor[ 3 ] = data ? 1 : 0; // right top motor +
+		m_pad_motor_direction[ 3 ] = data ? 1 : 0; // right top motor +
 		break;
 	case 23:
-		m_pad_motor[ 2 ] = data ? -1 : 0; // left bottom motor -
+		m_pad_motor_direction[ 2 ] = data ? -1 : 0; // left bottom motor -
 		break;
 	case 26:
-		m_pad_motor[ 5 ] = data ? 1 : 0; // right bottom motor +
+		m_pad_motor_direction[ 5 ] = data ? 1 : 0; // right bottom motor +
 		break;
 	case 27:
-		m_pad_motor[ 4 ] = data ? 1 : 0; // right middle motor +
+		m_pad_motor_direction[ 4 ] = data ? 1 : 0; // right middle motor +
 		break;
 	case 30:
-		m_pad_motor[ 4 ] = data ? -1 : 0; // right middle motor -
+		m_pad_motor_direction[ 4 ] = data ? -1 : 0; // right middle motor -
 		break;
 	case 31:
-		m_pad_motor[ 5 ] = data ? -1 : 0; // right bottom motor -
+		m_pad_motor_direction[ 5 ] = data ? -1 : 0; // right bottom motor -
 		break;
 	}
 }
