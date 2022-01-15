@@ -390,6 +390,8 @@ G: gun mania only, drives air soft gun (this game uses real BB bullet)
 
 #include "logmacro.h"
 
+#include <algorithm>
+
 #define LOGCDROM(...)    LOGMASKED(LOG_CDROM, __VA_ARGS__)
 #define LOGCONTROL(...)  LOGMASKED(LOG_CONTROL, __VA_ARGS__)
 #define LOGSECURITY(...) LOGMASKED(LOG_SECURITY, __VA_ARGS__)
@@ -638,7 +640,7 @@ public:
 
 	double m_pad_position[6] = { 0 };
 	int m_pad_motor[6] = { 0 };
-	attotime m_last_pad_update = attotime::never;
+	attotime m_last_pad_update;
 	optional_ioport m_pads;
 
 protected:
@@ -2114,42 +2116,33 @@ WRITE_LINE_MEMBER( ksys573_state::mamboagg_lamps_b5 )
 
 double konami573_cassette_xi_device::punchmania_inputs_callback(uint8_t input)
 {
+	// The values 50 and 150 come from the game's internal I/O simulation mode.
+	// Set DIPSW 2 to ON and press select left + start on the I/O test screen to see the simulated I/O in action.
+	constexpr double POT_MIN = 50;
+	constexpr double POT_MAX = 150;
+	constexpr int MOTOR_SPEED_MUL = 2;
+
 	ksys573_state *state = machine().driver_data<ksys573_state>();
 	double* pad_position = state->m_pad_position;
 	int* pad_motor = state->m_pad_motor;
 	int pads = state->m_pads->read();
-
 	auto curtime = machine().time();
-	if ( state->m_last_pad_update != attotime::never ) {
-		auto elapsed = ( curtime - state->m_last_pad_update).as_double() * 2;
+	auto elapsed = ( curtime - state->m_last_pad_update ).as_double();
+	auto diff = POT_MAX * elapsed * MOTOR_SPEED_MUL;
 
-		if ( elapsed > 0 ) {
-			auto diff = 150 * elapsed;
-
-			for ( auto i = 0; i < 6; i++ ) {
-				if ( BIT( pads, i ) ) {
-					// Simulate punching the pad by decrementing quicker than the motor will move it
-					if ( pad_position[ i ] > 50 )
-						pad_position[ i ] -= diff * 3;
-				}
-				else {
-					pad_position[ i ] += diff * pad_motor[ i ];
-				}
-
-				if ( pad_position[ i ] > 150)
-					pad_position[ i ] = 150;
-				else if ( pad_position[ i ] < 50 )
-					pad_position[ i ] = 50;
-			}
-
-			machine().output().set_value( "left top pad", pad_position[0] );
-			machine().output().set_value( "left middle pad", pad_position[1] );
-			machine().output().set_value( "left bottom pad", pad_position[2] );
-			machine().output().set_value( "right top pad", pad_position[3] );
-			machine().output().set_value( "right middle pad", pad_position[4] );
-			machine().output().set_value( "right bottom pad", pad_position[5] );
-		}
+	for ( auto i = 0; i < 6; i++ ) {
+		if ( BIT( pads, i ) )
+			pad_position[ i ] = POT_MIN;
+		else
+			pad_position[ i ] = std::clamp( pad_position[ i ] + ( diff * pad_motor[ i ] ), POT_MIN, POT_MAX );
 	}
+
+	machine().output().set_value( "left top pad", pad_position[ 0 ] );
+	machine().output().set_value( "left middle pad", pad_position[ 1 ] );
+	machine().output().set_value( "left bottom pad", pad_position[ 2 ] );
+	machine().output().set_value( "right top pad", pad_position[ 3 ] );
+	machine().output().set_value( "right middle pad", pad_position[ 4 ] );
+	machine().output().set_value( "right bottom pad", pad_position[ 5 ] );
 
 	state->m_last_pad_update = curtime;
 
