@@ -42,12 +42,13 @@ void k573fpga_device::device_start()
 	save_item(NAME(mp3_cur_addr));
 	save_item(NAME(mp3_end_addr));
 	save_item(NAME(use_ddrsbm_fpga));
-	save_item(NAME(is_stream_active));
+	save_item(NAME(is_stream_enabled));
 	save_item(NAME(is_timer_active));
 	save_item(NAME(counter_previous));
 	save_item(NAME(counter_current));
 	save_item(NAME(last_playback_status));
 	save_item(NAME(m_mpeg_ctrl));
+	save_item(NAME(m_fpga_ctrl));
 }
 
 void k573fpga_device::device_reset()
@@ -60,10 +61,10 @@ void k573fpga_device::device_reset()
 	crypto_key2 = 0;
 	crypto_key3 = 0;
 
-	is_stream_active = false;
+	is_stream_enabled = false;
 	is_timer_active = false;
 
-	counter_current = counter_previous = counter_offset = 0;
+	counter_current = counter_previous = 0;
 
 	m_mpeg_ctrl = PLAYBACK_STATE_IDLE;
 
@@ -73,7 +74,7 @@ void k573fpga_device::device_reset()
 
 void k573fpga_device::reset_counter()
 {
-	counter_current = counter_previous = counter_offset = 0;
+	counter_current = counter_previous = 0;
 	status_update();
 }
 
@@ -82,10 +83,10 @@ void k573fpga_device::status_update()
 	auto cur_playback_status = get_mpeg_ctrl();
 	last_playback_status = cur_playback_status;
 
-	is_timer_active = is_streaming() || ((cur_playback_status == last_playback_status && last_playback_status > PLAYBACK_STATE_IDLE) || cur_playback_status > last_playback_status);
+	is_timer_active = mas3507d->get_status() & mas3507d_device::PLAYBACK_PLAYING;
 
 	if (!is_timer_active) {
-		counter_current = counter_previous = counter_offset = 0;
+		counter_current = counter_previous = 0;
 		m_mpeg_ctrl = PLAYBACK_STATE_IDLE;
 	}
 }
@@ -98,7 +99,10 @@ uint32_t k573fpga_device::get_counter()
 
 	if(is_timer_active) {
 		mas3507d->update_stream();
-		counter_current = mas3507d->get_samples() - counter_offset - sample_skip_offset;
+		counter_current = mas3507d->get_samples();
+
+		if (counter_current - sample_skip_offset >= 0)
+			counter_current -= sample_skip_offset;
 	}
 
 	// If this is negative then some games will immediately end the song
@@ -141,41 +145,61 @@ uint16_t k573fpga_device::get_fpga_ctrl()
 {
 	// 0x0000 Not Streaming
 	// 0x1000 Streaming
-	return is_streaming() << 12;
-}
-
-bool k573fpga_device::is_streaming()
-{
-	return is_stream_active && mp3_cur_addr < mp3_end_addr;
+	return (!!(mas3507d->get_status() & mas3507d_device::PLAYBACK_PLAYING)) << 12;
 }
 
 void k573fpga_device::set_mpeg_ctrl(uint16_t data)
 {
+	/*
+	Unique sequences:
+	On start up and before starting a new stream:
+		x x 1
+		x x 0
+		x x 1
+		x x 1
+		x x 1
+
+	Also on start up and before starting a new stream:
+		0 x x
+		1 x x
+
+	Stop streaming:
+		x 0 x
+
+	Start streaming:
+		x 1 x
+
+	x is the same bit as the previous command
+	*/
+
 	LOG("FPGA MPEG control %c%c%c | %04x\n",
 				data & 0x8000 ? '#' : '.',
 				data & 0x4000 ? '#' : '.', // "Active" flag. The FPGA will never start streaming data without this bit set
 				data & 0x2000 ? '#' : '.',
 				data);
 
-	if(data == 0xa000) {
-		is_stream_active = false;
-		counter_current = counter_previous = 0;
-		status_update();
-
-		mas3507d->set_input_gain(0, 0);
-		mas3507d->set_input_gain(1, 0);
-	} else if(data == 0xe000) {
-		is_stream_active = true;
+	if (BIT(data, 14) && !BIT(m_fpga_ctrl, 14)) {
+		// Start streaming
+		is_stream_enabled = true;
 		mp3_cur_addr = mp3_start_addr;
-		reset_counter();
 
 		mas3507d->set_input_gain(0, 1);
 		mas3507d->set_input_gain(1, 1);
 
 		mas3507d->reset_playback();
+		reset_counter();
 		mas3507d->update_stream();
-		counter_offset = mas3507d->get_samples();
+	} if (!BIT(data, 14) && BIT(m_fpga_ctrl, 14)) {
+		// Stop stream
+		is_stream_enabled = false;
+		counter_current = counter_previous = 0;
+		status_update();
+
+		mas3507d->set_input_gain(0, 0);
+		mas3507d->set_input_gain(1, 0);
 	}
+
+	m_fpga_ctrl = data;
 }
 
 uint16_t k573fpga_device::decrypt_default(uint16_t v)
@@ -270,12 +294,15 @@ uint16_t k573fpga_device::decrypt_ddrsbm(uint16_t data)
 	return output_word;
 }
 
-uint16_t k573fpga_device::get_decrypted()
+uint32_t k573fpga_device::get_decrypted()
 {
-	if(!is_streaming()) {
-		is_stream_active = false;
+	status_update();
+
+	// The FPGA code seems to have an off by 1 error where it'll always decrypt and send an extra 2 bytes at the end of every MP3
+	// The FPGA is probably doing mp3_cur_addr <= mp3_end_addr instead of mp3_cur_addr < mp3_end_addr
+	if(!is_stream_enabled || mp3_cur_addr < mp3_start_addr || mp3_cur_addr > mp3_end_addr) {
 		m_mpeg_ctrl = PLAYBACK_STATE_IDLE;
-		return 0;
+		return 0xffffffff;
 	}
 
 	uint16_t src = ram[mp3_cur_addr >> 1];

@@ -55,7 +55,7 @@ mas3507d_device::mas3507d_device(const machine_config &mconfig, const char *tag,
 	, i2c_scli(false), i2c_sclo(false), i2c_sdai(false), i2c_sdao(false)
 	, i2c_bus_curbit(0), i2c_bus_curval(0), i2c_bytecount(0), i2c_io_bank(0), i2c_io_adr(0), i2c_io_count(0), i2c_io_val(0)
 	, mp3data_count(0), current_rate(44100), decoded_frame_count(0), decoded_samples(0), sample_count(0), samples_idx(0)
-	, is_muted(false), gain_ll(0), gain_rr(0), playback_status(0), playback_speed(1)
+	, is_muted(false), gain_ll(0), gain_rr(0), playback_status(PLAYBACK_STOPPED), playback_speed(1)
 {
 }
 
@@ -123,14 +123,13 @@ void mas3507d_device::device_reset()
 	is_muted = false;
 	gain_ll = gain_rr = 0;
 
-	playback_status = 0;
+	playback_status = PLAYBACK_STOPPED;
 	mp3data_count = 0;
 
 	playback_speed = 1;
 	current_rate = 44100;
 	stream->set_sample_rate(current_rate * playback_speed);
 
-	mp3dec_init(&mp3_dec);
 	reset_playback();
 }
 
@@ -444,15 +443,18 @@ void mas3507d_device::fill_buffer()
 		mp3data_count -= 2;
 	}
 
+	bool received_data = false;
 	while (mp3data_count + 2 <= mp3data.size()) {
-		uint16_t v = cb_sample();
-		mp3data[mp3data_count++] = v >> 8;
-		mp3data[mp3data_count++] = v;
-	}
+		uint32_t v = cb_sample();
+		received_data = v <= 0xffff;
 
-	if (decoded_samples > 0) {
-		// Only increase the frame decoded counter when a frame has been fully decoded and played
-		decoded_frame_count++;
+		if (!received_data) {
+			reset_playback();
+			return;
+		}
+
+		mp3data[mp3data_count++] = (v >> 8) & 0xff;
+		mp3data[mp3data_count++] = v & 0xff;
 	}
 
 	memset(&mp3_info, 0, sizeof(mp3dec_frame_info_t));
@@ -465,14 +467,23 @@ void mas3507d_device::fill_buffer()
 		return;
 	}
 
-	if (mp3_info.frame_bytes > 0 && mp3_info.frame_bytes != mp3data.size()) {
+	playback_status = PLAYBACK_PLAYING;
+
+	auto used_bytes = sample_count == 0 ? mp3_info.frame_offset : mp3_info.frame_bytes;
+	if (used_bytes >= mp3data.size()) {
+		std::fill_n(mp3data.begin(), mp3data.size(), 0);
+		mp3data_count = 0;
+	}
+	else if (used_bytes > 0 && used_bytes != mp3data.size()) {
 		// If sample_count is 0 then the entire frame hasn't been read into buffer yet and frame_bytes points to start of frame.
 		// If sample count is non-0, then frame_bytes will be the start of the frame + frame size.
-		std::copy(mp3data.begin() + mp3_info.frame_bytes, mp3data.end(), mp3data.begin());
-		mp3data_count -= mp3_info.frame_bytes;
+		std::copy(mp3data.begin() + used_bytes, mp3data.end(), mp3data.begin());
+		mp3data_count -= used_bytes;
 	}
 
 	if (sample_count > 0) {
+		decoded_frame_count++;
+
 		if (mp3_info.hz != current_rate) {
 			current_rate = mp3_info.hz;
 			stream->set_sample_rate(current_rate * playback_speed);
@@ -511,13 +522,16 @@ void mas3507d_device::reset_playback()
 	if (decoded_samples > 0) {
 		std::fill(mp3data.begin(), mp3data.end(), 0);
 		std::fill(samples.begin(), samples.end(), 0);
-		mp3data_count = 0;
 	}
 
+	mp3data_count = 0;
 	sample_count = 0;
 	decoded_frame_count = 0;
 	decoded_samples = 0;
 	samples_idx = 0;
+	playback_status = PLAYBACK_STOPPED;
+
+	mp3dec_init(&mp3_dec);
 }
 
 void mas3507d_device::sound_stream_update(sound_stream &stream, std::vector<read_stream_view> const &inputs, std::vector<write_stream_view> &outputs)

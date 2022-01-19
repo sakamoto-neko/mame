@@ -18,6 +18,11 @@ public:
 		PLAYBACK_STATE_DEMAND_BUFFER
 	};
 
+	enum {
+		PLAYBACK_STOPPED = 1,
+		PLAYBACK_PLAYING,
+	};
+
 	// construction/destruction
 	mas3507d_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock = 0);
 
@@ -77,7 +82,7 @@ private:
 	void fill_buffer();
 	void append_buffer(std::vector<write_stream_view> &outputs, int &pos, int scount);
 
-	devcb_read16 cb_sample;
+	devcb_read32 cb_sample;
 
 	enum {
 		CMD_DEV_WRITE = 0x3a,
@@ -104,7 +109,7 @@ private:
 	sound_stream *stream;
 	sound_stream_flags stream_flags;
 
-	std::array<uint8_t, 0xe00> mp3data;
+	std::array<uint8_t, 0x900> mp3data;
 	std::array<mp3d_sample_t, MINIMP3_MAX_SAMPLES_PER_FRAME> samples;
 
 	bool i2c_scli, i2c_sclo, i2c_sdai, i2c_sdao;
@@ -116,6 +121,7 @@ private:
 
 	uint32_t mp3data_count, current_rate;
 	uint32_t decoded_frame_count, decoded_samples;
+	uint32_t decoded_frame_count_leadin;
 	int32_t sample_count, samples_idx;
 
 	bool is_muted;

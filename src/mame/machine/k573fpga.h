@@ -20,7 +20,7 @@ public:
 
 	void set_ddrsbm_fpga(bool flag) { use_ddrsbm_fpga = flag; }
 
-	uint16_t get_decrypted();
+	uint32_t get_decrypted();
 
 	void set_crypto_key1(uint16_t v) { crypto_key1 = v; }
 	void set_crypto_key2(uint16_t v) { crypto_key2 = v; }
@@ -58,8 +58,6 @@ private:
 	uint16_t decrypt_default(uint16_t data);
 	uint16_t decrypt_ddrsbm(uint16_t data);
 
-	bool is_streaming();
-
 	enum {
 		PLAYBACK_STATE_UNKNOWN = 0x8000,
 		PLAYBACK_STATE_ERROR = 0xa000, // Error?
@@ -77,12 +75,13 @@ private:
 	uint32_t mp3_start_addr, mp3_cur_addr, mp3_end_addr;
 	bool use_ddrsbm_fpga;
 
-	bool is_stream_active, is_timer_active;
-	uint32_t counter_previous, counter_offset;
+	bool is_stream_enabled, is_timer_active;
+	uint32_t counter_previous;
 	int32_t counter_current;
 	uint32_t last_playback_status;
 
 	uint16_t m_mpeg_ctrl;
+	uint16_t m_fpga_ctrl;
 };
 
 #endif // MAME_MACHINE_K573FPGA_H
