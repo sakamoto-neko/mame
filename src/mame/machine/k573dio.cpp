@@ -383,6 +383,8 @@ uint16_t k573dio_device::mp3_counter_low_r()
 
 void k573dio_device::mp3_counter_low_w(uint16_t data)
 {
+	// DDR Extreme: when this register is reset, the game expects to be able to read back 0 from the counter for 2 consecutive reads
+	// or else it'll keep writing 0 to the register. Uses VSync(-1) to time the checks.
 	LOGMP3("mp3_counter_low_w %04x\n", data);
 	k573fpga->reset_counter();
 }
