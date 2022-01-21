@@ -42,7 +42,7 @@ public:
 	void mpeg_end_adr_high_w(uint16_t data);
 	uint16_t mpeg_end_adr_low_r();
 	void mpeg_end_adr_low_w(uint16_t data);
-	uint16_t mpeg_key_1_r();
+	uint16_t mpeg_frame_counter_r();
 	void mpeg_key_1_w(uint16_t data);
 	uint16_t mpeg_ctrl_r();
 	uint16_t mas_i2c_r();

@@ -2498,7 +2498,7 @@ void ksys573_state::k573d(machine_config &config)
 	// Set default value so as to clear offset between games when switching via GUI
 	auto fpga = subdevice<k573dio_device>("k573dio")->subdevice<k573fpga_device>("k573fpga");
 	if (fpga != nullptr) {
-		fpga->set_audio_offset(0);
+		fpga->set_audio_offset(22);
 	}
 }
 
@@ -3159,8 +3159,8 @@ static INPUT_PORTS_START( konami573 )
 INPUT_PORTS_END
 
 static INPUT_PORTS_START( k573dio )
-	PORT_START( "AUDIO_OFFSET" )
-	PORT_BIT( 0xffffffff, 0, IPT_ADJUSTER ) PORT_NAME( "Audio Offset" ) PORT_MINMAX( 0x80000000, 0x7fffffff ) PORT_CHANGED_MEMBER(DEVICE_SELF, ksys573_state, audio_offset, 0)
+	PORT_START( "AUDIO_OFFSET2" )
+	PORT_BIT( 0xffffffff, 22, IPT_ADJUSTER ) PORT_NAME( "Audio Offset" ) PORT_MINMAX( 0x80000000, 0x7fffffff ) PORT_CHANGED_MEMBER(DEVICE_SELF, ksys573_state, audio_offset, 0)
 INPUT_PORTS_END
 
 static INPUT_PORTS_START( fbaitbc )

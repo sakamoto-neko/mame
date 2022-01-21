@@ -82,6 +82,9 @@ DEFINE_DEVICE_TYPE(KONAMI_573_DIGITAL_IO_BOARD, k573dio_device, "k573_dio", "Kon
 
 void k573dio_device::amap(address_map &map)
 {
+	// TODO: Separate Solo Bass Mix map and make any unimplemented registers return 0x7654?
+	// See: mp3_counter_high_r
+
 	map(0x00, 0x01).r(FUNC(k573dio_device::a00_r));
 	map(0x02, 0x03).r(FUNC(k573dio_device::a02_r));
 	map(0x04, 0x05).r(FUNC(k573dio_device::a04_r));
@@ -95,7 +98,7 @@ void k573dio_device::amap(address_map &map)
 	map(0xa2, 0xa3).rw(FUNC(k573dio_device::mpeg_start_adr_low_r), FUNC(k573dio_device::mpeg_start_adr_low_w));
 	map(0xa4, 0xa5).rw(FUNC(k573dio_device::mpeg_end_adr_high_r), FUNC(k573dio_device::mpeg_end_adr_high_w));
 	map(0xa6, 0xa7).rw(FUNC(k573dio_device::mpeg_end_adr_low_r), FUNC(k573dio_device::mpeg_end_adr_low_w));
-	map(0xa8, 0xa9).rw(FUNC(k573dio_device::mpeg_key_1_r), FUNC(k573dio_device::mpeg_key_1_w));
+	map(0xa8, 0xa9).rw(FUNC(k573dio_device::mpeg_frame_counter_r), FUNC(k573dio_device::mpeg_key_1_w));
 	map(0xaa, 0xab).r(FUNC(k573dio_device::mpeg_ctrl_r));
 	map(0xac, 0xad).rw(FUNC(k573dio_device::mas_i2c_r), FUNC(k573dio_device::mas_i2c_w));
 	map(0xae, 0xaf).rw(FUNC(k573dio_device::fpga_ctrl_r), FUNC(k573dio_device::fpga_ctrl_w));
@@ -296,10 +299,9 @@ void k573dio_device::mpeg_end_adr_low_w(uint16_t data)
 	k573fpga->set_mp3_end_addr((k573fpga->get_mp3_end_addr() & 0xffff0000) | data); // low
 }
 
-uint16_t k573dio_device::mpeg_key_1_r()
+uint16_t k573dio_device::mpeg_frame_counter_r()
 {
-	// Dance Dance Revolution Solo Bass Mix reads this key before starting songs
-	return crypto_key1;
+	return k573fpga->get_mp3_frame_count();
 }
 
 void k573dio_device::mpeg_key_1_w(uint16_t data)
@@ -373,6 +375,9 @@ void k573dio_device::ram_read_adr_low_w(uint16_t data)
 
 uint16_t k573dio_device::mp3_counter_high_r()
 {
+	if (is_ddrsbm_fpga)
+		return 0x7654;
+
 	return (k573fpga->get_counter() & 0xffff0000) >> 16;
 }
 

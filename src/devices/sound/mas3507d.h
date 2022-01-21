@@ -27,12 +27,15 @@ public:
 	mas3507d_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock = 0);
 
 	auto sample_cb() { return cb_sample.bind(); }
+	auto mpeg_frame_sync_cb() { return cb_mpeg_frame_sync.bind(); }
+	auto demand_cb() { return cb_demand.bind(); }
 
 	int i2c_scl_r();
 	int i2c_sda_r();
 	void i2c_scl_w(bool line);
 	void i2c_sda_w(bool line);
 
+	uint32_t get_frame_count() const { return decoded_frame_count; }
 	uint32_t get_samples() const { return decoded_samples; }
 	uint32_t get_status() const { return playback_status; }
 
@@ -43,7 +46,7 @@ public:
 	void reset_playback();
 	void start_playback();
 
-	void set_playback_speed(u32 speed) {
+	void set_playback_speed(uint32_t speed) {
 		switch (speed) {
 			case 2:
 				playback_speed = 1.1;
@@ -83,6 +86,8 @@ private:
 	void append_buffer(std::vector<write_stream_view> &outputs, int &pos, int scount);
 
 	devcb_read32 cb_sample;
+	devcb_write_line cb_mpeg_frame_sync;
+	devcb_write_line cb_demand;
 
 	enum {
 		CMD_DEV_WRITE = 0x3a,

@@ -49,7 +49,7 @@ DEFINE_DEVICE_TYPE(MAS3507D, mas3507d_device, "mas3507d", "Micronas MAS 3507D MP
 mas3507d_device::mas3507d_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock)
 	: device_t(mconfig, MAS3507D, tag, owner, clock)
 	, device_sound_interface(mconfig, *this)
-	, cb_sample(*this)
+	, cb_sample(*this), cb_mpeg_frame_sync(*this), cb_demand(*this)
 	, i2c_bus_state(IDLE), i2c_bus_address(UNKNOWN), i2c_subdest(UNDEFINED), i2c_command(CMD_BAD)
 	, stream_flags(STREAM_DEFAULT_FLAGS)
 	, i2c_scli(false), i2c_sclo(false), i2c_sdai(false), i2c_sdao(false)
@@ -62,7 +62,10 @@ mas3507d_device::mas3507d_device(const machine_config &mconfig, const char *tag,
 void mas3507d_device::device_start()
 {
 	stream = stream_alloc(0, 2, current_rate * playback_speed, stream_flags);
+
 	cb_sample.resolve();
+	cb_mpeg_frame_sync.resolve();
+	cb_demand.resolve();
 
 	save_item(NAME(mp3data));
 	save_item(NAME(samples));
@@ -438,23 +441,41 @@ void mas3507d_device::run_program(uint32_t adr)
 
 void mas3507d_device::fill_buffer()
 {
+	// TODO: Move update code to a separate timer
+	// TODO: Change code to look for frames and decode them as found. There is about 10 frames worth of audio that can be buffered. Don't tie decoding to the sound stream.
+	cb_mpeg_frame_sync(0);
+
+	if (samples_idx > 0) {
+		decoded_frame_count++;
+		cb_mpeg_frame_sync(1);
+	}
+
 	if (mp3data_count + 2 > mp3data.size()) {
 		std::copy(mp3data.begin() + 2, mp3data.end(), mp3data.begin());
 		mp3data_count -= 2;
 	}
 
-	bool received_data = false;
-	while (mp3data_count + 2 <= mp3data.size()) {
+	cb_demand(mp3data_count + 2 < mp3data.size());
+	while (mp3data_count + 2 < mp3data.size()) {
 		uint32_t v = cb_sample();
-		received_data = v <= 0xffff;
 
-		if (!received_data) {
-			reset_playback();
-			return;
+		if (v > 0xffff) {
+			// Data isn't being transmitted at all
+			break;
 		}
 
 		mp3data[mp3data_count++] = (v >> 8) & 0xff;
 		mp3data[mp3data_count++] = v & 0xff;
+	}
+	cb_demand(mp3data_count + 2 < mp3data.size());
+
+	if (mp3data_count == 0) {
+		if (sample_count <= 0) {
+			// If there are no more samples left in the buffer and no more data is being read in, it should be stopped
+			// TODO: This logic doesn't belong in mas3507d
+			playback_status = PLAYBACK_STOPPED;
+		}
+		return;
 	}
 
 	memset(&mp3_info, 0, sizeof(mp3dec_frame_info_t));
@@ -482,8 +503,6 @@ void mas3507d_device::fill_buffer()
 	}
 
 	if (sample_count > 0) {
-		decoded_frame_count++;
-
 		if (mp3_info.hz != current_rate) {
 			current_rate = mp3_info.hz;
 			stream->set_sample_rate(current_rate * playback_speed);
