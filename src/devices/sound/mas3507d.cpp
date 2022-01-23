@@ -54,13 +54,14 @@ mas3507d_device::mas3507d_device(const machine_config &mconfig, const char *tag,
 	, stream_flags(STREAM_DEFAULT_FLAGS)
 	, i2c_scli(false), i2c_sclo(false), i2c_sdai(false), i2c_sdao(false)
 	, i2c_bus_curbit(0), i2c_bus_curval(0), i2c_bytecount(0), i2c_io_bank(0), i2c_io_adr(0), i2c_io_count(0), i2c_io_val(0)
-	, mp3data_count(0), current_rate(44100), decoded_frame_count(0), decoded_samples(0), sample_count(0), samples_idx(0)
-	, is_muted(false), gain_ll(0), gain_rr(0), playback_status(PLAYBACK_STOPPED), playback_speed(1)
+	, mp3data_count(0), decoded_frame_count(0), decoded_samples(0), sample_count(0), samples_idx(0)
+	, is_muted(false), gain_ll(0), gain_rr(0), playback_speed(1)
 {
 }
 
 void mas3507d_device::device_start()
 {
+	current_rate = 44100; // TODO: related to clock/divider
 	stream = stream_alloc(0, 2, current_rate * playback_speed, stream_flags);
 
 	cb_sample.resolve();
@@ -126,7 +127,6 @@ void mas3507d_device::device_reset()
 	is_muted = false;
 	gain_ll = gain_rr = 0;
 
-	playback_status = PLAYBACK_STOPPED;
 	mp3data_count = 0;
 
 	playback_speed = 1;
@@ -441,8 +441,6 @@ void mas3507d_device::run_program(uint32_t adr)
 
 void mas3507d_device::fill_buffer()
 {
-	// TODO: Move update code to a separate timer
-	// TODO: Change code to look for frames and decode them as found. There is about 10 frames worth of audio that can be buffered. Don't tie decoding to the sound stream.
 	cb_mpeg_frame_sync(0);
 
 	if (samples_idx > 0) {
@@ -470,11 +468,6 @@ void mas3507d_device::fill_buffer()
 	cb_demand(mp3data_count + 2 < mp3data.size());
 
 	if (mp3data_count == 0) {
-		if (sample_count <= 0) {
-			// If there are no more samples left in the buffer and no more data is being read in, it should be stopped
-			// TODO: This logic doesn't belong in mas3507d
-			playback_status = PLAYBACK_STOPPED;
-		}
 		return;
 	}
 
@@ -482,20 +475,18 @@ void mas3507d_device::fill_buffer()
 	sample_count = mp3dec_decode_frame(&mp3_dec, static_cast<const uint8_t *>(&mp3data[0]), mp3data_count, static_cast<mp3d_sample_t *>(&samples[0]), &mp3_info);
 	samples_idx = 0;
 
-	if (mp3_info.channels != 0 && mp3_info.frame_bytes > 0 && sample_count == 0) {
+	if (mp3_info.channels != 0 && mp3_info.frame_bytes - mp3_info.frame_offset > 0 && sample_count == 0) {
 		// Frame decode failed
 		reset_playback();
 		return;
 	}
-
-	playback_status = PLAYBACK_PLAYING;
 
 	auto used_bytes = sample_count == 0 ? mp3_info.frame_offset : mp3_info.frame_bytes;
 	if (used_bytes >= mp3data.size()) {
 		std::fill_n(mp3data.begin(), mp3data.size(), 0);
 		mp3data_count = 0;
 	}
-	else if (used_bytes > 0 && used_bytes != mp3data.size()) {
+	else if (used_bytes > 0 && used_bytes < mp3data.size()) {
 		// If sample_count is 0 then the entire frame hasn't been read into buffer yet and frame_bytes points to start of frame.
 		// If sample count is non-0, then frame_bytes will be the start of the frame + frame size.
 		std::copy(mp3data.begin() + used_bytes, mp3data.end(), mp3data.begin());
@@ -548,7 +539,6 @@ void mas3507d_device::reset_playback()
 	decoded_frame_count = 0;
 	decoded_samples = 0;
 	samples_idx = 0;
-	playback_status = PLAYBACK_STOPPED;
 
 	mp3dec_init(&mp3_dec);
 }
@@ -563,7 +553,6 @@ void mas3507d_device::sound_stream_update(sound_stream &stream, std::vector<read
 			fill_buffer();
 
 		if(sample_count <= 0) {
-			// There was an error decoding the MPEG frame which resets the MPEG frame counter
 			outputs[0].fill(0, pos);
 			outputs[1].fill(0, pos);
 			return;

@@ -333,7 +333,7 @@ uint16_t k573dio_device::fpga_ctrl_r()
 
 void k573dio_device::fpga_ctrl_w(uint16_t data)
 {
-	k573fpga->set_mpeg_ctrl(data);
+	k573fpga->set_fpga_ctrl(data);
 }
 
 void k573dio_device::ram_write_adr_high_w(uint16_t data)

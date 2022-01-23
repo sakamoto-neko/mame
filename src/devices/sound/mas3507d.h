@@ -18,11 +18,6 @@ public:
 		PLAYBACK_STATE_DEMAND_BUFFER
 	};
 
-	enum {
-		PLAYBACK_STOPPED = 1,
-		PLAYBACK_PLAYING,
-	};
-
 	// construction/destruction
 	mas3507d_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock = 0);
 
@@ -37,14 +32,12 @@ public:
 
 	uint32_t get_frame_count() const { return decoded_frame_count; }
 	uint32_t get_samples() const { return decoded_samples; }
-	uint32_t get_status() const { return playback_status; }
 
 	void update_stream() { stream->update(); }
 
 	void set_stream_flags(sound_stream_flags new_stream_flags) { stream_flags = new_stream_flags; }
 
 	void reset_playback();
-	void start_playback();
 
 	void set_playback_speed(uint32_t speed) {
 		switch (speed) {
@@ -126,7 +119,6 @@ private:
 
 	uint32_t mp3data_count, current_rate;
 	uint32_t decoded_frame_count, decoded_samples;
-	uint32_t decoded_frame_count_leadin;
 	int32_t sample_count, samples_idx;
 
 	bool is_muted;

@@ -21,7 +21,6 @@ public:
 
 	void set_ddrsbm_fpga(bool flag) { is_ddrsbm_fpga = flag; }
 
-	void update_counter();
 	TIMER_DEVICE_CALLBACK_MEMBER(update_counter_callback);
 
 	uint32_t get_decrypted();
@@ -40,15 +39,15 @@ public:
 
 	uint16_t mas_i2c_r();
 	void mas_i2c_w(uint16_t data);
-	uint16_t get_mp3_frame_count();
 
 	uint16_t get_fpga_ctrl();
-	void set_mpeg_ctrl(uint16_t data);
+	void set_fpga_ctrl(uint16_t data);
 
 	uint16_t get_mpeg_ctrl();
 
 	uint32_t get_counter();
 	uint32_t get_counter_diff();
+	uint16_t get_mp3_frame_count();
 
 	void reset_counter();
 
@@ -64,20 +63,21 @@ private:
 	uint16_t decrypt_default(uint16_t data);
 	uint16_t decrypt_ddrsbm(uint16_t data);
 
+	void update_counter();
+
 	enum {
-		// Always set. Enabled?
-		PLAYBACK_STATE_DEFAULT = 0x8000,
+		PLAYBACK_STATE_UNKNOWN = 0x8000,
 
 		// The only time demand shouldn't be set is when the MAS3507D's MP3 buffer is full and isn't requesting more data through the demand pin
-		PLAYBACK_STATE_DEMAND = PLAYBACK_STATE_DEFAULT | 0x1000,
+		PLAYBACK_STATE_DEMAND = 0x1000,
 
 		// Set when the mas3507d's frame counter isn't being updated anymore.
 		// Shortly after the last MP3 frame is played the state goes back to idle.
 		// TODO: Add mas3507d MP3 frame sync pin callback
-		PLAYBACK_STATE_IDLE = PLAYBACK_STATE_DEFAULT | 0x2000,
+		PLAYBACK_STATE_IDLE = PLAYBACK_STATE_UNKNOWN | 0x2000,
 
 		// Set when the mas3507d's frame counter is being updated still.
-		PLAYBACK_STATE_PLAYING = PLAYBACK_STATE_DEFAULT | 0x4000,
+		PLAYBACK_STATE_PLAYING = PLAYBACK_STATE_UNKNOWN | 0x4000,
 	};
 
 	required_shared_ptr<uint16_t> ram;
@@ -92,8 +92,7 @@ private:
 	bool is_stream_enabled;
 	attotime counter_current, counter_base;
 
-	uint16_t m_mpeg_ctrl;
-	uint16_t m_fpga_ctrl;
+	uint16_t mpeg_status, fpga_status;
 	uint32_t frame_counter;
 	double counter_value;
 };

@@ -50,8 +50,8 @@ void k573fpga_device::device_start()
 	save_item(NAME(mp3_end_addr));
 	save_item(NAME(is_ddrsbm_fpga));
 	save_item(NAME(is_stream_enabled));
-	save_item(NAME(m_mpeg_ctrl));
-	save_item(NAME(m_fpga_ctrl));
+	save_item(NAME(mpeg_status));
+	save_item(NAME(fpga_status));
 	save_item(NAME(frame_counter));
 	save_item(NAME(counter_value));
 	save_item(NAME(counter_current));
@@ -72,7 +72,7 @@ void k573fpga_device::device_reset()
 
 	counter_current = counter_base = machine().time();
 
-	m_mpeg_ctrl = PLAYBACK_STATE_IDLE;
+	mpeg_status = PLAYBACK_STATE_IDLE;
 	frame_counter = 0;
 	counter_value = 0;
 
@@ -134,6 +134,13 @@ uint32_t k573fpga_device::get_counter_diff()
 	return diff.as_double() * 44100;
 }
 
+uint16_t k573fpga_device::get_mp3_frame_count()
+{
+	// All games can read this but only DDR Solo Bass Mix actively uses it.
+	// Returns the same value as using a default read to get the frame counter from the MAS3507D over i2c.
+	return frame_counter & 0xffff;
+}
+
 uint16_t k573fpga_device::mas_i2c_r()
 {
 	uint16_t scl = mas3507d->i2c_scl_r() << 13;
@@ -147,16 +154,9 @@ void k573fpga_device::mas_i2c_w(uint16_t data)
 	mas3507d->i2c_sda_w(data & 0x1000);
 }
 
-uint16_t k573fpga_device::get_mp3_frame_count()
-{
-	// All games can read this but only DDR Solo Bass Mix actively uses it.
-	// Returns the same value as using a default read to get the frame counter from the MAS3507D over i2c.
-	return frame_counter & 0xffff;
-}
-
 uint16_t k573fpga_device::get_mpeg_ctrl()
 {
-	return m_mpeg_ctrl;
+	return mpeg_status;
 }
 
 uint16_t k573fpga_device::get_fpga_ctrl()
@@ -166,7 +166,7 @@ uint16_t k573fpga_device::get_fpga_ctrl()
 	return (is_stream_enabled && mp3_cur_addr >= mp3_start_addr && mp3_cur_addr < mp3_end_addr) << 12;
 }
 
-void k573fpga_device::set_mpeg_ctrl(uint16_t data)
+void k573fpga_device::set_fpga_ctrl(uint16_t data)
 {
 	/*
 	TODO: what's the difference between the two pre-stream start up sequences?
@@ -198,18 +198,18 @@ void k573fpga_device::set_mpeg_ctrl(uint16_t data)
 				data & 0x2000 ? '#' : '.',
 				data);
 
-	if (BIT(data, 14) && (is_ddrsbm_fpga || !BIT(m_fpga_ctrl, 14))) {
+	if (BIT(data, 14) && (is_ddrsbm_fpga || !BIT(fpga_status, 14))) {
 		// Start streaming
 		is_stream_enabled = true;
 		mp3_cur_addr = mp3_start_addr;
 		reset_counter();
 		mas3507d->reset_playback();
-	} if (!BIT(data, 14) && (is_ddrsbm_fpga || BIT(m_fpga_ctrl, 14))) {
+	} if (!BIT(data, 14) && (is_ddrsbm_fpga || BIT(fpga_status, 14))) {
 		// Stop stream
 		is_stream_enabled = false;
 	}
 
-	m_fpga_ctrl = data;
+	fpga_status = data;
 }
 
 uint16_t k573fpga_device::decrypt_default(uint16_t v)
@@ -319,21 +319,21 @@ uint32_t k573fpga_device::get_decrypted()
 
 WRITE_LINE_MEMBER(k573fpga_device::mpeg_frame_sync)
 {
-	m_mpeg_ctrl &= ~(PLAYBACK_STATE_PLAYING | PLAYBACK_STATE_IDLE);
+	mpeg_status &= ~(PLAYBACK_STATE_PLAYING | PLAYBACK_STATE_IDLE);
 
 	if (state) {
-		m_mpeg_ctrl |= PLAYBACK_STATE_PLAYING;
+		mpeg_status |= PLAYBACK_STATE_PLAYING;
 		frame_counter++;
 	}
 	else {
-		m_mpeg_ctrl |= PLAYBACK_STATE_IDLE;
+		mpeg_status |= PLAYBACK_STATE_IDLE;
 	}
 }
 
 WRITE_LINE_MEMBER(k573fpga_device::mas3507d_demand)
 {
 	// This will be set when the MAS3507D is requesting more data
-	m_mpeg_ctrl |= PLAYBACK_STATE_DEMAND;
+	mpeg_status |= PLAYBACK_STATE_DEMAND;
 }
 
 DEFINE_DEVICE_TYPE(KONAMI_573_DIGITAL_FPGA, k573fpga_device, "k573fpga", "Konami 573 Digital I/O FPGA")
