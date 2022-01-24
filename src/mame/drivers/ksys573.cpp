@@ -494,6 +494,7 @@ public:
 	ksys573_state( const machine_config &mconfig, device_type type, const char *tag ) :
 		driver_device(mconfig, type, tag),
 		m_pads(*this, "PADS"),
+		m_punchcomm(*this, "punchcomm"),
 		m_analog0(*this, "analog0"),
 		m_analog1(*this, "analog1"),
 		m_analog2(*this, "analog2"),
@@ -642,6 +643,7 @@ public:
 	int m_pad_motor_direction[ 6 ] = { 0 };
 	attotime m_last_pad_update;
 	optional_ioport m_pads;
+	optional_device<bitbanger_device> m_punchcomm;
 
 protected:
 	virtual void machine_start() override { m_lamps.resolve(); }
@@ -2131,8 +2133,12 @@ double konami573_cassette_xi_device::punchmania_inputs_callback(uint8_t input)
 	double elapsed = ( curtime - state->m_last_pad_update ).as_double();
 	double diff = POT_RANGE * elapsed * MOTOR_SPEED_MUL;
 
+	double last_pad_position[6] = { 0 };
+	bool punchcomm_needs_update = false;
 	for( int i = 0; i < 6; i++ )
 	{
+		last_pad_position[i] = pad_position[i];
+
 		if( BIT( pads, i ) )
 		{
 			pad_position[ i ] = POT_MIN;
@@ -2141,6 +2147,15 @@ double konami573_cassette_xi_device::punchmania_inputs_callback(uint8_t input)
 		{
 			pad_position[ i ] = std::clamp( pad_position[ i ] + ( diff * pad_motor_direction[ i ] ), POT_MIN, POT_MAX );
 		}
+
+		punchcomm_needs_update |= last_pad_position[i] != pad_position[i];
+	}
+
+	if (punchcomm_needs_update && state->m_punchcomm->exists()) {
+		state->m_punchcomm->output(0x8f); // Pad update command, 6 bytes
+
+		for (int i = 0; i < 6; i++)
+			state->m_punchcomm->output(uint8_t(pad_position[i]));
 	}
 
 	machine().output().set_value( "left top pad", pad_position[ 0 ] );
@@ -2177,7 +2192,7 @@ void ksys573_state::punchmania_cassette_install(device_t *device)
 	adc0838->set_input_callback(*game, FUNC(konami573_cassette_xi_device::punchmania_inputs_callback));
 }
 
-int pad_light[ 6 ];
+int pad_light[ 6 ] = { 0 };
 
 void ksys573_state::punchmania_output_callback(offs_t offset, uint8_t data)
 {
@@ -2249,6 +2264,17 @@ void ksys573_state::punchmania_output_callback(offs_t offset, uint8_t data)
 	case 31:
 		m_pad_motor_direction[ 5 ] = data ? -1 : 0; // right bottom motor -
 		break;
+	}
+
+	if (m_punchcomm->exists() && offset >= 9 && offset <= 15 && offset != 11) {
+		uint8_t x = 0xc0 // Light update command
+			| uint8_t(pad_light[0] != 0)
+			| uint8_t(pad_light[1] != 0) << 1
+			| uint8_t(pad_light[2] != 0) << 2
+			| uint8_t(pad_light[3] != 0) << 3
+			| uint8_t(pad_light[4] != 0) << 4
+			| uint8_t(pad_light[5] != 0) << 5;
+		m_punchcomm->output(x);
 	}
 }
 
@@ -2976,6 +3002,8 @@ void ksys573_state::pnchmn(machine_config &config)
 	pccard1_32mb(config);
 
 	subdevice<konami573_cassette_slot_device>("cassette")->set_option_machine_config( "game", [this] (device_t *device) { punchmania_cassette_install(device); } );
+
+	BITBANGER(config, m_punchcomm, 0);
 }
 
 void ksys573_state::pnchmn2(machine_config &config)
