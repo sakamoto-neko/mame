@@ -86,7 +86,8 @@ private:
 	uint16_t crypto_key1, crypto_key2;
 	uint8_t crypto_key3;
 
-	uint32_t mp3_start_addr, mp3_cur_addr, mp3_end_addr;
+	uint32_t mp3_start_addr, mp3_end_addr;
+	uint32_t mp3_cur_start_addr, mp3_cur_end_addr, mp3_cur_addr;
 	bool is_ddrsbm_fpga;
 
 	bool is_stream_enabled;

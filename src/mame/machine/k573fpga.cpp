@@ -46,8 +46,10 @@ void k573fpga_device::device_start()
 	save_item(NAME(crypto_key2));
 	save_item(NAME(crypto_key3));
 	save_item(NAME(mp3_start_addr));
-	save_item(NAME(mp3_cur_addr));
 	save_item(NAME(mp3_end_addr));
+	save_item(NAME(mp3_cur_start_addr));
+	save_item(NAME(mp3_cur_end_addr));
+	save_item(NAME(mp3_cur_addr));
 	save_item(NAME(is_ddrsbm_fpga));
 	save_item(NAME(is_stream_enabled));
 	save_item(NAME(mpeg_status));
@@ -61,8 +63,10 @@ void k573fpga_device::device_start()
 void k573fpga_device::device_reset()
 {
 	mp3_start_addr = 0;
-	mp3_cur_addr = 0;
 	mp3_end_addr = 0;
+	mp3_cur_start_addr = 0;
+	mp3_cur_end_addr = 0;
+	mp3_cur_addr = 0;
 
 	crypto_key1 = 0;
 	crypto_key2 = 0;
@@ -163,7 +167,7 @@ uint16_t k573fpga_device::get_fpga_ctrl()
 {
 	// 0x0000 Not Streaming
 	// 0x1000 Streaming
-	return (is_stream_enabled && mp3_cur_addr >= mp3_start_addr && mp3_cur_addr < mp3_end_addr) << 12;
+	return (is_stream_enabled && mp3_cur_addr >= mp3_cur_start_addr && mp3_cur_addr < mp3_cur_end_addr) << 12;
 }
 
 void k573fpga_device::set_fpga_ctrl(uint16_t data)
@@ -202,6 +206,8 @@ void k573fpga_device::set_fpga_ctrl(uint16_t data)
 		// Start streaming
 		is_stream_enabled = true;
 		mp3_cur_addr = mp3_start_addr;
+		mp3_cur_start_addr = mp3_start_addr;
+		mp3_cur_end_addr = mp3_end_addr;
 		reset_counter();
 		mas3507d->reset_playback();
 	} if (!BIT(data, 14) && (is_ddrsbm_fpga || BIT(fpga_status, 14))) {
@@ -307,7 +313,7 @@ uint16_t k573fpga_device::decrypt_ddrsbm(uint16_t data)
 uint32_t k573fpga_device::get_decrypted()
 {
 	// Note: The FPGA code seems to have an off by 1 error where it'll always decrypt and send an extra word at the end of every MP3 which corresponds to decrypting the value 0x0000.
-	if(!is_stream_enabled || mp3_cur_addr < mp3_start_addr || mp3_cur_addr > mp3_end_addr)
+	if(!is_stream_enabled || mp3_cur_addr < mp3_cur_start_addr || mp3_cur_addr > mp3_cur_end_addr)
 		return 0xffffffff;
 
 	uint16_t src = ram[mp3_cur_addr >> 1];
