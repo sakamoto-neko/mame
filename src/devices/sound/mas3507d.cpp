@@ -542,9 +542,6 @@ void mas3507d_device::stream_update()
 				mp3data_count--;
 			}
 		}
-
-		if (mp3_decoder_state == DECODER_STREAM_SEARCHING)
-			cb_demand(mp3data_count < mp3data.size());
 	}
 	else if (mp3_decoder_state == DECODER_STREAM_INITIAL_BUFFER) {
 		// Read 0x50 chunks and then search for 2nd frame header before continuing
@@ -561,30 +558,23 @@ void mas3507d_device::stream_update()
 			}
 		}
 
-		if (mp3_decoder_state != DECODER_STREAM_BUFFER_FILL && mp3data_count >= mp3data.size()) {
+		if (mp3_decoder_state == DECODER_STREAM_INITIAL_BUFFER && mp3data_count >= mp3data.size()) {
 			// Something is wrong. MP3 frame size is way too large or it was a false positive previously.
 			mp3_decoder_state = DECODER_STREAM_SEARCHING;
 			std::fill_n(mp3data.begin(), mp3data.size(), 0);
 			mp3data_count = 0;
 			mp3_offset = 0;
 		}
-
-		if (mp3_decoder_state == DECODER_STREAM_INITIAL_BUFFER)
-			cb_demand(mp3data_count < mp3data.size());
 	}
 	else if (mp3_decoder_state == DECODER_STREAM_BUFFER_FILL) {
 		// Don't start streaming until the buffer has a few more frames
-		cb_demand(mp3data_count < mp3data.size());
-
 		if (mp3data_count >= mp3data.size()) {
 			printf("Found DECODER_STREAM_BUFFER\n");
 			mp3_decoder_state = DECODER_STREAM_BUFFER;
 		}
 	}
-	else if (mp3_decoder_state == DECODER_STREAM_BUFFER) {
-		// Keep buffers topped up while decoding MP3 data
-		cb_demand(mp3data_count < mp3data.size());
-	}
+
+	cb_demand(mp3data_count < mp3data.size());
 }
 
 void mas3507d_device::fill_buffer()
@@ -660,6 +650,8 @@ void mas3507d_device::reset_playback()
 	mp3_offset = mp3_offset_last = 0;
 
 	mp3dec_init(&mp3_dec);
+
+	cb_demand(mp3data_count < mp3data.size());
 }
 
 void mas3507d_device::sound_stream_update(sound_stream &stream, std::vector<read_stream_view> const &inputs, std::vector<write_stream_view> &outputs)
