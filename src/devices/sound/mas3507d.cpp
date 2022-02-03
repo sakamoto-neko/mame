@@ -516,7 +516,6 @@ void mas3507d_device::stream_update()
 	// 112kbps stereo ~27.4ms
 	// I think this has to do with the way the code detects the start of the 2nd MP3 frame header.
 
-	// TODO: Add error states in here for when buffers fill without finding MP3 frames and such
 	// TODO: Remove in the future if the internal program of the MAS3507D is ever properly emulated
 	if (mp3_decoder_state == DECODER_STREAM_SEARCHING) {
 		if (mp3data_count >= 0x55) {
