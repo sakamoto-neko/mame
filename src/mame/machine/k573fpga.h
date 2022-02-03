@@ -100,7 +100,7 @@ private:
 	attotime counter_current, counter_base;
 
 	uint16_t mpeg_status, fpga_status;
-	uint32_t frame_counter;
+	uint32_t frame_counter, frame_counter_base;
 	double counter_value;
 };
 

@@ -54,6 +54,7 @@ void k573fpga_device::device_start()
 	save_item(NAME(mpeg_status));
 	save_item(NAME(fpga_status));
 	save_item(NAME(frame_counter));
+	save_item(NAME(frame_counter_base));
 	save_item(NAME(counter_value));
 	save_item(NAME(counter_current));
 	save_item(NAME(counter_base));
@@ -80,7 +81,7 @@ void k573fpga_device::device_reset()
 	counter_current = counter_base = machine().time();
 
 	mpeg_status = PLAYBACK_STATE_IDLE;
-	frame_counter = 0;
+	frame_counter = frame_counter_base = 0;
 	counter_value = 0;
 
 	mas3507d->reset_playback();
@@ -92,9 +93,9 @@ void k573fpga_device::reset_counter()
 	// DDR Extreme: when this register is reset, the game expects to be able to read back 0 from the counter for 2 consecutive reads
 	// or else it'll keep writing 0 to the register. Uses VSync(-1) to force timing to vblanks.
 	// Drummania 5th mix seems to not like it when the counter is reset immediately because it isn't able to read 
-	frame_counter = 0;
 	counter_current = counter_base = machine().time();
 	counter_value = 0;
+	frame_counter_base = frame_counter;
 }
 
 TIMER_DEVICE_CALLBACK_MEMBER(k573fpga_device::update_counter_callback)
@@ -113,7 +114,7 @@ void k573fpga_device::update_counter()
 	// The timer in any game outside of DDR Solo Bass Mix is both tied to the MP3 playback and independent.
 	// The timer will only start when an MP3 begins playback.
 	// The timer will keep going long after the MP3 has stopped playing until the register is zero'd out.
-	if (frame_counter == 0) {
+	if (frame_counter - frame_counter_base == 0) {
 		return;
 	}
 
@@ -211,10 +212,14 @@ void k573fpga_device::set_fpga_ctrl(uint16_t data)
 		mp3_cur_addr = mp3_start_addr;
 		mp3_cur_start_addr = mp3_start_addr;
 		mp3_cur_end_addr = mp3_end_addr;
+		frame_counter = 0;
 		reset_counter();
-	} if (!BIT(data, 14) && (is_ddrsbm_fpga || BIT(fpga_status, 14))) {
+	} else if (!BIT(data, 14) && (is_ddrsbm_fpga || BIT(fpga_status, 14))) {
 		// Stop stream
 		is_stream_enabled = false;
+
+		if (!is_ddrsbm_fpga)
+			reset_counter();
 	}
 
 	fpga_status = data;
@@ -358,11 +363,11 @@ WRITE_LINE_MEMBER(k573fpga_device::mpeg_frame_sync)
 WRITE_LINE_MEMBER(k573fpga_device::mas3507d_demand)
 {
 	// This will be set when the MAS3507D is requesting more data
-	if (state) {
+	if (state && !(mpeg_status & PLAYBACK_STATE_DEMAND)) {
 		mpeg_status |= PLAYBACK_STATE_DEMAND;
 		m_stream_timer->adjust(m_stream_bit_duration);
 	}
-	else {
+	else if (!state && (mpeg_status & PLAYBACK_STATE_DEMAND)) {
 		mpeg_status &= ~PLAYBACK_STATE_DEMAND;
 		m_stream_timer->adjust(attotime::never);
 	}
