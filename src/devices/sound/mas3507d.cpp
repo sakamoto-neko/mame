@@ -42,6 +42,7 @@ ALLOW_SAVE_TYPE(mas3507d_device::i2c_bus_state_t)
 ALLOW_SAVE_TYPE(mas3507d_device::i2c_bus_address_t)
 ALLOW_SAVE_TYPE(mas3507d_device::i2c_subdest_t)
 ALLOW_SAVE_TYPE(mas3507d_device::i2c_command_t)
+ALLOW_SAVE_TYPE(mas3507d_device::mp3_decoder_state_t)
 
 // device type definition
 DEFINE_DEVICE_TYPE(MAS3507D, mas3507d_device, "mas3507d", "Micronas MAS 3507D MPEG decoder")
@@ -49,11 +50,12 @@ DEFINE_DEVICE_TYPE(MAS3507D, mas3507d_device, "mas3507d", "Micronas MAS 3507D MP
 mas3507d_device::mas3507d_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock)
 	: device_t(mconfig, MAS3507D, tag, owner, clock)
 	, device_sound_interface(mconfig, *this)
-	, cb_sample(*this), cb_mpeg_frame_sync(*this), cb_demand(*this)
+	, cb_mpeg_frame_sync(*this), cb_demand(*this)
 	, i2c_bus_state(IDLE), i2c_bus_address(UNKNOWN), i2c_subdest(UNDEFINED), i2c_command(CMD_BAD)
 	, stream_flags(STREAM_DEFAULT_FLAGS)
 	, i2c_scli(false), i2c_sclo(false), i2c_sdai(false), i2c_sdao(false)
 	, i2c_bus_curbit(0), i2c_bus_curval(0), i2c_bytecount(0), i2c_io_bank(0), i2c_io_adr(0), i2c_io_count(0), i2c_io_val(0)
+	, mp3_decoder_state(DECODER_STREAM_SEARCHING), mp3_sic(false), mp3_sid(false), mp3_curbit(0), mp3_curval(0), mp3_offset(0), mp3_offset_last(0)
 	, mp3data_count(0), decoded_frame_count(0), decoded_samples(0), sample_count(0), samples_idx(0)
 	, is_muted(false), gain_ll(0), gain_rr(0), playback_speed(1)
 {
@@ -64,7 +66,6 @@ void mas3507d_device::device_start()
 	current_rate = 44100; // TODO: related to clock/divider
 	stream = stream_alloc(0, 2, current_rate * playback_speed, stream_flags);
 
-	cb_sample.resolve();
 	cb_mpeg_frame_sync.resolve();
 	cb_demand.resolve();
 
@@ -99,6 +100,14 @@ void mas3507d_device::device_start()
 	save_item(NAME(playback_status));
 	save_item(NAME(playback_speed));
 
+	save_item(NAME(mp3_decoder_state));
+	save_item(NAME(mp3_sic));
+	save_item(NAME(mp3_sid));
+	save_item(NAME(mp3_curbit));
+	save_item(NAME(mp3_curval));
+	save_item(NAME(mp3_offset));
+	save_item(NAME(mp3_offset_last));
+
 	// This should be removed in the future if/when native MP3 decoding is implemented in MAME
 	save_item(NAME(mp3_dec.mdct_overlap));
 	save_item(NAME(mp3_dec.qmf_state));
@@ -123,6 +132,12 @@ void mas3507d_device::device_reset()
 	i2c_bus_address = UNKNOWN;
 	i2c_bus_curbit = -1;
 	i2c_bus_curval = 0;
+
+	mp3_decoder_state = DECODER_STREAM_SEARCHING;
+	mp3_sic = mp3_sid = false;
+	mp3_curbit = 0;
+	mp3_curval = 0;
+	mp3_offset = mp3_offset_last = 0;
 
 	is_muted = false;
 	gain_ll = gain_rr = 0;
@@ -439,68 +454,166 @@ void mas3507d_device::run_program(uint32_t adr)
 	}
 }
 
+void mas3507d_device::sic_w(bool line)
+{
+	if (mp3_sic == line)
+		return;
+
+	if (mp3_sic && !line) {
+		if (mp3_sid)
+			mp3_curval |= 1 << mp3_curbit;
+		mp3_curbit++;
+	}
+
+	if (mp3_curbit >= 8) {
+		if (mp3data_count >= mp3data.size()) {
+			std::copy(mp3data.begin() + 1, mp3data.end(), mp3data.begin());
+			mp3data_count--;
+		}
+
+		//printf("%04x %02x\n", mp3data_count, mp3_curval);
+
+		mp3data[mp3data_count++] = mp3_curval;
+		mp3_curval = 0;
+		mp3_curbit = 0;
+		stream_update();
+	}
+
+	mp3_sic = line;
+}
+
+void mas3507d_device::sid_w(bool line)
+{
+	mp3_sid = line;
+}
+
+int mas3507d_device::mp3_find_frame(int offset)
+{
+	auto mp3 = static_cast<const uint8_t*>(&mp3data[offset]);
+
+	for (int i = 0; i < mp3data_count - HDR_SIZE; i++, mp3++)
+	{
+		if (hdr_valid(mp3))
+			return i;
+	}
+
+	return -1;
+}
+
+void mas3507d_device::stream_update()
+{
+	// Based on my testing, the chip will read in roughly 0x55 bytes and then look for the start of the MP3 frame header.
+	// If it finds an MP3 frame header, it will then try to load in more data in chunks of 0x50 bytes until it finds another MP3 frame header.
+	// Once it finds the next MP3 frame header it will try to read in a larger chunk of data, seemingly based on the assumed bitrate, and look for a 3rd MP3 frame header.
+	// The last large read can contain multiple MP3 frames but is not a fixed amount. Between various bitrates, the amount read in seems to always be somewhere in the range of 0x600 to 0x800 bytes.
+	// The MP3 decoder starts decoding after it sees the 3rd MP3 frame header and will keep the buffers topped up with frequent data requests.
+	//
+	// There are delays varying in time between when MP3s will start playing, based on the bitrate.
+	// This is the amount of time I could measure between when an MP3 started being loaded until it set the frame decoded pin.
+	// 56kbps  mono   ~21ms
+	// 80kbps  stereo ~24ms
+	// 96kbps  stereo ~25.4ms
+	// 112kbps stereo ~27.4ms
+	// I think this has to do with the way the code detects the start of the 2nd MP3 frame header.
+
+	// TODO: Add error states in here for when buffers fill without finding MP3 frames and such
+	// TODO: Remove in the future if the internal program of the MAS3507D is ever properly emulated
+	if (mp3_decoder_state == DECODER_STREAM_SEARCHING) {
+		if (mp3data_count >= 0x55) {
+			// TODO: Make sure this only happens when mp3_curbit is 0/no data is being read in?
+			cb_demand(0);
+
+			int frame_offset = mp3_find_frame(mp3_offset);
+
+			//printf("Searching for header! %d %d\n", mp3data_count, frame_offset);
+
+			bool found_frame_header = frame_offset != -1;
+			if (found_frame_header) {
+				if (frame_offset > 0) {
+					std::copy(mp3data.begin() + frame_offset, mp3data.end(), mp3data.begin());
+					mp3data_count -= frame_offset;
+				}
+
+				mp3_offset = mp3_offset_last = 0;
+				mp3_decoder_state = DECODER_STREAM_INITIAL_BUFFER;
+				printf("Found DECODER_STREAM_INITIAL_BUFFER @ %d\n", frame_offset);
+			}
+		}
+
+		if (mp3_decoder_state == DECODER_STREAM_SEARCHING)
+			cb_demand(mp3data_count < mp3data.size());
+	}
+	else if (mp3_decoder_state == DECODER_STREAM_INITIAL_BUFFER) {
+		// Read 0x50 chunks and then search for 2nd frame header before continuing
+		if (mp3data_count - mp3_offset_last >= 0x50) {
+			// TODO: Make sure this only happens when mp3_curbit is 0/no data is being read in?
+			cb_demand(0);
+
+			// Check for second frame header
+			int frame_offset = mp3_find_frame(mp3_offset + HDR_SIZE);
+			if (frame_offset != -1) {
+				mp3_offset_last = mp3data_count;
+				mp3_decoder_state = DECODER_STREAM_BUFFER_FILL;
+				printf("Found DECODER_STREAM_BUFFER_FILL @ %d\n", frame_offset);
+			}
+		}
+
+		if (mp3_decoder_state != DECODER_STREAM_BUFFER_FILL && mp3data_count >= mp3data.size()) {
+			// Something is wrong. MP3 frame size is way too large or it was a false positive previously.
+			mp3_decoder_state = DECODER_STREAM_SEARCHING;
+			std::fill_n(mp3data.begin(), mp3data.size(), 0);
+			mp3data_count = 0;
+			mp3_offset = 0;
+		}
+
+		if (mp3_decoder_state == DECODER_STREAM_INITIAL_BUFFER)
+			cb_demand(mp3data_count < mp3data.size());
+	}
+	else if (mp3_decoder_state == DECODER_STREAM_BUFFER_FILL) {
+		// Don't start streaming until the buffer has a few more frames
+		cb_demand(mp3data_count < mp3data.size());
+
+		if (mp3data_count >= mp3data.size()) {
+			printf("Found DECODER_STREAM_BUFFER\n");
+			mp3_decoder_state = DECODER_STREAM_BUFFER;
+		}
+	}
+	else if (mp3_decoder_state == DECODER_STREAM_BUFFER) {
+		// Keep buffers topped up while decoding MP3 data
+		cb_demand(mp3data_count < mp3data.size());
+	}
+}
+
 void mas3507d_device::fill_buffer()
 {
 	cb_mpeg_frame_sync(0);
+	cb_demand(mp3data_count < mp3data.size());
 
-	if (samples_idx > 0) {
-		decoded_frame_count++;
-		cb_mpeg_frame_sync(1);
-	}
-
-	if (mp3data_count + 2 > mp3data.size()) {
-		std::copy(mp3data.begin() + 2, mp3data.end(), mp3data.begin());
-		mp3data_count -= 2;
-	}
-
-	cb_demand(mp3data_count + 2 < mp3data.size());
-	while (mp3data_count + 2 < mp3data.size()) {
-		uint32_t v = cb_sample();
-
-		if (v > 0xffff) {
-			// Data isn't being transmitted at all
-			break;
-		}
-
-		mp3data[mp3data_count++] = (v >> 8) & 0xff;
-		mp3data[mp3data_count++] = v & 0xff;
-	}
-	cb_demand(mp3data_count + 2 < mp3data.size());
-
-	if (mp3data_count == 0) {
+	if (mp3_decoder_state != DECODER_STREAM_BUFFER) {
 		return;
 	}
 
 	memset(&mp3_info, 0, sizeof(mp3dec_frame_info_t));
-	sample_count = mp3dec_decode_frame(&mp3_dec, static_cast<const uint8_t *>(&mp3data[0]), mp3data_count, static_cast<mp3d_sample_t *>(&samples[0]), &mp3_info);
+	sample_count = mp3dec_decode_frame(&mp3_dec, static_cast<const uint8_t*>(&mp3data[0]), mp3data_count, static_cast<mp3d_sample_t*>(&samples[0]), &mp3_info);
 	samples_idx = 0;
 
-	if (mp3_info.channels != 0 && mp3_info.frame_bytes - mp3_info.frame_offset > 0 && sample_count == 0) {
+	if (sample_count == 0) {
 		// Frame decode failed
+		printf("Frame decode failed\n");
 		reset_playback();
 		return;
 	}
 
-	auto used_bytes = sample_count == 0 ? mp3_info.frame_offset : mp3_info.frame_bytes;
-	if (used_bytes >= mp3data.size()) {
-		std::fill_n(mp3data.begin(), mp3data.size(), 0);
-		mp3data_count = 0;
-	}
-	else if (used_bytes > 0 && used_bytes < mp3data.size()) {
-		// If sample_count is 0 then the entire frame hasn't been read into buffer yet and frame_bytes points to start of frame.
-		// If sample count is non-0, then frame_bytes will be the start of the frame + frame size.
-		std::copy(mp3data.begin() + used_bytes, mp3data.end(), mp3data.begin());
-		mp3data_count -= used_bytes;
-	}
+	std::copy(mp3data.begin() + mp3_info.frame_bytes, mp3data.end(), mp3data.begin());
+	mp3data_count -= mp3_info.frame_bytes;
 
-	if (sample_count > 0) {
-		if (mp3_info.hz != current_rate) {
-			current_rate = mp3_info.hz;
-			stream->set_sample_rate(current_rate * playback_speed);
-		}
-	}
-	else {
-		reset_playback();
+	decoded_frame_count++;
+	cb_mpeg_frame_sync(1);
+
+	if (mp3_info.hz != current_rate) {
+		// TODO: How would real hardware handle this?
+		current_rate = mp3_info.hz;
+		stream->set_sample_rate(current_rate * playback_speed);
 	}
 }
 
@@ -539,6 +652,9 @@ void mas3507d_device::reset_playback()
 	decoded_frame_count = 0;
 	decoded_samples = 0;
 	samples_idx = 0;
+
+	mp3_decoder_state = DECODER_STREAM_SEARCHING;
+	mp3_offset = mp3_offset_last = 0;
 
 	mp3dec_init(&mp3_dec);
 }

@@ -178,7 +178,7 @@ const tiny_rom_entry *k573dio_device::device_rom_region() const
 
 void k573dio_device::device_add_mconfig(machine_config &config)
 {
-	KONAMI_573_DIGITAL_FPGA(config, k573fpga);
+	KONAMI_573_DIGITAL_FPGA(config, k573fpga, XTAL(29'450'000));
 	k573fpga->set_ram(ram);
 	k573fpga->add_route(0, ":lspeaker", 0.65);
 	k573fpga->add_route(1, ":rspeaker", 0.65);
@@ -388,9 +388,7 @@ uint16_t k573dio_device::mp3_counter_low_r()
 
 void k573dio_device::mp3_counter_low_w(uint16_t data)
 {
-	// DDR Extreme: when this register is reset, the game expects to be able to read back 0 from the counter for 2 consecutive reads
-	// or else it'll keep writing 0 to the register. Uses VSync(-1) to time the checks.
-	LOGMP3("mp3_counter_low_w %04x\n", data);
+	printf("mp3_counter_low_w %04x\n", data);
 	k573fpga->reset_counter();
 }
 

@@ -22,6 +22,7 @@ public:
 	void set_ddrsbm_fpga(bool flag) { is_ddrsbm_fpga = flag; }
 
 	TIMER_DEVICE_CALLBACK_MEMBER(update_counter_callback);
+	TIMER_CALLBACK_MEMBER(update_stream);
 
 	uint32_t get_decrypted();
 	DECLARE_WRITE_LINE_MEMBER(mpeg_frame_sync);
@@ -65,6 +66,8 @@ private:
 
 	void update_counter();
 
+	emu_timer* m_stream_timer;
+
 	enum {
 		PLAYBACK_STATE_UNKNOWN = 0x8000,
 
@@ -88,7 +91,10 @@ private:
 
 	uint32_t mp3_start_addr, mp3_end_addr;
 	uint32_t mp3_cur_start_addr, mp3_cur_end_addr, mp3_cur_addr;
+	uint32_t mp3_data;
+	int mp3_data_bits;
 	bool is_ddrsbm_fpga;
+	attotime m_stream_bit_duration;
 
 	bool is_stream_enabled;
 	attotime counter_current, counter_base;

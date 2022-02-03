@@ -12,16 +12,9 @@
 class mas3507d_device : public device_t, public device_sound_interface
 {
 public:
-	enum {
-		PLAYBACK_STATE_IDLE,
-		PLAYBACK_STATE_BUFFER_FULL,
-		PLAYBACK_STATE_DEMAND_BUFFER
-	};
-
 	// construction/destruction
 	mas3507d_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock = 0);
 
-	auto sample_cb() { return cb_sample.bind(); }
 	auto mpeg_frame_sync_cb() { return cb_mpeg_frame_sync.bind(); }
 	auto demand_cb() { return cb_demand.bind(); }
 
@@ -29,6 +22,9 @@ public:
 	int i2c_sda_r();
 	void i2c_scl_w(bool line);
 	void i2c_sda_w(bool line);
+
+	void sic_w(bool line);
+	void sid_w(bool line);
 
 	uint32_t get_frame_count() const { return decoded_frame_count; }
 	uint32_t get_samples() const { return decoded_samples; }
@@ -75,10 +71,11 @@ private:
 	void run_program(uint32_t adr);
 	void reg_write(uint32_t adr, uint32_t val);
 
+	int mp3_find_frame(int offset);
+	void stream_update();
 	void fill_buffer();
 	void append_buffer(std::vector<write_stream_view> &outputs, int &pos, int scount);
 
-	devcb_read32 cb_sample;
 	devcb_write_line cb_mpeg_frame_sync;
 	devcb_write_line cb_demand;
 
@@ -95,6 +92,7 @@ private:
 	enum i2c_bus_address_t : uint8_t { UNKNOWN = 0, VALIDATED, WRONG };
 	enum i2c_subdest_t : uint8_t { UNDEFINED = 0, CONTROL, DATA_READ, DATA_WRITE, BAD };
 	enum i2c_command_t : uint8_t { CMD_BAD = 0, CMD_RUN, CMD_READ_CTRL, CMD_WRITE_REG, CMD_WRITE_MEM, CMD_READ_REG, CMD_READ_MEM };
+	enum mp3_decoder_state_t : uint8_t { DECODER_STREAM_SEARCHING = 0, DECODER_STREAM_INITIAL_BUFFER, DECODER_STREAM_BUFFER_FILL, DECODER_STREAM_BUFFER };
 
 	i2c_bus_state_t i2c_bus_state;
 	i2c_bus_address_t i2c_bus_address;
@@ -107,7 +105,7 @@ private:
 	sound_stream *stream;
 	sound_stream_flags stream_flags;
 
-	std::array<uint8_t, 0x900> mp3data;
+	std::array<uint8_t, 0xe00> mp3data;
 	std::array<mp3d_sample_t, MINIMP3_MAX_SAMPLES_PER_FRAME> samples;
 
 	bool i2c_scli, i2c_sclo, i2c_sdai, i2c_sdao;
@@ -116,6 +114,14 @@ private:
 	int i2c_bytecount;
 	uint32_t i2c_io_bank, i2c_io_adr, i2c_io_count, i2c_io_val;
 	uint32_t i2c_sdao_data;
+
+	mp3_decoder_state_t mp3_decoder_state;
+	bool mp3_sic = false;
+	bool mp3_sid = false;
+	int mp3_curbit = 0;
+	int mp3_curval = 0;
+	int mp3_offset = 0;
+	int mp3_offset_last = 0;
 
 	uint32_t mp3data_count, current_rate;
 	uint32_t decoded_frame_count, decoded_samples;
