@@ -212,7 +212,6 @@ void k573fpga_device::set_fpga_ctrl(uint16_t data)
 		mp3_cur_start_addr = mp3_start_addr;
 		mp3_cur_end_addr = mp3_end_addr;
 		reset_counter();
-		mas3507d->reset_playback();
 	} if (!BIT(data, 14) && (is_ddrsbm_fpga || BIT(fpga_status, 14))) {
 		// Stop stream
 		is_stream_enabled = false;
