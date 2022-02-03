@@ -59,9 +59,9 @@ void k573fpga_device::device_start()
 	save_item(NAME(counter_current));
 	save_item(NAME(counter_base));
 
-	m_stream_timer = machine().scheduler().timer_alloc(timer_expired_delegate(FUNC(k573fpga_device::update_stream), this));
-	m_stream_timer->adjust(attotime::never);
 	m_stream_bit_duration = attotime::from_nsec(attotime::from_hz(clock()).as_attoseconds() / 32000000);
+	m_stream_timer = machine().scheduler().timer_alloc(timer_expired_delegate(FUNC(k573fpga_device::update_stream), this));
+	m_stream_timer->adjust(attotime::zero, 0, m_stream_bit_duration);
 }
 
 void k573fpga_device::device_reset()
@@ -321,11 +321,8 @@ TIMER_CALLBACK_MEMBER(k573fpga_device::update_stream)
 {
 	if (!(mpeg_status & PLAYBACK_STATE_DEMAND)) {
 		// If the data isn't being demanded currently then it has enough data to decode a few frames already
-		m_stream_timer->adjust(attotime::never);
 		return;
 	}
-
-	m_stream_timer->adjust(m_stream_bit_duration);
 
 	// Note: The FPGA code seems to have an off by 1 error where it'll always decrypt and send an extra word at the end of every MP3 which corresponds to decrypting the value 0x0000.
 	if (!is_stream_enabled || mp3_cur_addr < mp3_cur_start_addr || mp3_cur_addr > mp3_cur_end_addr) {
@@ -365,11 +362,9 @@ WRITE_LINE_MEMBER(k573fpga_device::mas3507d_demand)
 	// This will be set when the MAS3507D is requesting more data
 	if (state && !(mpeg_status & PLAYBACK_STATE_DEMAND)) {
 		mpeg_status |= PLAYBACK_STATE_DEMAND;
-		m_stream_timer->adjust(m_stream_bit_duration);
 	}
 	else if (!state && (mpeg_status & PLAYBACK_STATE_DEMAND)) {
 		mpeg_status &= ~PLAYBACK_STATE_DEMAND;
-		m_stream_timer->adjust(attotime::never);
 	}
 }
 

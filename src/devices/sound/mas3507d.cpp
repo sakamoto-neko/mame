@@ -580,9 +580,9 @@ void mas3507d_device::stream_update()
 void mas3507d_device::fill_buffer()
 {
 	cb_mpeg_frame_sync(0);
-	cb_demand(mp3data_count < mp3data.size());
 
 	if (mp3_decoder_state != DECODER_STREAM_BUFFER) {
+		cb_demand(mp3data_count < mp3data.size());
 		return;
 	}
 
@@ -608,6 +608,8 @@ void mas3507d_device::fill_buffer()
 		current_rate = mp3_info.hz;
 		stream->set_sample_rate(current_rate * playback_speed);
 	}
+
+	cb_demand(mp3data_count < mp3data.size());
 }
 
 void mas3507d_device::append_buffer(std::vector<write_stream_view> &outputs, int &pos, int scount)
