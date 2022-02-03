@@ -471,7 +471,7 @@ void mas3507d_device::sic_w(bool line)
 			mp3data_count--;
 		}
 
-		//printf("%04x %02x\n", mp3data_count, mp3_curval);
+		//printf("%d %04x %02x\n", mp3_decoder_state, mp3data_count, mp3_curval);
 
 		mp3data[mp3data_count++] = mp3_curval;
 		mp3_curval = 0;
@@ -537,6 +537,10 @@ void mas3507d_device::stream_update()
 				mp3_offset = mp3_offset_last = 0;
 				mp3_decoder_state = DECODER_STREAM_INITIAL_BUFFER;
 				printf("Found DECODER_STREAM_INITIAL_BUFFER @ %d\n", frame_offset);
+			}
+			else if (mp3data_count >= mp3data.size()) {
+				std::copy(mp3data.begin() + 1, mp3data.end(), mp3data.begin());
+				mp3data_count--;
 			}
 		}
 
