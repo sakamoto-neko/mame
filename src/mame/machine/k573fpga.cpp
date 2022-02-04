@@ -35,8 +35,6 @@ void k573fpga_device::device_add_mconfig(machine_config &config)
 	mas3507d->set_stream_flags(STREAM_SYNCHRONOUS);
 	mas3507d->mpeg_frame_sync_cb().set(*this, FUNC(k573fpga_device::mpeg_frame_sync));
 	mas3507d->demand_cb().set(*this, FUNC(k573fpga_device::mas3507d_demand));
-
-	TIMER(config, "counter_timer").configure_periodic(FUNC(k573fpga_device::update_counter_callback), attotime::from_hz(44100));
 }
 
 void k573fpga_device::device_start()
@@ -98,22 +96,24 @@ void k573fpga_device::reset_counter()
 	frame_counter_base = frame_counter;
 }
 
-TIMER_DEVICE_CALLBACK_MEMBER(k573fpga_device::update_counter_callback)
-{
-	update_counter();
-}
-
 void k573fpga_device::update_counter()
 {
 	if (is_ddrsbm_fpga) {
-		// The counter for Solo Bass Mix is always running
+		// The counter for Solo Bass Mix is used differently than other games.
+		// DDR Solo Bass Mix will sync the internal playback timer to the first second of the MP3 using the MP3 frame counter.
+		// After that the playback timer is incremented using the difference between the last counter value and the current counter value.
+		// This counter register itself is always running even when no audio is playing.
+		// TODO: What happens when mp3_counter_low_w is written to on Solo Bass Mix?
 		counter_value = (machine().time() - counter_base).as_double();
 		return;
 	}
 
 	// The timer in any game outside of DDR Solo Bass Mix is both tied to the MP3 playback and independent.
-	// The timer will only start when an MP3 begins playback.
-	// The timer will keep going long after the MP3 has stopped playing until the register is zero'd out.
+	// The timer will only start when an MP3 begins playback (seems to be synced to when the MP3 frame counter increments).
+	// The timer will keep going long after the MP3 has stopped playing.
+	// If the timer is zero'd out while it's running (k573dio mp3_counter_low_w), it will start counting up from zero again.
+	// TODO: What happens if a non-zero value is written to mp3_counter_low_w?
+	// TODO: How exactly do you stop the timer? Can it even be stopped once it's started?
 	if (frame_counter - frame_counter_base == 0) {
 		return;
 	}
@@ -127,6 +127,12 @@ void k573fpga_device::update_counter()
 
 uint32_t k573fpga_device::get_counter()
 {
+	// Potential for a bug here?
+	// When reading the counter on real hardware consecutively the value returned changes so I think it's always running.
+	// It may be possible that the counter can go from 0xffff to 0x10000 between reading the upper and lower values,
+	// which may result in the game seeing 0x1ffff before it goes back down to something like 0x10001 on the next read.
+	update_counter();
+
 	auto t = std::max(0.0, counter_value - sample_skip_offset.as_double());
 	return t * 44100;
 }
@@ -278,6 +284,12 @@ uint16_t k573fpga_device::decrypt_default(uint16_t v)
 
 uint16_t k573fpga_device::decrypt_ddrsbm(uint16_t data)
 {
+	// TODO: Work out the proper algorithm here.
+	// ddrsbm is capable of sending a pre-mutated key, similar to the other games, that is used to simulate seeking.
+	// I couldn't find evidence that the game ever seeks in the MP3 so the game doesn't break from lack of support from what I can tell.
+	// The proper algorithm for mutating the key is: crypto_key1 = rol(crypto_key1, offset & 0x0f)
+	// A hack such as rotating the key back to its initial state could be done if ever required, until the proper algorithm is worked out.
+
 	uint8_t key[16] = {0};
 	uint16_t key_state = bitswap<16>(
 		crypto_key1,
