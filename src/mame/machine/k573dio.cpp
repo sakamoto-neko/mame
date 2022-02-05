@@ -388,7 +388,7 @@ uint16_t k573dio_device::mp3_counter_low_r()
 
 void k573dio_device::mp3_counter_low_w(uint16_t data)
 {
-	printf("mp3_counter_low_w %04x\n", data);
+	LOGMP3("mp3_counter_low_w %04x\n", data);
 	k573fpga->reset_counter();
 }
 
