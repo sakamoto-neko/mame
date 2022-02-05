@@ -108,10 +108,6 @@ void k573fpga_device::reset_counter()
 	counter_current = counter_base = machine().time();
 	counter_value = 0;
 	frame_counter_base = frame_counter;
-
-	if (!is_ddrsbm_fpga) {
-		counter_value = -0.0045; // HACK: Give a negative offset to make it sync better with real hardware
-	}
 }
 
 void k573fpga_device::update_counter()
@@ -380,6 +376,11 @@ WRITE_LINE_MEMBER(k573fpga_device::mpeg_frame_sync)
 	if (state) {
 		mpeg_status |= PLAYBACK_STATE_PLAYING;
 		frame_counter++;
+
+		if (frame_counter == 1) {
+			// Sync counter to start of MP3 playback
+			counter_current = counter_base = machine().time();
+		}
 	}
 	else {
 		mpeg_status |= PLAYBACK_STATE_IDLE;

@@ -94,7 +94,6 @@ private:
 	uint16_t mp3_data;
 	int mp3_remaining_bytes;
 	bool is_ddrsbm_fpga;
-	attotime m_stream_bit_duration;
 
 	bool is_stream_enabled;
 	attotime counter_current, counter_base;
