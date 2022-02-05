@@ -23,8 +23,7 @@ public:
 	void i2c_scl_w(bool line);
 	void i2c_sda_w(bool line);
 
-	void sic_w(bool line);
-	void sid_w(bool line);
+	void sid_w(uint8_t byte);
 
 	uint32_t get_frame_count() const { return decoded_frame_count; }
 	uint32_t get_samples() const { return decoded_samples; }
@@ -101,10 +100,6 @@ private:
 	uint32_t i2c_sdao_data;
 
 	mp3_decoder_state_t mp3_decoder_state;
-	bool mp3_sic = false;
-	bool mp3_sid = false;
-	int mp3_curbit = 0;
-	int mp3_curval = 0;
 	int mp3_offset = 0;
 	int mp3_offset_last = 0;
 

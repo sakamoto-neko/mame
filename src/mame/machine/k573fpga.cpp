@@ -56,6 +56,8 @@ void k573fpga_device::device_start()
 	save_item(NAME(mp3_cur_start_addr));
 	save_item(NAME(mp3_cur_end_addr));
 	save_item(NAME(mp3_cur_addr));
+	save_item(NAME(mp3_data));
+	save_item(NAME(mp3_remaining_bytes));
 	save_item(NAME(is_ddrsbm_fpga));
 	save_item(NAME(is_stream_enabled));
 	save_item(NAME(mpeg_status));
@@ -77,6 +79,8 @@ void k573fpga_device::device_reset()
 	mp3_cur_start_addr = 0;
 	mp3_cur_end_addr = 0;
 	mp3_cur_addr = 0;
+	mp3_data = 0;
+	mp3_remaining_bytes = 0;
 
 	crypto_key1 = 0;
 	crypto_key2 = 0;
@@ -350,19 +354,17 @@ TIMER_CALLBACK_MEMBER(k573fpga_device::update_stream)
 		return;
 	}
 
-	if (mp3_data_bits <= 0) {
+	if (mp3_remaining_bytes <= 0) {
 		uint16_t src = ram[mp3_cur_addr >> 1];
 		mp3_data = is_ddrsbm_fpga ? decrypt_ddrsbm(src) : decrypt_default(src);
 		mp3_data = ((mp3_data >> 8) & 0xff) | ((mp3_data & 0xff) << 8);
 		mp3_cur_addr += 2;
-		mp3_data_bits = 16;
+		mp3_remaining_bytes = 2;
 	}
 
-	mas3507d->sic_w(true);
-	mas3507d->sid_w(mp3_data & 1);
-	mas3507d->sic_w(false);
-	mp3_data >>= 1;
-	mp3_data_bits--;
+	mas3507d->sid_w(mp3_data & 0xff);
+	mp3_data >>= 8;
+	mp3_remaining_bytes--;
 }
 
 WRITE_LINE_MEMBER(k573fpga_device::mpeg_frame_sync)

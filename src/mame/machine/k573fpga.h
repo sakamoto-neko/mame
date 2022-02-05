@@ -91,8 +91,8 @@ private:
 
 	uint32_t mp3_start_addr, mp3_end_addr;
 	uint32_t mp3_cur_start_addr, mp3_cur_end_addr, mp3_cur_addr;
-	uint32_t mp3_data;
-	int mp3_data_bits;
+	uint16_t mp3_data;
+	int mp3_remaining_bytes;
 	bool is_ddrsbm_fpga;
 	attotime m_stream_bit_duration;
 

@@ -55,7 +55,7 @@ mas3507d_device::mas3507d_device(const machine_config &mconfig, const char *tag,
 	, stream(nullptr), stream_flags(STREAM_DEFAULT_FLAGS)
 	, i2c_scli(false), i2c_sclo(false), i2c_sdai(false), i2c_sdao(false)
 	, i2c_bus_curbit(0), i2c_bus_curval(0), i2c_bytecount(0), i2c_io_bank(0), i2c_io_adr(0), i2c_io_count(0), i2c_io_val(0)
-	, mp3_decoder_state(DECODER_STREAM_SEARCHING), mp3_sic(false), mp3_sid(false), mp3_curbit(0), mp3_curval(0), mp3_offset(0), mp3_offset_last(0)
+	, mp3_decoder_state(DECODER_STREAM_SEARCHING), mp3_offset(0), mp3_offset_last(0)
 	, mp3data_count(0), decoded_frame_count(0), decoded_samples(0), sample_count(0), samples_idx(0)
 	, is_muted(false), gain_ll(0), gain_rr(0)
 {
@@ -100,10 +100,6 @@ void mas3507d_device::device_start()
 	save_item(NAME(playback_status));
 
 	save_item(NAME(mp3_decoder_state));
-	save_item(NAME(mp3_sic));
-	save_item(NAME(mp3_sid));
-	save_item(NAME(mp3_curbit));
-	save_item(NAME(mp3_curval));
 	save_item(NAME(mp3_offset));
 	save_item(NAME(mp3_offset_last));
 
@@ -133,9 +129,6 @@ void mas3507d_device::device_reset()
 	i2c_bus_curval = 0;
 
 	mp3_decoder_state = DECODER_STREAM_SEARCHING;
-	mp3_sic = mp3_sid = false;
-	mp3_curbit = 0;
-	mp3_curval = 0;
 	mp3_offset = mp3_offset_last = 0;
 
 	is_muted = false;
@@ -452,37 +445,15 @@ void mas3507d_device::run_program(uint32_t adr)
 	}
 }
 
-void mas3507d_device::sic_w(bool line)
+void mas3507d_device::sid_w(uint8_t byte)
 {
-	if (mp3_sic == line)
-		return;
-
-	if (mp3_sic && !line) {
-		if (mp3_sid)
-			mp3_curval |= 1 << mp3_curbit;
-		mp3_curbit++;
+	if (mp3data_count >= mp3data.size()) {
+		std::copy(mp3data.begin() + 1, mp3data.end(), mp3data.begin());
+		mp3data_count--;
 	}
 
-	if (mp3_curbit >= 8) {
-		if (mp3data_count >= mp3data.size()) {
-			std::copy(mp3data.begin() + 1, mp3data.end(), mp3data.begin());
-			mp3data_count--;
-		}
-
-		//printf("%d %04x %02x\n", mp3_decoder_state, mp3data_count, mp3_curval);
-
-		mp3data[mp3data_count++] = mp3_curval;
-		mp3_curval = 0;
-		mp3_curbit = 0;
-		stream_update();
-	}
-
-	mp3_sic = line;
-}
-
-void mas3507d_device::sid_w(bool line)
-{
-	mp3_sid = line;
+	mp3data[mp3data_count++] = byte;
+	stream_update();
 }
 
 int mas3507d_device::mp3_find_frame(int offset)
