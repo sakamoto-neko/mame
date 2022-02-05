@@ -52,19 +52,19 @@ mas3507d_device::mas3507d_device(const machine_config &mconfig, const char *tag,
 	, device_sound_interface(mconfig, *this)
 	, cb_mpeg_frame_sync(*this), cb_demand(*this)
 	, i2c_bus_state(IDLE), i2c_bus_address(UNKNOWN), i2c_subdest(UNDEFINED), i2c_command(CMD_BAD)
-	, stream_flags(STREAM_DEFAULT_FLAGS)
+	, stream(nullptr), stream_flags(STREAM_DEFAULT_FLAGS)
 	, i2c_scli(false), i2c_sclo(false), i2c_sdai(false), i2c_sdao(false)
 	, i2c_bus_curbit(0), i2c_bus_curval(0), i2c_bytecount(0), i2c_io_bank(0), i2c_io_adr(0), i2c_io_count(0), i2c_io_val(0)
 	, mp3_decoder_state(DECODER_STREAM_SEARCHING), mp3_sic(false), mp3_sid(false), mp3_curbit(0), mp3_curval(0), mp3_offset(0), mp3_offset_last(0)
 	, mp3data_count(0), decoded_frame_count(0), decoded_samples(0), sample_count(0), samples_idx(0)
-	, is_muted(false), gain_ll(0), gain_rr(0), playback_speed(1)
+	, is_muted(false), gain_ll(0), gain_rr(0)
 {
 }
 
 void mas3507d_device::device_start()
 {
 	current_rate = 44100; // TODO: related to clock/divider
-	stream = stream_alloc(0, 2, current_rate * playback_speed, stream_flags);
+	stream = stream_alloc(0, 2, current_rate * m_clock_scale , stream_flags);
 
 	cb_mpeg_frame_sync.resolve();
 	cb_demand.resolve();
@@ -98,7 +98,6 @@ void mas3507d_device::device_start()
 	save_item(NAME(gain_ll));
 	save_item(NAME(gain_rr));
 	save_item(NAME(playback_status));
-	save_item(NAME(playback_speed));
 
 	save_item(NAME(mp3_decoder_state));
 	save_item(NAME(mp3_sic));
@@ -144,9 +143,8 @@ void mas3507d_device::device_reset()
 
 	mp3data_count = 0;
 
-	playback_speed = 1;
 	current_rate = 44100;
-	stream->set_sample_rate(current_rate * playback_speed);
+	stream->set_sample_rate(current_rate * m_clock_scale);
 
 	reset_playback();
 }
@@ -606,7 +604,7 @@ void mas3507d_device::fill_buffer()
 	if (mp3_info.hz != current_rate) {
 		// TODO: How would real hardware handle this?
 		current_rate = mp3_info.hz;
-		stream->set_sample_rate(current_rate * playback_speed);
+		stream->set_sample_rate(current_rate * m_clock_scale);
 	}
 
 	cb_demand(mp3data_count < mp3data.size());

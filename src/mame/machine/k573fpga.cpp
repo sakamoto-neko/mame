@@ -29,9 +29,18 @@ void k573fpga_device::set_audio_offset(int32_t offset)
 	sample_skip_offset = attotime::from_msec(offset);
 }
 
+void k573fpga_device::update_clock(uint32_t speed)
+{
+	double scale = speed / double(clock());
+	set_clock_scale(scale);
+	mas3507d->set_clock_scale(scale);
+	mas3507d->update_sample_rate();
+	m_stream_timer->adjust(attotime::zero, 0, attotime::from_hz(clock() / 100));
+}
+
 void k573fpga_device::device_add_mconfig(machine_config &config)
 {
-	MAS3507D(config, mas3507d);
+	MAS3507D(config, mas3507d, 29'450'000);
 	mas3507d->set_stream_flags(STREAM_SYNCHRONOUS);
 	mas3507d->mpeg_frame_sync_cb().set(*this, FUNC(k573fpga_device::mpeg_frame_sync));
 	mas3507d->demand_cb().set(*this, FUNC(k573fpga_device::mas3507d_demand));
@@ -57,9 +66,8 @@ void k573fpga_device::device_start()
 	save_item(NAME(counter_current));
 	save_item(NAME(counter_base));
 
-	m_stream_bit_duration = attotime::from_nsec(attotime::from_hz(clock()).as_attoseconds() / 32000000);
 	m_stream_timer = machine().scheduler().timer_alloc(timer_expired_delegate(FUNC(k573fpga_device::update_stream), this));
-	m_stream_timer->adjust(attotime::zero, 0, m_stream_bit_duration);
+	m_stream_timer->adjust(attotime::zero, 0, attotime::from_hz(clock() / 100));
 }
 
 void k573fpga_device::device_reset()
@@ -104,7 +112,7 @@ void k573fpga_device::update_counter()
 		// After that the playback timer is incremented using the difference between the last counter value and the current counter value.
 		// This counter register itself is always running even when no audio is playing.
 		// TODO: What happens when mp3_counter_low_w is written to on Solo Bass Mix?
-		counter_value = (machine().time() - counter_base).as_double();
+		counter_value = (machine().time() - counter_base).as_double() * m_clock_scale;
 		return;
 	}
 
@@ -113,6 +121,7 @@ void k573fpga_device::update_counter()
 	// The timer will keep going long after the MP3 has stopped playing.
 	// If the timer is zero'd out while it's running (k573dio mp3_counter_low_w), it will start counting up from zero again.
 	// TODO: What happens if a non-zero value is written to mp3_counter_low_w?
+	// TODO: What happens if you write to mp3_counter_high_w?
 	// TODO: How exactly do you stop the timer? Can it even be stopped once it's started?
 	if (frame_counter - frame_counter_base == 0) {
 		return;
@@ -133,7 +142,7 @@ uint32_t k573fpga_device::get_counter()
 	// which may result in the game seeing 0x1ffff before it goes back down to something like 0x10001 on the next read.
 	update_counter();
 
-	auto t = std::max(0.0, counter_value - sample_skip_offset.as_double());
+	auto t = std::max(0.0, (counter_value - sample_skip_offset.as_double()) * m_clock_scale);
 	return t * 44100;
 }
 
