@@ -198,7 +198,7 @@ void k573dio_device::device_timer(emu_timer &timer, device_timer_id id, int para
 
 void k573dio_device::explus_speed_normal()
 {
-	k573fpga->update_clock(29'500'000);
+	k573fpga->update_clock(29'500'000); // The normal digital I/O board uses a 29.450 MHz clock but the modboard has a 29.500 MHz clock on it to replace it.
 }
 
 void k573dio_device::explus_speed_inc1()

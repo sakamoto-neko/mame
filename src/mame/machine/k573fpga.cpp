@@ -31,6 +31,8 @@ void k573fpga_device::set_audio_offset(int32_t offset)
 
 void k573fpga_device::update_clock(uint32_t speed)
 {
+	// For the DDR Extreme Plus hack.
+	// The game is capable of switching between 3 different crystals to change the playback speed.
 	double scale = speed / double(clock());
 	set_clock_scale(scale);
 	mas3507d->set_clock_scale(scale);
