@@ -221,7 +221,7 @@ void k573fpga_device::set_fpga_ctrl(uint16_t data)
 	x is remains the same as the previous command
 	*/
 
-	printf("FPGA MPEG control %c%c%c | %04x\n",
+	LOG("FPGA MPEG control %c%c%c | %04x\n",
 				data & 0x8000 ? '#' : '.',
 				data & 0x4000 ? '#' : '.', // "Active" flag. The FPGA will never start streaming data without this bit set
 				data & 0x2000 ? '#' : '.',

@@ -488,7 +488,6 @@ void mas3507d_device::stream_update()
 	// TODO: Remove in the future if the internal program of the MAS3507D is ever properly emulated
 	if (mp3_decoder_state == DECODER_STREAM_SEARCHING) {
 		if (mp3data_count >= 0x55) {
-			// TODO: Make sure this only happens when mp3_curbit is 0/no data is being read in?
 			cb_demand(0);
 
 			int frame_offset = mp3_find_frame(mp3_offset);
@@ -504,7 +503,7 @@ void mas3507d_device::stream_update()
 
 				mp3_offset = mp3_offset_last = 0;
 				mp3_decoder_state = DECODER_STREAM_INITIAL_BUFFER;
-				printf("Found DECODER_STREAM_INITIAL_BUFFER @ %d\n", frame_offset);
+				//printf("Found DECODER_STREAM_INITIAL_BUFFER @ %d\n", frame_offset);
 			}
 			else if (mp3data_count >= mp3data.size()) {
 				std::copy(mp3data.begin() + 1, mp3data.end(), mp3data.begin());
@@ -515,7 +514,6 @@ void mas3507d_device::stream_update()
 	else if (mp3_decoder_state == DECODER_STREAM_INITIAL_BUFFER) {
 		// Read 0x50 chunks and then search for 2nd frame header before continuing
 		if (mp3data_count - mp3_offset_last >= 0x50) {
-			// TODO: Make sure this only happens when mp3_curbit is 0/no data is being read in?
 			cb_demand(0);
 
 			// Check for second frame header
@@ -523,7 +521,7 @@ void mas3507d_device::stream_update()
 			if (frame_offset != -1) {
 				mp3_offset_last = mp3data_count;
 				mp3_decoder_state = DECODER_STREAM_BUFFER_FILL;
-				printf("Found DECODER_STREAM_BUFFER_FILL @ %d\n", frame_offset);
+				//printf("Found DECODER_STREAM_BUFFER_FILL @ %d\n", frame_offset);
 			}
 		}
 
@@ -538,7 +536,7 @@ void mas3507d_device::stream_update()
 	else if (mp3_decoder_state == DECODER_STREAM_BUFFER_FILL) {
 		// Don't start streaming until the buffer has a few more frames
 		if (mp3data_count >= mp3data.size()) {
-			printf("Found DECODER_STREAM_BUFFER\n");
+			//printf("Found DECODER_STREAM_BUFFER\n");
 			mp3_decoder_state = DECODER_STREAM_BUFFER;
 		}
 	}
@@ -561,7 +559,7 @@ void mas3507d_device::fill_buffer()
 
 	if (sample_count == 0) {
 		// Frame decode failed
-		printf("Frame decode failed\n");
+		//printf("Frame decode failed\n");
 		reset_playback();
 		return;
 	}
