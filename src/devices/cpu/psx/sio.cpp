@@ -10,6 +10,8 @@
 #include "emu.h"
 #include "sio.h"
 
+#include <iostream>
+
 #define LOG_STAT    (1U << 1)
 #define LOG_COM     (1U << 2)
 #define LOG_MODE    (1U << 3)
@@ -145,7 +147,7 @@ void psxsio0_device::sio_timer_adjust()
 	m_timer->adjust( n_time );
 }
 
-void psxsio0_device::device_timer(emu_timer &timer, device_timer_id tid, int param, void *ptr)
+void psxsio0_device::device_timer(emu_timer &timer, device_timer_id tid, int param)
 {
 	verboselog( *this, 2, "sio tick\n" );
 
@@ -463,7 +465,7 @@ void psxsio1_device::sio_timer_adjust()
 }
 
 
-void psxsio1_device::device_timer(emu_timer& timer, device_timer_id tid, int param, void* ptr)
+void psxsio1_device::device_timer(emu_timer& timer, device_timer_id tid, int param)
 {
 	transmit_clock();
 	sio_timer_adjust();

@@ -28,7 +28,7 @@ void midi_keyboard_device::device_start()
 	m_keyboard_timer->adjust(attotime::from_msec(10), 0, attotime::from_msec(10));
 }
 
-void midi_keyboard_device::device_timer(emu_timer &timer, device_timer_id id, int param, void *ptr)
+void midi_keyboard_device::device_timer(emu_timer &timer, device_timer_id id, int param)
 {
 	if(!id)
 	{

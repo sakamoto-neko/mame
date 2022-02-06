@@ -43,7 +43,7 @@ void k573rental_device::device_start()
 	m_timer_response = timer_alloc(TIMER_RESPONSE);
 }
 
-void k573rental_device::device_timer(emu_timer& timer, device_timer_id id, int param, void* ptr)
+void k573rental_device::device_timer(emu_timer& timer, device_timer_id id, int param)
 {
 	switch (id)
 	{

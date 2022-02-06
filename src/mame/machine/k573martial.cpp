@@ -58,7 +58,7 @@ void k573martial_device::device_reset()
 	m_io_state_sum = 0;
 }
 
-void k573martial_device::device_timer(emu_timer& timer, device_timer_id id, int param, void* ptr)
+void k573martial_device::device_timer(emu_timer& timer, device_timer_id id, int param)
 {
 	switch (id)
 	{

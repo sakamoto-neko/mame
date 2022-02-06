@@ -192,7 +192,7 @@ void k573dio_device::device_add_mconfig(machine_config &config)
 	TIMER(config, "network_timer").configure_periodic(FUNC(k573dio_device::network_update_callback), attotime::from_hz(300));
 }
 
-void k573dio_device::device_timer(emu_timer &timer, device_timer_id id, int param, void *ptr)
+void k573dio_device::device_timer(emu_timer &timer, device_timer_id id, int param)
 {
 }
 
