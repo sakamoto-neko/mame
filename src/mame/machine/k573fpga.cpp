@@ -241,6 +241,13 @@ void k573fpga_device::set_fpga_ctrl(uint16_t data)
 
 		if (!is_ddrsbm_fpga)
 			reset_counter();
+
+		// This is a hack to get audio to stop playing immediatley when the stream is supposed to be stopped.
+		// In reality this is probably something else. I don't have proof yet but I think there might be a chance
+		// that the FPGA is responsible for passing the output samples from the MAS3507D to the DAC for output.
+		// If that's the case then this might be something simple like stopping the forwarding of audio samples.
+		// The current implementation of the MAS3507D in MAME does not currently allow for such an interaction though.
+		mas3507d->reset_playback();
 	}
 
 	fpga_status = data;

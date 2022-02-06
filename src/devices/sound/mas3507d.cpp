@@ -604,10 +604,8 @@ void mas3507d_device::append_buffer(std::vector<write_stream_view> &outputs, int
 
 void mas3507d_device::reset_playback()
 {
-	if (decoded_samples > 0) {
-		std::fill(mp3data.begin(), mp3data.end(), 0);
-		std::fill(samples.begin(), samples.end(), 0);
-	}
+	std::fill(mp3data.begin(), mp3data.end(), 0);
+	std::fill(samples.begin(), samples.end(), 0);
 
 	mp3data_count = 0;
 	sample_count = 0;
