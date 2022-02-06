@@ -72,6 +72,9 @@ void k573fpga_device::device_start()
 
 	m_stream_timer = machine().scheduler().timer_alloc(timer_expired_delegate(FUNC(k573fpga_device::update_stream), this));
 	m_stream_timer->adjust(attotime::zero, 0, attotime::from_hz(clock() / 100));
+
+	m_counter_timer = machine().scheduler().timer_alloc(timer_expired_delegate(FUNC(k573fpga_device::update_counter_callback), this));
+	m_counter_timer->adjust(attotime::zero, 0, attotime::from_hz(44100));
 }
 
 void k573fpga_device::device_reset()
@@ -110,6 +113,11 @@ void k573fpga_device::reset_counter()
 	frame_counter_base = frame_counter;
 }
 
+TIMER_CALLBACK_MEMBER(k573fpga_device::update_counter_callback)
+{
+	update_counter();
+}
+
 void k573fpga_device::update_counter()
 {
 	if (is_ddrsbm_fpga) {
@@ -142,12 +150,6 @@ void k573fpga_device::update_counter()
 
 uint32_t k573fpga_device::get_counter()
 {
-	// Potential for a bug here?
-	// When reading the counter on real hardware consecutively the value returned changes so I think it's always running.
-	// It may be possible that the counter can go from 0xffff to 0x10000 between reading the upper and lower values,
-	// which may result in the game seeing 0x1ffff before it goes back down to something like 0x10001 on the next read.
-	update_counter();
-
 	auto t = std::max(0.0, (counter_value - sample_skip_offset.as_double()) * m_clock_scale);
 	return t * 44100;
 }

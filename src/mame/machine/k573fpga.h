@@ -21,7 +21,7 @@ public:
 
 	void set_ddrsbm_fpga(bool flag) { is_ddrsbm_fpga = flag; }
 
-	TIMER_DEVICE_CALLBACK_MEMBER(update_counter_callback);
+	TIMER_CALLBACK_MEMBER(update_counter_callback);
 	TIMER_CALLBACK_MEMBER(update_stream);
 
 	uint32_t get_decrypted();
@@ -67,6 +67,7 @@ private:
 	void update_counter();
 
 	emu_timer* m_stream_timer;
+	emu_timer* m_counter_timer;
 
 	enum {
 		PLAYBACK_STATE_UNKNOWN = 0x8000,

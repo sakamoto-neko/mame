@@ -3188,7 +3188,7 @@ INPUT_PORTS_END
 
 static INPUT_PORTS_START( k573dio )
 	PORT_START( "AUDIO_OFFSET3" )
-	PORT_BIT( 0xffffffff, 40, IPT_ADJUSTER ) PORT_NAME( "Audio Offset" ) PORT_MINMAX( 0x80000000, 0x7fffffff ) PORT_CHANGED_MEMBER(DEVICE_SELF, ksys573_state, audio_offset, 0)
+	PORT_BIT( 0xffffffff, 28, IPT_ADJUSTER ) PORT_NAME( "Audio Offset" ) PORT_MINMAX( 0x80000000, 0x7fffffff ) PORT_CHANGED_MEMBER(DEVICE_SELF, ksys573_state, audio_offset, 0)
 INPUT_PORTS_END
 
 static INPUT_PORTS_START( fbaitbc )
