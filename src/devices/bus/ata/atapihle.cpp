@@ -104,9 +104,12 @@ void atapi_hle_device::fill_buffer()
 			if (m_buffer_size & 1)
 				m_buffer_size--;
 			// if it is transferring less than the remaining data, make sure the size is a multiple of the sector size, otherwise data will be lost
-			if (m_buffer_size == 0x08)
+			auto is_bugged = m_buffer_size == 0x08;
+			if (is_bugged) {
 				m_buffer_size = m_data_size;
-			else if (m_buffer_size % m_sector_bytes)
+			}
+
+			if ((!is_bugged || (is_bugged && m_buffer_size > m_sector_bytes)) && (m_buffer_size % m_sector_bytes))
 				m_buffer_size = m_buffer_size - (m_buffer_size % m_sector_bytes);
 		}
 
