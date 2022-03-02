@@ -65,6 +65,8 @@ private:
 	void duart_write(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
 
 	uint32_t dsp_data_cnt = 0;
+	uint32_t m_fpgasoft_unk = 0;
+	uint32_t m_fpgasoft_transfer_len[2] = {};
 };
 
 #endif // MAME_MACHINE_K573MSU_H

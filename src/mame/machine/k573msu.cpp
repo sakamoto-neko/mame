@@ -146,6 +146,9 @@ void k573msu_device::device_add_mconfig(machine_config &config)
 
 void k573msu_device::device_reset()
 {
+	dsp_data_cnt = 0;
+	m_fpgasoft_unk = 0;
+	std::fill(std::begin(m_fpgasoft_transfer_len), std::end(m_fpgasoft_transfer_len), 0);
 }
 
 void k573msu_device::device_start()
@@ -194,17 +197,18 @@ uint16_t k573msu_device::fpgasoft_read(offs_t offset, uint16_t mem_mask)
 	switch (offset * 2) {
 	case 0x0a:
 		// Some kind of flag? Seems to have 3 bits * 4 so I think it might be a combined flag for all 4 DSPs
-		return 0;
+		return m_fpgasoft_unk;
 
 	case 0x0c:
-	case 0x0e:
 		// 0x0c and 0x0e are length registers
 		// A length is an 8-bit value. Each register packs 2 sound chips worth of data.
 		// DSP 0 = 0x0c upper
 		// DSP 1 = 0x0c lower
 		// DSP 2 = 0x0e upper
 		// DSP 3 = 0x0e lower
-		return 0;
+		return m_fpgasoft_transfer_len[0];
+	case 0x0e:
+		return m_fpgasoft_transfer_len[1];
 
 	case 0x20:
 		// MIACK
@@ -250,14 +254,21 @@ void k573msu_device::fpgasoft_write(offs_t offset, uint16_t data, uint16_t mem_m
 		// fffe
 		break;
 
+	case 0x0a:
+		m_fpgasoft_unk = data;
+		break;
+
 	case 0x0c:
-	case 0x0e:
 		// 0x0c and 0x0e are length registers
 		// A length is an 8-bit value. Each register packs 2 sound chips worth of data.
 		// DSP 0 = 0x0c upper
 		// DSP 1 = 0x0c lower
 		// DSP 2 = 0x0e upper
 		// DSP 3 = 0x0e lower
+		m_fpgasoft_transfer_len[0] = data;
+		break;
+	case 0x0e:
+		m_fpgasoft_transfer_len[1] = data;
 		break;
 
 	case 0x20:
