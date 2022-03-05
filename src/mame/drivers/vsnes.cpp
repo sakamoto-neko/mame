@@ -126,7 +126,7 @@ Changes:
         - Vs. Gumshoe (partially working)
         - Vs. Freedom Force (not working)
         - Vs. Stroke and Match Golf (Men set 2) (not working)
-        - Vs. BaseBall (Japan set 3) (not working)
+        - Vs. Baseball (Japan set 3) (not working)
   - Added coin counter
   - Added Extra Ram in vstetris
   - Added Demo Sound in vsmahjng
@@ -134,7 +134,7 @@ Changes:
   - Fixed protection in Vs. Super Xevious
   - Corrected or checked dip-switches in Castlevania, Duck Hunt, Excitebike,
     Gradius, Hogan's Alley, Ice Climber, R.B.I. Baseball, Slalom, Soccer,
-    Super Mario Bros., Top Gun, BaseBall, Tennis, Stroke and Match Golf
+    Super Mario Bros., Top Gun, Baseball, Tennis, Stroke and Match Golf
 
 ***************************************************************************/
 
@@ -496,11 +496,11 @@ static INPUT_PORTS_START( vsnes_zapper )
 	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_COIN2 ) PORT_IMPULSE(1)
 	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_UNKNOWN )
 
-	PORT_START("GUNX")  /* FAKE - Gun X pos */
-	PORT_BIT( 0xff, 0x80, IPT_LIGHTGUN_X ) PORT_CROSSHAIR(X, 1.0, 0.0, 0) PORT_SENSITIVITY(70) PORT_KEYDELTA(30)
+	PORT_START("GUNX")  // FAKE - Gun X pos
+	PORT_BIT( 0xff, 0x80, IPT_LIGHTGUN_X ) PORT_CROSSHAIR(X, 1.0, 0.0, 0) PORT_SENSITIVITY(70) PORT_KEYDELTA(30) PORT_MINMAX(0, 255)
 
-	PORT_START("GUNY")  /* FAKE - Gun Y pos */
-	PORT_BIT( 0xff, 0x80, IPT_LIGHTGUN_Y ) PORT_CROSSHAIR(Y, 1.0, 0.0, 0) PORT_SENSITIVITY(50) PORT_KEYDELTA(30)
+	PORT_START("GUNY")  // FAKE - Gun Y pos
+	PORT_BIT( 0xff, 0x80, IPT_LIGHTGUN_Y ) PORT_CROSSHAIR(Y, 1.0, 0.0, 0) PORT_SENSITIVITY(50) PORT_KEYDELTA(30) PORT_MINMAX(0, 239)
 INPUT_PORTS_END
 
 
@@ -2891,8 +2891,8 @@ GAME( 1984, vstennisb,vstennis,  vsdual_pi,     vstennis, vsnes_state, init_vsdu
 GAME( 1984, wrecking, 0,         vsdual_pi,     wrecking, vsnes_state, init_vsdual,   ROT0, "Nintendo",               "Vs. Wrecking Crew",                    0 )
 GAME( 1984, balonfgt, 0,         vsdual_pi,     balonfgt, vsnes_state, init_vsdual,   ROT0, "Nintendo",               "Vs. Balloon Fight (set BF4 A-3)",      0 )
 GAME( 1984, vsmahjng, 0,         vsdual,        vsmahjng, vsnes_state, init_vsdual,   ROT0, "Nintendo Co., Ltd.",     "Vs. Mahjong (Japan)",                  0 )
-GAME( 1984, vsbball,  0,         vsdual_pi,     vsbball,  vsnes_state, init_vsdual,   ROT0, "Nintendo of America",    "Vs. BaseBall (US, set BA E-1)",        0 )
-GAME( 1984, vsbballj, vsbball,   vsdual_pi,     vsbballj, vsnes_state, init_vsdual,   ROT0, "Nintendo Co., Ltd.",     "Vs. BaseBall (Japan, set BA A-3)",     0 )
-GAME( 1984, vsbballja,vsbball,   vsdual_pi,     vsbballj, vsnes_state, init_vsdual,   ROT0, "Nintendo Co., Ltd.",     "Vs. BaseBall (Japan, set BA A-2)",     0 )
-GAME( 1984, vsbballjb,vsbball,   vsdual_pi,     vsbballj, vsnes_state, init_vsdual,   ROT0, "Nintendo Co., Ltd.",     "Vs. BaseBall (Japan, set BA A-1)",     0 )
+GAME( 1984, vsbball,  0,         vsdual_pi,     vsbball,  vsnes_state, init_vsdual,   ROT0, "Nintendo of America",    "Vs. Baseball (US, set BA E-1)",        0 )
+GAME( 1984, vsbballj, vsbball,   vsdual_pi,     vsbballj, vsnes_state, init_vsdual,   ROT0, "Nintendo Co., Ltd.",     "Vs. Baseball (Japan, set BA A-3)",     0 )
+GAME( 1984, vsbballja,vsbball,   vsdual_pi,     vsbballj, vsnes_state, init_vsdual,   ROT0, "Nintendo Co., Ltd.",     "Vs. Baseball (Japan, set BA A-2)",     0 )
+GAME( 1984, vsbballjb,vsbball,   vsdual_pi,     vsbballj, vsnes_state, init_vsdual,   ROT0, "Nintendo Co., Ltd.",     "Vs. Baseball (Japan, set BA A-1)",     0 )
 GAME( 1984, iceclmrd, 0,         vsdual_pi,     iceclmrj, vsnes_state, init_vsdual,   ROT0, "Nintendo",               "Vs. Ice Climber Dual (set IC4-4 A-1)", 0 )
