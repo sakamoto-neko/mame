@@ -11,6 +11,7 @@
  *   - cache emulation
  *
  */
+
 #include "emu.h"
 #include "mips1.h"
 #include "mips1dsm.h"
@@ -21,8 +22,13 @@
 #define LOG_TLB     (1U << 1)
 #define LOG_IOP     (1U << 2)
 #define LOG_RISCOS  (1U << 3)
+#define LOG_TX39_GENERAL (1U << 4)
+
+#include <iostream>
 
 //#define VERBOSE     (LOG_GENERAL|LOG_TLB)
+#define VERBOSE (LOG_TX39_GENERAL)
+//#define LOG_OUTPUT_STREAM std::cout
 
 #include "logmacro.h"
 
@@ -53,6 +59,7 @@ DEFINE_DEVICE_TYPE(R3052E,      r3052e_device,    "r3052e",  "IDT R3052E")
 DEFINE_DEVICE_TYPE(R3071,       r3071_device,     "r3071",   "IDT R3071")
 DEFINE_DEVICE_TYPE(R3081,       r3081_device,     "r3081",   "IDT R3081")
 DEFINE_DEVICE_TYPE(SONYPS2_IOP, iop_device,       "sonyiop", "Sony Playstation 2 IOP")
+DEFINE_DEVICE_TYPE(TX3927,	    tx3927_device,    "tx3927",  "Toshiba TX3927")
 
 ALLOW_SAVE_TYPE(mips1core_device_base::branch_state);
 
@@ -300,6 +307,13 @@ void mips1core_device_base::execute_run()
 				case 0x0d: // BREAK
 					generate_exception(EXCEPTION_BREAK);
 					break;
+				case 0x0e: // SDBBP
+					// TODO: Implement properly?
+					generate_exception(EXCEPTION_BREAK);
+					break;
+				case 0x0f:
+					// SYNC
+					break;
 				case 0x10: // MFHI
 					m_r[RDREG] = m_hi;
 					break;
@@ -315,6 +329,7 @@ void mips1core_device_base::execute_run()
 				case 0x18: // MULT
 					{
 						u64 product = mul_32x32(m_r[RSREG], m_r[RTREG]);
+						m_r[RDREG] = product & 0xffffffff;
 
 						m_lo = product;
 						m_hi = product >> 32;
@@ -324,6 +339,7 @@ void mips1core_device_base::execute_run()
 				case 0x19: // MULTU
 					{
 						u64 product = mulu_32x32(m_r[RSREG], m_r[RTREG]);
+						m_r[RDREG] = product & 0xffffffff;
 
 						m_lo = product;
 						m_hi = product >> 32;
@@ -409,7 +425,7 @@ void mips1core_device_base::execute_run()
 				 * instruction if the branch is not taken, whereas the former
 				 * execute the delay slot instruction regardless.
 				 */
-				switch (RTREG & 0x1d)
+				switch (RTREG & 0x1f)
 				{
 				case 0x00: // BLTZ
 					if (s32(m_r[RSREG]) < 0)
@@ -425,20 +441,70 @@ void mips1core_device_base::execute_run()
 						m_branch_target = m_pc + 4 + (s32(SIMMVAL) << 2);
 					}
 					break;
-				case 0x10: // BLTZAL
+				case 0x02: // BLTZL
 					if (s32(m_r[RSREG]) < 0)
 					{
 						m_branch_state = BRANCH;
 						m_branch_target = m_pc + 4 + (s32(SIMMVAL) << 2);
-						m_r[31] = m_pc + 8;
+					}
+					else
+					{
+						m_pc += 4;
 					}
 					break;
-				case 0x11: // BGEZAL
+				case 0x03: // BGEZL
 					if (s32(m_r[RSREG]) >= 0)
 					{
 						m_branch_state = BRANCH;
 						m_branch_target = m_pc + 4 + (s32(SIMMVAL) << 2);
-						m_r[31] = m_pc + 8;
+					}
+					else
+					{
+						m_pc += 4;
+					}
+					break;
+				case 0x10: // BLTZAL
+					m_r[31] = m_pc + 8;
+
+					if (s32(m_r[RSREG]) < 0)
+					{
+						m_branch_state = BRANCH;
+						m_branch_target = m_pc + 4 + (s32(SIMMVAL) << 2);
+					}
+					break;
+				case 0x11: // BGEZAL
+					m_r[31] = m_pc + 8;
+
+					if (s32(m_r[RSREG]) >= 0)
+					{
+						m_branch_state = BRANCH;
+						m_branch_target = m_pc + 4 + (s32(SIMMVAL) << 2);
+					}
+					break;
+				case 0x12: // BLTZALL
+					m_r[31] = m_pc + 8;
+
+					if (s32(m_r[RSREG]) < 0)
+					{
+						m_branch_state = BRANCH;
+						m_branch_target = m_pc + 4 + (s32(SIMMVAL) << 2);
+					}
+					else
+					{
+						m_pc += 4;
+					}
+					break;
+				case 0x13: // BGEZALL
+					m_r[31] = m_pc + 8;
+
+					if (s32(m_r[RSREG]) >= 0)
+					{
+						m_branch_state = BRANCH;
+						m_branch_target = m_pc + 4 + (s32(SIMMVAL) << 2);
+					}
+					else
+					{
+						m_pc += 4;
 					}
 					break;
 				default:
@@ -530,6 +596,70 @@ void mips1core_device_base::execute_run()
 			case 0x13: // COP3
 				handle_cop3(op);
 				break;
+			case 0x14: // BEQL
+				if (m_r[RSREG] == m_r[RTREG])
+				{
+					m_branch_state = BRANCH;
+					m_branch_target = m_pc + 4 + (s32(SIMMVAL) << 2);
+				}
+				else
+				{
+					m_pc += 4;
+				}
+				break;
+			case 0x15: // BNEL
+				if (m_r[RSREG] != m_r[RTREG])
+				{
+					m_branch_state = BRANCH;
+					m_branch_target = m_pc + 4 + (s32(SIMMVAL) << 2);
+				}
+				else
+				{
+					m_pc += 4;
+				}
+				break;
+			case 0x16: // BLEZL
+				if (s32(m_r[RSREG]) <= 0)
+				{
+					m_branch_state = BRANCH;
+					m_branch_target = m_pc + 4 + (s32(SIMMVAL) << 2);
+				}
+				else
+				{
+					m_pc += 4;
+				}
+				break;
+			case 0x17: // BGTZL
+				if (s32(m_r[RSREG]) > 0)
+				{
+					m_branch_state = BRANCH;
+					m_branch_target = m_pc + 4 + (s32(SIMMVAL) << 2);
+				}
+				else
+				{
+					m_pc += 4;
+				}
+				break;
+			case 0x1c: // MADD/MADDU
+				{
+					// Note: "To guarantee correct operation even if an interrupt occurs,
+					// neither of the two instructions following MADD should be DIV or DIVU
+					// instructions which modify the HI and LO register contents"
+					u64 product = 0;
+
+					if (op & 1) // MADDU
+						product += mulu_32x32(m_r[RSREG], m_r[RTREG]);
+					else // MADD
+						product += mul_32x32(m_r[RSREG], m_r[RTREG]);
+
+					product += (uint64_t(m_hi) << 32) + m_lo;
+
+					m_lo = product;
+					m_hi = product >> 32;
+					m_r[RDREG] = m_lo;
+					m_icount -= 11;
+				}
+				break;
 			case 0x20: // LB
 				load<u8>(SIMMVAL + m_r[RSREG], [this, op](s8 temp) { m_r[RTREG] = temp; });
 				break;
@@ -565,6 +695,8 @@ void mips1core_device_base::execute_run()
 				break;
 			case 0x2e: // SWR
 				swr(op);
+				break;
+			case 0x2f: // CACHE
 				break;
 			case 0x31: // LWC1
 				handle_cop1(op);
@@ -911,6 +1043,28 @@ void mips1core_device_base::handle_cop0(u32 const op)
 				m_branch_target = m_pc + 4 + (s32(SIMMVAL) << 2);
 			}
 			break;
+		case 0x02: // BC0FL
+			if (!m_in_brcond[0]())
+			{
+				m_branch_state = BRANCH;
+				m_branch_target = m_pc + 4 + (s32(SIMMVAL) << 2);
+			}
+			else
+			{
+				m_pc += 4;
+			}
+			break;
+		case 0x03: // BC0TL
+			if (m_in_brcond[0]())
+			{
+				m_branch_state = BRANCH;
+				m_branch_target = m_pc + 4 + (s32(SIMMVAL) << 2);
+			}
+			else
+			{
+				m_pc += 4;
+			}
+			break;
 		default:
 			generate_exception(EXCEPTION_INVALIDOP);
 			break;
@@ -1000,6 +1154,27 @@ void mips1core_device_base::handle_cop2(u32 const op)
 					m_branch_state = BRANCH;
 					m_branch_target = m_pc + 4 + (s32(SIMMVAL) << 2);
 				}
+			case 0x02: // BC2FL
+				if (!m_in_brcond[2]())
+				{
+					m_branch_state = BRANCH;
+					m_branch_target = m_pc + 4 + (s32(SIMMVAL) << 2);
+				}
+				else
+				{
+					m_pc += 4;
+				}
+				break;
+			case 0x03: // BC2TL
+				if (m_in_brcond[2]())
+				{
+					m_branch_state = BRANCH;
+					m_branch_target = m_pc + 4 + (s32(SIMMVAL) << 2);
+				}
+				else
+				{
+					m_pc += 4;
+				}
 				break;
 			default:
 				generate_exception(EXCEPTION_INVALIDOP);
@@ -1036,6 +1211,28 @@ void mips1core_device_base::handle_cop3(u32 const op)
 				{
 					m_branch_state = BRANCH;
 					m_branch_target = m_pc + 4 + (s32(SIMMVAL) << 2);
+				}
+				break;
+			case 0x02: // BC3FL
+				if (!m_in_brcond[3]())
+				{
+					m_branch_state = BRANCH;
+					m_branch_target = m_pc + 4 + (s32(SIMMVAL) << 2);
+				}
+				else
+				{
+					m_pc += 4;
+				}
+				break;
+			case 0x03: // BC3TL
+				if (m_in_brcond[3]())
+				{
+					m_branch_state = BRANCH;
+					m_branch_target = m_pc + 4 + (s32(SIMMVAL) << 2);
+				}
+				else
+				{
+					m_pc += 4;
 				}
 				break;
 			default:
@@ -1474,6 +1671,28 @@ void mips1_device_base::handle_cop1(u32 const op)
 				{
 					m_branch_state = BRANCH;
 					m_branch_target = m_pc + 4 + (s32(SIMMVAL) << 2);
+				}
+				break;
+			case 0x02: // BC1FL
+				if (!(m_fcr31 & FCR31_C))
+				{
+					m_branch_state = BRANCH;
+					m_branch_target = m_pc + 4 + (s32(SIMMVAL) << 2);
+				}
+				else
+				{
+					m_pc += 4;
+				}
+				break;
+			case 0x03: // BC1TL
+				if (m_fcr31 & FCR31_C)
+				{
+					m_branch_state = BRANCH;
+					m_branch_target = m_pc + 4 + (s32(SIMMVAL) << 2);
+				}
+				else
+				{
+					m_pc += 4;
 				}
 				break;
 
@@ -1971,6 +2190,11 @@ bool mips1_device_base::memory_translate(int spacenum, int intention, offs_t &ad
 		}
 	}
 
+	if (m_cpurev == 0x3927) { //&& address >= 0xfffe0000 && address <= 0xffff0000) {
+		// TX3927 peripherals
+		return true;
+	}
+
 	// key is a combination of VPN and ASID
 	u32 const key = (address & EH_VPN) | (m_cop0[COP0_EntryHi] & EH_ASID);
 
@@ -2036,4 +2260,1126 @@ bool mips1_device_base::memory_translate(int spacenum, int intention, offs_t &ad
 	}
 
 	return false;
+}
+
+////////////////////////////////
+
+tx3927_sio::tx3927_sio(const machine_config& mconfig, const char* tag, device_t* owner, uint32_t clock) :
+	device_t(mconfig, TX3927_SIO, tag, owner, clock),
+	device_serial_interface(mconfig, *this),
+	m_irq_handler(*this),
+	m_txd_handler(*this),
+	m_dtr_handler(*this),
+	m_rts_handler(*this)
+{
+}
+
+void tx3927_sio::device_start()
+{
+	m_timer = timer_alloc(0);
+}
+
+void tx3927_sio::device_reset()
+{
+	m_sifcr = 0;
+	m_sidisr = 0x2000;
+
+	m_silcr = 0;
+	m_sidicr = 0;
+	m_siscisr = 0b000110;
+	m_siflcr = 0b0000000110000010;
+	m_sibgr = 0x3ff;
+
+	m_data_bits_count = 8;
+
+	std::fill(std::begin(m_sitfifo), std::end(m_sitfifo), 0);
+	m_sitfifo_len = 0;
+
+	std::fill(std::begin(m_sirfifo), std::end(m_sirfifo), 0);
+	m_sirfifo_len = 0;
+}
+
+void tx3927_sio::device_resolve_objects()
+{
+	// resolve callbacks
+	m_irq_handler.resolve_safe();
+	m_txd_handler.resolve_safe();
+	m_rts_handler.resolve_safe();
+	m_dtr_handler.resolve_safe();
+}
+
+void tx3927_sio::device_timer(emu_timer& timer, device_timer_id tid, int param)
+{
+	transmit_clock(false);
+	sio_timer_adjust();
+}
+
+void tx3927_sio::transmit_clock(bool is_cts)
+{
+	// TODO: Support transmit enable select where CTS* hardware signal is used
+
+	if (is_transmit_register_empty() && m_sitfifo_len > 0)
+	{
+		// If TSDE is set then SIO halts transmission until the bit is cleared
+		if (BIT(m_siflcr, SIFLCR_TSDE))
+			return;
+
+		auto r = m_sitfifo[0];
+		std::copy(std::begin(m_sitfifo) + 1, std::end(m_sitfifo), std::begin(m_sitfifo));
+		m_sitfifo_len--;
+		transmit_register_setup(r);
+	}
+
+	// Bits are only transmitted every 16 SIOCLK cycles
+	if (m_transmit_bit != 0) {
+		if (m_transmit_bit == 15) {
+			m_transmit_bit = 0;
+		}
+
+		return;
+	}
+	else {
+		m_transmit_bit++;
+	}
+
+	if (!is_transmit_register_empty())
+	{
+		uint8_t data = transmit_register_get_data_bit();
+		LOGMASKED(LOG_TX39_GENERAL, "Tx Present a %d\n", data);
+		m_txd_handler(data);
+	}
+}
+
+WRITE_LINE_MEMBER(tx3927_sio::write_rxd)
+{
+	if (!BIT(m_siflcr, SIFLCR_RSDE)) {
+		return;
+	}
+	// TODO?: The receiver controller looks for the high-to-low transition of a start bit on the RXD pin. A Low on
+	// RXD is not treated as a start bit at the time when the SIFLCR.RSDE bit is cleared.When a valid start
+	// bit has been detected, the receive controller begins sampling data received on the RXD pin
+
+	LOGMASKED(LOG_TX39_GENERAL, "sio: Presented a %02x\n", state);
+
+	m_recv_timeout_counter = machine().time();
+
+	receive_register_update_bit(state);
+
+	if (is_receive_register_full())
+	{
+		receive_register_extract();
+
+		auto c = get_received_char();
+		auto status = 0;
+
+		if (is_receive_parity_error()) {
+			status |= 1 << (SIDISR_UPER - SIDISR_UOER);
+		}
+
+		if (is_receive_framing_error()) {
+			status |= 1 << (SIDISR_UFER - SIDISR_UOER);
+
+			m_siscisr |= 1 << SISCISR_UBRKD;
+			m_siscisr |= 1 << SISCISR_RBRKD;
+
+			if (BIT(m_sidicr, SIDICR_STIE_UBRKD) || BIT(m_sidicr, SIDICR_STIE_RBRKD)) {
+				// Set STIS when UBRKD or RBRKD is triggered
+				m_sidisr |= 1 << SIDISR_STIS;
+			}
+		}
+		else {
+			// Automatically cleared when a non-break frame is received
+			m_siscisr |= ~(1 << SISCISR_RBRKD);
+		}
+
+		if (m_sirfifo_len < 16) {
+			m_sirfifo[m_sirfifo_len] = (status << 8) | c;
+			m_sirfifo_len++;
+		}
+		else {
+			// Overrun status bit of the 16th byte in the receive FIFO is set when the buffer is 100% full
+			m_sirfifo[15] |= 1 << (SIDISR_UOER - SIDISR_UOER);
+		}
+
+		// TODO: Set flags as required for received byte(?)
+		m_siflcr |= 1 << SIFLCR_RTSSC; // Software control RTS
+
+		if (BIT(m_siflcr, SIFLCR_RCS) && m_sirfifo_len >= BIT(m_siflcr, SIFLCR_RTSTL, 4) && BIT(m_siflcr, SIFLCR_RTSTL, 4) != 0) {
+			// Also needs hardware control RTS to be triggered
+			m_rts_handler(1);
+		}
+	}
+}
+
+WRITE_LINE_MEMBER(tx3927_sio::write_cts)
+{
+	if (BIT(m_sidicr, SIDICR_STIE_CTSAC) && BIT(m_sidicr, SIDICR_CTSAC, 2) != 0) {
+		bool t;
+
+		if (BIT(m_sidicr, SIDICR_CTSAC, 2) == 1) {
+			// Falling edge on the CTS* pin
+			t = m_cts && !state;
+		}
+		else if (BIT(m_sidicr, SIDICR_CTSAC, 2) == 2) {
+			// Rising edge on the CTS* pin
+			t = !m_cts && state;
+		}
+		else {
+			// Both rising and falling edges on the CTS* pin
+			t = true;
+		}
+
+		if (t) // Sets STIS to 1 when the change specified by CTSAC occurs in CTSS
+			m_sidisr |= 1 << SIDISR_STIS;
+	}
+
+	m_cts = state;
+	m_siscisr |= 1 << SISCISR_CTSS;
+	transmit_clock(true);
+}
+
+void tx3927_sio::sio_timer_adjust()
+{
+	constexpr int clock_divs[4] = { 2, 8, 32, 128 };
+	const auto clock_div = clock_divs[BIT(m_sibgr, 8, 2)];
+	const auto brd_div = m_sibgr & 0xff;
+	const auto imclk = attotime::from_hz(133000000.0 / 4);
+	const auto sclk = attotime::from_hz(133000000.0 / 4);
+	const auto target_clock = BIT(m_clock_sel, 1) ? sclk : imclk;
+
+	if (BIT(m_clock_sel, 0)) {
+		attotime n_time = attotime::never;
+
+		// Baud rate generator
+		if (clock_div != 0 && brd_div != 0)
+		{
+			n_time = attotime::from_hz(target_clock.as_hz() / clock_div / brd_div / 16);
+			//LOGMASKED(LOG_TX39_GENERAL, "sio_timer_adjust( %s ) = %s ( %d x %d )\n", tag(), n_time.as_string(), clock_div, brd_div);
+		}
+		else {
+			//LOGMASKED(LOG_TX39_GENERAL, "sio_timer_adjust( %s ) invalid baud rate ( %d x %d )\n", tag(), clock_div, brd_div);
+		}
+
+		m_timer->adjust(n_time);
+	}
+	else {
+		// Internal/external clock
+		m_timer->adjust(target_clock);
+	}
+}
+
+uint32_t tx3927_sio::read(offs_t offset, uint32_t mem_mask)
+{
+	auto sio_offset = (offset & 0x3f) * 4;
+
+	//LOGMASKED(LOG_TX39_GENERAL, "%s: sio_read %08x %08x | %04x\n", machine().describe_context().c_str(), offset * 4, mem_mask, sio_offset);
+
+	switch (sio_offset) {
+	case 0x00:
+		return m_silcr;
+
+	case 0x04:
+		return m_sidicr;
+
+	case 0x08: {
+		m_sidisr &= ~0x0f;
+		m_sidisr |= m_sirfifo_len;
+
+		if (8 - m_sitfifo_len > 0) {
+			// Transmit Data Empty (has at least 1 empty location)
+			m_siscisr |= 1 << SISCISR_TRDY;
+
+			if (BIT(m_sidicr, SIDICR_STIE_TRDY)) // Sets STIS to 1 when TRDY is set
+				m_sidisr |= 1 << SIDISR_STIS;
+		}
+		else {
+			m_siscisr &= ~(1 << SISCISR_TRDY);
+		}
+
+		if (m_sitfifo_len <= 0 && is_transmit_register_empty()) {
+			// Transmission Complete
+			m_siscisr |= 1 << SISCISR_TXALS;
+
+			if (BIT(m_sidicr, SIDICR_STIE_TXALS)) // Sets STIS to 1 when TXALS is set
+				m_sidisr |= 1 << SIDISR_STIS;
+		}
+		else {
+			m_siscisr &= ~(1 << SISCISR_TXALS);
+		}
+
+		const int sitfifo_len_limits[4] = { 1, 4, 8, 0 };
+		if (BIT(m_sifcr, SIFCR_TDIL, 2) != 3 && 8 - m_sitfifo_len >= sitfifo_len_limits[BIT(m_sifcr, SIFCR_TDIL, 2)]) {
+			// Transmit Data Empty
+			m_sidisr |= 1 << SIDISR_TDIS;
+
+			if (BIT(m_sidicr, SIDICR_TIE) && !BIT(m_sidicr, SIDICR_TDE)) {
+				// Assert SITXIREQ (IRQ)
+			}
+			else if (!BIT(m_sidicr, SIDICR_TIE) && BIT(m_sidicr, SIDICR_TDE)) {
+				// Assert SITXDREQ (DMA)
+			}
+		}
+
+		const int sirfifo_len_limits[4] = { 1, 4, 8, 12 };
+		if (m_sirfifo_len >= sirfifo_len_limits[BIT(m_sifcr, SIFCR_RDIL, 2)]) {
+			// Receive Data Full
+			m_sidisr |= 1 << SIDISR_RDIS;
+
+			if (BIT(m_sidicr, SIDICR_RIE) && !BIT(m_sidicr, SIDICR_RDE)) {
+				// Assert SIRXIREQ (IRQ)
+			}
+			else if (!BIT(m_sidicr, SIDICR_RIE) && BIT(m_sidicr, SIDICR_RDE)) {
+				// Assert SIRXDREQ (DMA)
+			}
+		}
+
+		//LOGMASKED(LOG_TX39_GENERAL, "sio data %08x\n", m_sidisr);
+
+		return m_sidisr;
+	}
+
+	case 0x0c:
+		if (8 - m_sitfifo_len > 0) {
+			// Transmit Data Empty (has at least 1 empty location)
+			m_siscisr |= 1 << SISCISR_TRDY;
+
+			if (BIT(m_sidicr, SIDICR_STIE_TRDY)) // Sets STIS to 1 when TRDY is set
+				m_sidisr |= 1 << SIDISR_STIS;
+		}
+		else {
+			m_siscisr &= ~(1 << SISCISR_TRDY);
+		}
+
+		if (m_sitfifo_len <= 0 && is_transmit_register_empty()) {
+			// Transmission Complete
+			m_siscisr |= 1 << SISCISR_TXALS;
+
+			if (BIT(m_sidicr, SIDICR_STIE_TXALS)) // Sets STIS to 1 when TXALS is set
+				m_sidisr |= 1 << SIDISR_STIS;
+		}
+		else {
+			m_siscisr &= ~(1 << SISCISR_TXALS);
+		}
+
+		//LOGMASKED(LOG_TX39_GENERAL, "sio data %08x\n", m_siscisr);
+
+		return m_siscisr;
+	case 0x10:
+		return m_sifcr;
+
+	case 0x14:
+		return m_siflcr;
+
+	case 0x18:
+		return m_sibgr;
+
+	case 0x20: {
+		uint32_t r = 0;
+
+		if (m_sirfifo_len > 0) {
+			r = m_sirfifo[0] & 0xff;
+
+			auto status = m_sirfifo[0] >> 8;
+			std::copy(std::begin(m_sirfifo) + 1, std::end(m_sirfifo), std::begin(m_sirfifo));
+			m_sirfifo_len--;
+
+			if (BIT(status, SIDISR_UOER - SIDISR_UOER)) {
+				m_sidisr |= 1 << SIDISR_UOER;
+				m_sidisr |= 1 << SIDISR_ERI;
+			}
+			else {
+				m_sidisr &= ~(1 << SIDISR_UOER);
+			}
+
+			if (BIT(status, SIDISR_UPER - SIDISR_UOER)) {
+				m_sidisr |= 1 << SIDISR_UPER;
+				m_sidisr |= 1 << SIDISR_ERI;
+			}
+			else {
+				m_sidisr &= ~(1 << SIDISR_UPER);
+			}
+
+			if (BIT(status, SIDISR_UFER - SIDISR_UOER)) {
+				m_sidisr |= 1 << SIDISR_UFER;
+				m_sidisr |= 1 << SIDISR_ERI;
+			}
+			else {
+				m_sidisr &= ~(1 << SIDISR_UFER);
+			}
+
+			if (BIT(status, SIDISR_UBRK - SIDISR_UOER)) {
+				m_sidisr |= 1 << SIDISR_UBRK;
+			}
+			else {
+				m_sidisr &= ~(1 << SIDISR_UBRK);
+			}
+
+			if (m_sirfifo_len > 0) {
+				m_sidisr |= 1 << SIDISR_UVALID;
+			}
+			else {
+				m_sidisr &= ~(1 << SIDISR_UVALID);
+			}
+		}
+		else {
+			// Error Interrupt
+			m_sidisr |= 1 << SIDISR_ERI;
+		}
+
+		if (!BIT(m_sidicr, SIDICR_RDE) && BIT(m_sidicr, SIDICR_RIE) && (BIT(m_sidisr, SIDISR_ERI) || BIT(m_sidisr, SIDISR_TOUT))) {
+			// TODO: Receive data serial interrupt
+			//m_status |= SIO_STATUS_IRQ;
+			m_irq_handler(1);
+		}
+		else if (BIT(m_sidicr, SIDICR_RDE) && !BIT(m_sidicr, SIDICR_RIE) && (BIT(m_sidisr, SIDISR_RDIS) || BIT(m_sidisr, SIDISR_TOUT))) {
+			// TODO: Receive data DMA interrupt
+		}
+
+		if (BIT(m_sidicr, SIDICR_SPIE) && BIT(m_sidisr, SIDISR_ERI)) {
+			// TODO: Assert SISPIREQ
+		}
+
+		return r;
+	}
+	}
+
+	return 0;
+}
+
+void tx3927_sio::write(offs_t offset, uint32_t data, uint32_t mem_mask)
+{
+	auto sio_offset = (offset & 0x3f) * 4;
+
+	LOGMASKED(LOG_TX39_GENERAL, "%s: sio_write %08x %08x %08x\n", machine().describe_context().c_str(), offset * 4, data, mem_mask);
+
+	switch (sio_offset) {
+	case 0x00:
+	{
+		//auto txd_open_drain_enable = BIT(m_silcr, 13); // Multidrop only
+		//auto transmit_wakeup_bit = BIT(m_silcr, 14); // Multidrop only
+		//auto receive_wakeup_bit = BIT(m_silcr, 15); // Multidrop only
+
+		auto stop_bits = BIT(data, 2) ? STOP_BITS_2 : STOP_BITS_1;
+		auto parity_enabled = BIT(data, 3) && !BIT(data, 1);
+		auto parity = parity_enabled ? (BIT(data, 4) ? PARITY_EVEN : PARITY_ODD) : PARITY_ODD;
+		m_data_bits_count = BIT(data, 0) ? 7 : 8;
+		set_data_frame(1, m_data_bits_count, parity, stop_bits);
+
+		if (BIT(data, 5, 2) != m_clock_sel) {
+			m_clock_sel = BIT(data, 5, 2);
+			sio_timer_adjust();
+		}
+
+		m_silcr = data;
+		break;
+	}
+
+	case 0x04:
+		m_sidicr = data;
+		break;
+
+	case 0x08:
+		m_sidisr = (m_sidisr & 0xf800) | (data & ~0xf800);
+		break;
+
+	case 0x0c:
+		m_siscisr = (m_siscisr & ~0x21) | (data & 0x21);
+		break;
+
+	case 0x10: {
+		if (BIT(data, SIFCR_SWRST)) {
+			// TODO: SIO reset
+			data &= ~(1 << SIFCR_SWRST);
+		}
+
+		if (BIT(data, SIFCR_FRSTE) && BIT(data, SIFCR_TFRST)) {
+			// Transmit FIFO reset
+			data &= ~(1 << SIFCR_TFRST);
+			m_sitfifo_len = 0;
+		}
+
+		if (BIT(data, SIFCR_FRSTE) && BIT(data, SIFCR_RFRST)) {
+			// Receive FIFO reset
+			data &= ~(1 << SIFCR_RFRST);
+			m_sirfifo_len = 0;
+		}
+
+		m_sifcr = data;
+		break;
+	}
+
+	case 0x14:
+		m_siflcr = data;
+		break;
+
+	case 0x18:
+		if (data != m_sibgr) {
+			m_sibgr = data;
+			sio_timer_adjust();
+		}
+		break;
+
+	case 0x1c:
+		LOGMASKED(LOG_TX39_GENERAL, "sio_write %08x %c\n", data, data & 0xff);
+
+		if (m_sitfifo_len < 8) {
+			//m_sitfifo[m_sitfifo_len++] = data;
+		}
+
+		break;
+	}
+}
+
+DEFINE_DEVICE_TYPE(TX3927_SIO, tx3927_sio, "tx3927_sio", "Toshiba TX3927 Serial I/O")
+
+////////////////////////////////
+
+tx3927_device::tx3927_device(const machine_config& mconfig, const char* tag, device_t* owner, uint32_t clock, size_t icache_size, size_t dcache_size) :
+	mips1_device_base(mconfig, TX3927, tag, owner, clock, 0x3927, icache_size, dcache_size),
+	m_program_config("program", ENDIANNESS_BIG, 32, 32, 0, address_map_constructor(FUNC(tx3927_device::amap), this)),
+	m_sio(*this, "sio%d", 0L),
+	m_timer_cb(*this)
+{
+}
+
+void tx3927_device::device_add_mconfig(machine_config& config)
+{
+	mips1core_device_base::device_add_mconfig(config);
+
+	TX3927_SIO(config, "sio0", 0);
+	TX3927_SIO(config, "sio1", 0);
+}
+
+void tx3927_device::device_reset()
+{
+	mips1core_device_base::device_reset();
+
+	m_irq_status = 0;
+	m_irq_control_enable = 0;
+	m_irq_mask = 0;
+	std::fill(std::begin(m_interrupt_levels), std::end(m_interrupt_levels), 0);
+
+	std::fill(std::begin(pio_flags), std::end(pio_flags), 0);
+
+	for (int i = 0; i < 3; i++) {
+		m_tmr[i].TMTCR = 0;
+		m_tmr[i].TMTISR = 0;
+		m_tmr[i].TMCPRA = 0xffffff;
+		m_tmr[i].TMCPRB = 0xffffff;
+		m_tmr[i].TMITMR = 0;
+		m_tmr[i].TMCCDR = 0;
+		m_tmr[i].TMPGMR = 0;
+		m_tmr[i].TMWTMR = 0;
+		m_tmr[i].TMTRR = 0;
+		m_tmr[i].irq_triggered = false;
+		m_tmr[i].irq_triggered_once = false;
+	}
+
+	m_ccfg = 0x0d;
+	m_crir = 0x39270011;
+	m_pcfg = 0;
+	m_tear = 0;
+	m_pdcr = 0;
+
+	m_pci_istat = 0;
+	m_pci_pcistat = 0x210;
+	m_pcicmd = 0;
+	m_pci_iba = 0;
+	m_pci_mba = 0;
+	m_pci_svid = 0;
+	m_pci_ssvid = 0;
+	m_pci_ml = 0xff;
+	m_pci_mg = 0xff;
+	m_pci_ip = 0x01;
+	m_pci_il = 0x00;
+	m_ipcidata = 0;
+	m_pci_icmd = 0;
+	m_pci_ibe = 0;
+	m_pci_lbc = 0;
+	m_pci_mmas = 0;
+	m_pci_iomas = 0;
+	m_pci_ipciaddr = 0;
+	m_pci_ipcidata = 0;
+}
+
+void tx3927_device::device_resolve_objects()
+{
+	// resolve callbacks
+	m_timer_cb.resolve_safe();
+}
+
+device_memory_interface::space_config_vector tx3927_device::memory_space_config() const
+{
+	return space_config_vector{
+		std::make_pair(AS_PROGRAM, &m_program_config),
+		std::make_pair(1, &m_icache_config),
+		std::make_pair(2, &m_dcache_config)
+	};
+}
+
+void tx3927_device::amap(address_map& map)
+{
+	map(0xfffe8000, 0xfffe8fff).rw(FUNC(tx3927_device::sdram_read), FUNC(tx3927_device::sdram_write));
+	map(0xfffe9000, 0xfffe9fff).rw(FUNC(tx3927_device::rom_read), FUNC(tx3927_device::rom_write));
+	map(0xfffeb000, 0xfffebfff).rw(FUNC(tx3927_device::dma_read), FUNC(tx3927_device::dma_write));
+	map(0xfffec000, 0xfffecfff).rw(FUNC(tx3927_device::irc_read), FUNC(tx3927_device::irc_write));
+	map(0xfffed000, 0xfffedfff).rw(FUNC(tx3927_device::pci_read), FUNC(tx3927_device::pci_write));
+	map(0xfffee000, 0xfffeefff).rw(FUNC(tx3927_device::ccfg_read), FUNC(tx3927_device::ccfg_write));
+	map(0xfffef000, 0xfffef2ff).rw(FUNC(tx3927_device::tmr_read), FUNC(tx3927_device::tmr_write));
+	map(0xfffef300, 0xfffef3ff).rw(m_sio[0], FUNC(tx3927_sio::read), FUNC(tx3927_sio::write));
+	map(0xfffef400, 0xfffef4ff).rw(m_sio[1], FUNC(tx3927_sio::read), FUNC(tx3927_sio::write));
+	map(0xfffef500, 0xfffef5ff).rw(FUNC(tx3927_device::pio_read), FUNC(tx3927_device::pio_write));
+}
+
+void tx3927_device::device_start()
+{
+	mips1core_device_base::device_start();
+
+	m_timer[0] = machine().scheduler().timer_alloc(timer_expired_delegate(FUNC(tx3927_device::update_timer<0>), this));
+	m_timer[1] = machine().scheduler().timer_alloc(timer_expired_delegate(FUNC(tx3927_device::update_timer<1>), this));
+	m_timer[2] = machine().scheduler().timer_alloc(timer_expired_delegate(FUNC(tx3927_device::update_timer<2>), this));
+
+	update_timer_speed();
+}
+
+constexpr double TX3927_TIMER_DIVISOR = 32;
+void tx3927_device::update_timer_speed()
+{
+	// TODO: Add support for counter clock select
+
+	for (int i = 0; i < 3; i++) {
+		auto clock_speed = 133000000.0 / 4; // IMCLK speed is clock speed (133 MHz) / 4
+
+		auto divisor = 0;
+		if (BIT(m_tmr[i].TMTCR, TMTCR_CCDE)) {
+			// Counter clock divide enable
+			divisor = m_tmr[i].TMCCDR;
+		}
+		clock_speed /= std::pow(2, divisor + 1);
+
+		// Divide clock speed further for performance reasons
+		// The timer will tick up an equivalent amount to make up for the speed difference at the current divisor
+		clock_speed /= TX3927_TIMER_DIVISOR;
+
+		auto imclk = attotime::from_hz(clock_speed);
+		m_timer[i]->adjust(attotime::zero, 0, imclk);
+	}
+}
+
+template <int N> TIMER_CALLBACK_MEMBER(tx3927_device::update_timer)
+{
+	if (BIT(m_tmr[N].TMTCR, TMTCR_TMODE, 2) == 3) {
+		// Timer not enabled
+		m_timer[N]->adjust(attotime::never);
+		return;
+	}
+
+	if (BIT(m_tmr[N].TMTCR, TMTCR_TCE) && m_tmr[N].TMTRR < m_tmr[N].TMCPRA) {
+		// Running the timer at the exact speed it needs to be causes huge issues with performance, so just increase the step for each tick
+		m_tmr[N].TMTRR += TX3927_TIMER_DIVISOR;
+
+		if (m_tmr[N].TMTRR > 0xffffff)
+			m_tmr[N].TMTRR = 0xffffff;
+
+		//LOGMASKED(LOG_TX39_GENERAL, "tmr[%d].TMTRR: %d %d | %d\n", N, m_tmr[N].TMTRR, m_tmr[N].TMCPRA, BIT(m_tmr[N].TMITMR, TMITMR_TIIE));
+	}
+
+	if (m_tmr[N].TMTRR >= m_tmr[N].TMCPRA) {
+		if (BIT(m_tmr[N].TMITMR, TMITMR_TZCE)) {
+			m_tmr[N].TMTRR = 0;
+		}
+
+		if (BIT(m_tmr[N].TMITMR, TMITMR_TIIE))
+		{
+			// Timer Interval Interrupt Enabled
+			m_timer_cb(ASSERT_LINE);
+			m_tmr[N].irq_triggered = true;
+		}
+
+		m_irq_status |= 1 << 13;
+		m_tmr[N].TMTISR |= 1 << TMTISR_TIIS; // Set interrupt on TIIS
+	}
+}
+
+uint32_t tx3927_device::tmr_read(offs_t offset, uint32_t mem_mask)
+{
+	auto tmr_idx = (offset >> 6) & 3;
+	auto tmr_offset = (offset & 0x3f) << 2;
+
+	switch (tmr_offset) {
+	case 0x00:
+		return m_tmr[tmr_idx].TMTCR & 0xff;
+	case 0x04:
+		return m_tmr[tmr_idx].TMTISR & 0xf;
+	case 0x08:
+		return m_tmr[tmr_idx].TMCPRA & 0xffffff;
+	case 0x0c:
+		return m_tmr[tmr_idx].TMCPRB & 0xffffff;
+	case 0x10:
+		return m_tmr[tmr_idx].TMITMR & 0xffff;
+	case 0x20:
+		return m_tmr[tmr_idx].TMCCDR & 0x7;
+	case 0x30:
+		return m_tmr[tmr_idx].TMPGMR & 0xffff;
+	case 0x40:
+		if (tmr_idx == 2) {
+			// Only exists for 3rd timer
+			return m_tmr[tmr_idx].TMWTMR & 0xffff;
+		}
+		break;
+	case 0xf0: {
+		// Timer Read Register
+		return m_tmr[tmr_idx].TMTRR & 0xffffff;
+	}
+	}
+
+	LOGMASKED(LOG_TX39_GENERAL, "%s: tmr read %08x %08x\n", machine().describe_context().c_str(), offset * 4, mem_mask);
+	return 0;
+}
+
+void tx3927_device::tmr_write(offs_t offset, uint32_t data, uint32_t mem_mask)
+{
+	auto tmr_idx = (offset >> 6) & 3;
+	auto tmr_offset = (offset & 0x3f) << 2;
+
+	switch (tmr_offset) {
+	case 0x00:
+		m_tmr[tmr_idx].TMTCR = data & 0xff;
+
+		if (BIT(m_tmr[tmr_idx].TMTCR, TMTCR_TCE) == 0 && BIT(m_tmr[tmr_idx].TMTCR, TMTCR_CRE)) {
+			// Disable + reset enabled = zero counter
+			LOGMASKED(LOG_TX39_GENERAL, "Timer %d counter reset\n", tmr_idx);
+			m_tmr[tmr_idx].TMTRR = 0;
+		}
+
+		update_timer_speed();
+		break;
+	case 0x04:
+		m_tmr[tmr_idx].TMTISR = data & 0xe;
+
+		if (BIT(data, 0) == 0) { // Has no effect when 1 is written
+			if (m_tmr[tmr_idx].irq_triggered) {
+				m_timer_cb(CLEAR_LINE);
+				m_irq_status &= ~(1 << 13);
+			}
+
+			m_tmr[tmr_idx].TMTISR &= ~(1 << 0); // Unset interrupt
+			m_tmr[tmr_idx].irq_triggered = false;
+		}
+
+		break;
+	case 0x08:
+		m_tmr[tmr_idx].TMCPRA = data & 0xffffff;
+		break;
+	case 0x0c:
+		m_tmr[tmr_idx].TMCPRB = data & 0xffffff;
+		break;
+	case 0x10:
+		m_tmr[tmr_idx].TMITMR = data & 0xffff;
+		break;
+	case 0x20:
+		m_tmr[tmr_idx].TMCCDR = data & 0x7;
+		update_timer_speed();
+		break;
+	case 0x30:
+		m_tmr[tmr_idx].TMPGMR = data & 0xffff;
+		break;
+	case 0x40:
+		if (tmr_idx == 2) {
+			m_tmr[tmr_idx].TMWTMR = data & 0xffff;
+		}
+		break;
+	}
+
+	if (offset != 1)
+		LOGMASKED(LOG_TX39_GENERAL, "%s: tmr write %08x %08x %08x\n", machine().describe_context().c_str(), offset * 4, data, mem_mask);
+}
+
+uint32_t tx3927_device::ccfg_read(offs_t offset, uint32_t mem_mask)
+{
+	LOGMASKED(LOG_TX39_GENERAL, "%s: ccfg read %08x %08x\n", machine().describe_context().c_str(), offset * 4, mem_mask);
+	switch (offset * 4) {
+	case 0x00:
+		// CCFG
+		return m_ccfg;
+	case 0x04:
+		// CRIR
+		return m_crir;
+	case 0x08:
+		// PCFG
+		return m_pcfg;
+	case 0x0c:
+		// TEAR
+		return m_tear;
+	case 0x10:
+		// PDCR
+		return m_pdcr;
+	}
+
+	return 0;
+}
+
+void tx3927_device::ccfg_write(offs_t offset, uint32_t data, uint32_t mem_mask)
+{
+	LOGMASKED(LOG_TX39_GENERAL, "%s: ccfg write %08x %08x %08x\n", machine().describe_context().c_str(), offset * 4, data, mem_mask);
+
+	switch (offset * 4) {
+	case 0x00:
+		// CCFG
+		m_ccfg = (m_ccfg & ~0x3dc01) | (data & 0x3dc01);
+		break;
+	case 0x08:
+		// PCFG
+		m_pcfg = data & 0xfffffff;
+		break;
+	case 0x10:
+		// PDCR
+		m_pdcr = data & 0xffffff;
+		break;
+	}
+}
+
+uint32_t tx3927_device::sdram_read(offs_t offset, uint32_t mem_mask)
+{
+	LOGMASKED(LOG_TX39_GENERAL, "%s: sdram_read %08x %08x\n", machine().describe_context().c_str(), offset * 4, mem_mask);
+
+	if ((offset * 4) == 0x20) {
+		// SDCTR1
+		return 0x400;
+	}
+	else if ((offset * 4) == 0x24) {
+		// SDCTR2
+		return 0xff;
+	}
+
+	return 0;
+}
+
+void tx3927_device::sdram_write(offs_t offset, uint32_t data, uint32_t mem_mask)
+{
+	LOGMASKED(LOG_TX39_GENERAL, "%s: sdram_write %08x %08x %08x\n", machine().describe_context().c_str(), offset * 4, data, mem_mask);
+}
+
+uint32_t tx3927_device::rom_read(offs_t offset, uint32_t mem_mask)
+{
+	LOGMASKED(LOG_TX39_GENERAL, "%s: rom_read %08x %08x\n", machine().describe_context().c_str(), offset * 4, mem_mask);
+	return 0;
+}
+
+void tx3927_device::rom_write(offs_t offset, uint32_t data, uint32_t mem_mask)
+{
+	LOGMASKED(LOG_TX39_GENERAL, "%s: rom_write %08x %08x %08x\n", machine().describe_context().c_str(), offset * 4, data, mem_mask);
+}
+
+uint32_t tx3927_device::dma_read(offs_t offset, uint32_t mem_mask)
+{
+	LOGMASKED(LOG_TX39_GENERAL, "%s: dma_read %08x %08x\n", machine().describe_context().c_str(), offset * 4, mem_mask);
+	return 0;
+}
+
+void tx3927_device::dma_write(offs_t offset, uint32_t data, uint32_t mem_mask)
+{
+	LOGMASKED(LOG_TX39_GENERAL, "%s: dma_write %08x %08x %08x\n", machine().describe_context().c_str(), offset * 4, data, mem_mask);
+}
+
+uint32_t tx3927_device::irc_read(offs_t offset, uint32_t mem_mask)
+{
+	uint32_t ret = 0;
+
+	switch (offset * 4) {
+	case 0x00:
+		// Interrupt Control Enable Register
+		ret = m_irq_control_enable;
+		break;
+	case 0x04:
+		// Interrupt Control Mode Register 0
+		break;
+	case 0x08:
+		// Interrupt Control Mode Register 1
+		break;
+	case 0x10:
+		// Interrupt Level 0 000000000111 HDD
+		// Interrupt Level 1 011100000000 CD-ROM
+		ret = m_interrupt_levels[0];
+		break;
+	case 0x14:
+		// Interrupt Level 2 000000000111
+		// Interrupt Level 3 011100000000
+		ret = m_interrupt_levels[1];
+		break;
+	case 0x18:
+		// Interrupt Level 4 000000000111
+		// Interrupt Level 5 011100000000
+		ret = m_interrupt_levels[2];
+		break;
+	case 0x1c:
+		// Interrupt Level 6 000000000111
+		// Interrupt Level 7 011100000000
+		ret = m_interrupt_levels[3];
+		break;
+	case 0x20:
+		// Interrupt Level 8 000000000111
+		// Interrupt Level 9 011100000000
+		ret = m_interrupt_levels[4];
+		break;
+	case 0x24:
+		// Interrupt Level 10 000000000111
+		ret = m_interrupt_levels[5];
+		break;
+	case 0x28:
+		// Interrupt Level 13 011100000000
+		ret = m_interrupt_levels[6];
+		break;
+	case 0x2c:
+		// Interrupt Level 14 000000000111
+		// Interrupt Level 15 011100000000
+		ret = m_interrupt_levels[7];
+		break;
+	case 0x40:
+		// Interrupt Mask Level
+		ret = m_irq_mask;
+		break;
+	case 0x60:
+		// Interrupt Status/Control Register
+		break;
+	case 0x80:
+		// Interrupt Source Status Register
+		ret = m_irq_status;
+		break;
+	case 0xa0:
+		// Interrupt Current Status Register
+		break;
+	}
+
+	LOGMASKED(LOG_TX39_GENERAL, "%s: irc_read %08x | %08x\n", machine().describe_context().c_str(), offset * 4, ret);
+
+	return ret;
+}
+
+void tx3927_device::irc_write(offs_t offset, uint32_t data, uint32_t mem_mask)
+{
+	LOGMASKED(LOG_TX39_GENERAL, "%s: irc_write %08x %08x %08x\n", machine().describe_context().c_str(), offset * 4, data, mem_mask);
+
+	switch (offset * 4) {
+	case 0x00:
+		m_irq_control_enable = data;
+		break;
+	case 0x10:
+		// Interrupt Level 0 000000000111 HDD
+		// Interrupt Level 1 011100000000 CD-ROM
+		m_interrupt_levels[0] = data;
+		break;
+	case 0x14:
+		// Interrupt Level 2 000000000111
+		// Interrupt Level 3 011100000000
+		m_interrupt_levels[1] = data;
+		break;
+	case 0x18:
+		// Interrupt Level 4 000000000111
+		// Interrupt Level 5 011100000000
+		m_interrupt_levels[2] = data;
+		break;
+	case 0x1c:
+		// Interrupt Level 6 000000000111
+		// Interrupt Level 7 011100000000
+		m_interrupt_levels[3] = data;
+		break;
+	case 0x20:
+		// Interrupt Level 8 000000000111
+		// Interrupt Level 9 011100000000
+		m_interrupt_levels[4] = data;
+		break;
+	case 0x24:
+		// Interrupt Level 10 000000000111
+		m_interrupt_levels[5] = data;
+		break;
+	case 0x28:
+		// Interrupt Level 13 011100000000
+		m_interrupt_levels[6] = data;
+		break;
+	case 0x2c:
+		// Interrupt Level 14 000000000111
+		// Interrupt Level 15 011100000000
+		m_interrupt_levels[7] = data;
+		break;
+	case 0x40:
+		m_irq_mask = data;
+		break;
+	}
+}
+
+uint32_t tx3927_device::pci_read(offs_t offset, uint32_t mem_mask)
+{
+	auto r = 0;
+
+	switch (offset * 4) {
+	case 0x00: {
+		// +002 Device ID Register (DID)
+		// +000 Vendor ID Register (VID)
+		constexpr uint16_t device_id = 0x000a; // TX3927
+		constexpr uint16_t vendor_id = 0x102f; // Toshiba
+		return (device_id << 16) | vendor_id;
+	}
+
+	case 0x04: {
+		// +006 PCI Status Register (PCISTAT)
+		// +004 PCI Command Register (PCICMD)
+		return (m_pci_pcistat << 16) | m_pcicmd;
+	}
+
+	case 0x08: {
+		// +00b Class Code Register (CC)
+		// +00a Subclass Code Register (SCC)
+		// +009 Register-Level Programming Interface Register (RLPI)
+		// +008 Revision ID Register (RID)
+		constexpr uint8_t class_code = 0x06;
+		constexpr uint8_t subclass_code = 0x00;
+		constexpr uint8_t rlpi = 0x00; // Register-Level Programming Interface
+		constexpr uint8_t rev_id = 0; // ?
+		return (class_code << 24) | (subclass_code << 16) | (rlpi << 8) | rev_id;
+	}
+
+	case 0x0c: {
+		// +00e Header Type Register (HT)
+		// +00d Master Latency Timer Register (MLT)
+		// +00c Cache Line Size Register
+		constexpr uint8_t mfht = 0; // Multi-Function and Header Type
+		constexpr uint8_t mlt = 0x1f; // Master Latency Timer Count Value
+		constexpr uint8_t cls = 0;
+		return (mfht << 16) | (mlt << 8) | cls;
+	}
+
+	case 0x10: {
+		// +010 Target I/O Base Address Register (IOBA)
+		constexpr uint8_t imai = 1; //  I/O Base Address Indicator
+		return (m_pci_iba << 2) | imai;
+	}
+
+	case 0x14: {
+		// +014 Target Memory Base Address Register (MBA)
+		constexpr uint8_t pf = 1; // Prefetchable
+		constexpr uint8_t mty = 0; // Memory Type
+		constexpr uint8_t mbai = 0; // Memory Base Address Indicator
+		return (m_pci_mba << 4) | (pf << 3) | (mty << 1) | mbai;
+	}
+
+	case 0x2c: {
+		// +02e System Vendor ID Register (SVID)
+		// +02c Subsystem Vendor ID Register (SSVID)
+		return (m_pci_svid << 16) | m_pci_ssvid;
+	}
+
+	case 0x34: {
+		// +037 Capabilities Pointer (CAPPTR)
+		constexpr uint8_t capptr = 0xe0;
+		return capptr;
+	}
+
+	case 0x3c: {
+		// +03f Maximum Latency Register (ML)
+		// +03e Minimum Grant Register (MG)
+		// +03d Interrupt Pin Register (IP)
+		// +03c Interrupt Line Register (IL)
+		return (m_pci_ml << 24) | (m_pci_mg << 16) | (m_pci_ip << 8) | m_pci_il;
+	}
+
+	case 0x44:
+		r = m_pci_istat;
+		break;
+
+	case 0x154: {
+		// Initiator Indirect Data Register (IPCIDATA)
+		return m_ipcidata;
+	}
+
+	case 0x158: {
+		// Initiator Indirect Command/Byte Enable Register (IPCICBE)
+		return (m_pci_icmd << 4) | m_pci_ibe;
+	}
+	}
+
+	LOGMASKED(LOG_TX39_GENERAL, "%s: pci_read %08x %08x\n", machine().describe_context().c_str(), offset * 4, r);
+
+	return r;
+}
+
+void tx3927_device::pci_write(offs_t offset, uint32_t data, uint32_t mem_mask)
+{
+	LOGMASKED(LOG_TX39_GENERAL, "%s: pci_write %08x %08x\n", machine().describe_context().c_str(), offset * 4, data);
+
+	switch (offset * 4) {
+	case 0x04:
+		// PCI Status Register (PCISTAT)
+		m_pci_pcistat = (m_pci_pcistat & 0x065f) | data;
+		break;
+
+	case 0x3c:
+		// +03f Maximum Latency Register (ML)
+		// +03e Minimum Grant Register (MG)
+		// +03d Interrupt Pin Register (IP)
+		// +03c Interrupt Line Register (IL)
+		m_pci_ml = (data >> 24) & 0xff;
+		m_pci_mg = (data >> 16) & 0xff;
+		m_pci_ip = (data >> 8) & 0xff;
+		m_pci_il = data & 0xff;
+		break;
+
+	case 0x44:
+		// ISTAT register
+		if (BIT(data, 12))
+			m_pci_istat &= ~(1 << 12);
+
+		if (BIT(data, 10))
+			m_pci_istat &= ~(1 << 10);
+
+		if (BIT(data, 9))
+			m_pci_istat &= ~(1 << 9);
+		break;
+
+	case 0x128:
+		// Local Bus Control Register (LBC)
+		m_pci_lbc = data & 0xfffffffc;
+		break;
+
+	case 0x148:
+		// Initiator Memory Mapping Address Size Register (MMAS)
+		m_pci_mmas = data & 0xfffffffc;
+		break;
+
+	case 0x14c:
+		// Initiator I/O Mapping Address Size Register (IOMAS)
+		m_pci_iomas = data & 0xfffffffc;
+		break;
+
+	case 0x150:
+		// Initiator Indirect Address Register (IPCIADDR)
+		m_pci_ipciaddr = data;
+		break;
+
+	case 0x154:
+		// Initiator Indirect Data Register (IPCIDATA)
+		m_pci_ipcidata = data;
+		break;
+
+	case 0x158:
+		// Initiator Indirect Command/Byte Enable Register (IPCICBE)
+		m_pci_icmd = (data >> 4) & 0x0f;
+		m_pci_ibe = data & 0x0f;
+		m_pci_istat |= 1 << 12;
+		break;
+	}
+}
+
+uint32_t tx3927_device::pio_read(offs_t offset, uint32_t mem_mask)
+{
+	if (offset != 0)
+		LOGMASKED(LOG_TX39_GENERAL, "%s: pio_read %08x %08x\n", machine().describe_context().c_str(), offset * 4, mem_mask);
+	return pio_flags[offset];
+}
+
+void tx3927_device::pio_write(offs_t offset, uint32_t data, uint32_t mem_mask)
+{
+	if (offset != 0)
+		LOGMASKED(LOG_TX39_GENERAL, "%s: pio_write %08x %08x %08x\n", machine().describe_context().c_str(), offset * 4, data, mem_mask);
+	pio_flags[offset] = data;
 }
