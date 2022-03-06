@@ -41,8 +41,8 @@ private:
 	required_device<tx3927_device> m_maincpu;
 	required_device<ram_device> m_ram;
 
-	uint16_t fpgasoft_read(offs_t offset, uint16_t mem_mask);
-	void fpgasoft_write(offs_t offset, uint16_t data, uint16_t mem_mask);
+	uint16_t fpga_dsp_read(offs_t offset, uint16_t mem_mask);
+	void fpga_dsp_write(offs_t offset, uint16_t data, uint16_t mem_mask);
 
 	uint16_t fpga_read(offs_t offset, uint16_t mem_mask);
 	void fpga_write(offs_t offset, uint16_t data, uint16_t mem_mask);

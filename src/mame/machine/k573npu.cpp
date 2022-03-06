@@ -100,7 +100,6 @@ void k573npu_device::device_add_mconfig(machine_config& config)
 	m_maincpu->in_brcond<1>().set([]() { return 1; }); // writeback complete
 	m_maincpu->in_brcond<2>().set([]() { return 1; }); // writeback complete
 	m_maincpu->in_brcond<3>().set([]() { return 1; }); // writeback complete
-	m_maincpu->timer_callback().set(FUNC(k573npu_device::timer_interrupt));
 
 	DS2401(config, digital_id);
 
@@ -115,7 +114,7 @@ void k573npu_device::timer_interrupt(int state)
 	//m_maincpu->set_input_line(INPUT_LINE_IRQ0, state);
 }
 
-uint16_t k573npu_device::fpgasoft_read(offs_t offset, uint16_t mem_mask)
+uint16_t k573npu_device::fpga_dsp_read(offs_t offset, uint16_t mem_mask)
 {
 	/*
 	if (offset * 2 != 0x20) {
@@ -141,7 +140,7 @@ uint16_t k573npu_device::fpgasoft_read(offs_t offset, uint16_t mem_mask)
 	return 0;
 }
 
-void k573npu_device::fpgasoft_write(offs_t offset, uint16_t data, uint16_t mem_mask)
+void k573npu_device::fpga_dsp_write(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
 	//printf("%s: fpgasoft_write %08x %08x %08x\n", machine().describe_context().c_str(), offset * 2, data, mem_mask);
 
@@ -177,7 +176,7 @@ void k573npu_device::amap(address_map& map)
 	map(0xa0000000, 0xafffffff).ram().share("ram");
 
 	map(0x10200000, 0x1020000f).rw(FUNC(k573npu_device::fpga_read), FUNC(k573npu_device::fpga_write));
-	map(0x10400000, 0x10400fff).rw(FUNC(k573npu_device::fpgasoft_read), FUNC(k573npu_device::fpgasoft_write));
+	map(0x10400000, 0x10400fff).rw(FUNC(k573npu_device::fpga_dsp_read), FUNC(k573npu_device::fpga_dsp_write));
 
 	map(0x1fc00000, 0x1fc7ffff).rom().region("tmpr3927", 0);
 }

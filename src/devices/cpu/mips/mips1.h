@@ -418,7 +418,7 @@ public:
 	void write(offs_t offset, uint32_t data, uint32_t mem_mask);
 
 private:
-	const enum : u32 {
+	enum : u32 {
 		SIFCR_SWRST = 15, // Software Reset
 		SIFCR_RDIL = 7, // Receive FIFO Request Trigger Level
 		SIFCR_TDIL = 3, // Transmit FIFO Request Trigger Level
@@ -513,7 +513,7 @@ class tx3927_device : public mips1_device_base
 public:
 	tx3927_device(machine_config const& mconfig, char const* tag, device_t* owner, u32 clock, size_t icache_size = 8192, size_t dcache_size = 4096);
 
-	auto timer_callback() { return m_timer_cb.bind(); }
+	void trigger_irq(int irq, int state);
 
 protected:
 	virtual void device_start() override;
@@ -535,8 +535,6 @@ protected:
 
 private:
 	required_device_array<tx3927_sio, 2> m_sio;
-
-	devcb_write_line m_timer_cb;
 
 	void update_timer_speed();
 
@@ -565,7 +563,7 @@ private:
 	void pio_write(offs_t offset, uint32_t data, uint32_t mem_mask);
 
 	// TMR
-	const enum : u32 {
+	enum : u32 {
 		TMTCR_TCE = 7, // Timer Count Enable
 		TMTCR_CCDE = 6, // Counter Clock Divide Enable
 		TMTCR_CRE = 5, // Counter Reset Enable
@@ -592,17 +590,23 @@ private:
 		uint32_t TMPGMR; // 0x30 Pulse Generator Mode Register
 		uint32_t TMWTMR; // 0x40 Watchdog Timer Mode Register
 		uint32_t TMTRR;  // 0xf0 Timer Read Register
-
-		bool irq_triggered;
-		bool irq_triggered_once;
 	} TMR;
 	TMR m_tmr[3] = {};
 
 	// IRC
-	uint32_t m_irq_status;
-	uint32_t m_irq_control_enable;
-	uint32_t m_irq_mask;
-	uint32_t m_interrupt_levels[8];
+	enum : u32 {
+		IRCSR_IF = 16, // Interrupt Flag
+		IRCSR_ILV = 8, // Interrupt Level Vector
+		IRCSR_IVL = 0, // Interrupt Vector
+	};
+	uint32_t m_irc_irssr;  // Interrupt Source Status Register
+	uint32_t m_irc_irscr; // Interrupt Status/Control Register
+	uint32_t m_irc_ircsr; // Interrupt Current Status Register
+	uint32_t m_irc_ircer;
+	uint32_t m_irc_irimr;
+	uint32_t m_irc_irilr[16];
+	uint32_t m_irc_irilr_full[8];
+	uint32_t m_irc_ircr[16];
 
 	// CCFG
 	uint32_t m_ccfg;

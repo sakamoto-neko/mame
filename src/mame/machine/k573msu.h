@@ -17,6 +17,8 @@
 #include "machine/ins8250.h"
 #include "machine/ram.h"
 #include "machine/timekpr.h"
+#include "machine/timer.h"
+#include "sound/tc9446f.h"
 
 DECLARE_DEVICE_TYPE(KONAMI_573_MULTI_SESSION_UNIT, k573msu_device)
 
@@ -32,8 +34,8 @@ protected:
 
 	template<unsigned N> void ata_interrupt(int state);
 	template<unsigned N> void serial_interrupt(int state);
-	template<unsigned N> void dsp_interrupt(int state);
-	void timer_interrupt(int state);
+
+	TIMER_DEVICE_CALLBACK_MEMBER(fifo_timer_callback);
 
 	void amap(address_map& map);
 
@@ -46,9 +48,10 @@ private:
 	required_device<ram_device> m_ram;
 	required_device_array<pc16552_device, 2> m_duart_com;
 	required_device<ata_interface_device> m_ata_cdrom;
+	required_device_array<tc9446f_device, 4> m_dsp;
 
-	uint16_t fpgasoft_read(offs_t offset, uint16_t mem_mask);
-	void fpgasoft_write(offs_t offset, uint16_t data, uint16_t mem_mask);
+	uint16_t fpga_dsp_read(offs_t offset, uint16_t mem_mask);
+	void fpga_dsp_write(offs_t offset, uint16_t data, uint16_t mem_mask);
 
 	uint16_t fpga_read(offs_t offset, uint16_t mem_mask);
 	void fpga_write(offs_t offset, uint16_t data, uint16_t mem_mask);
@@ -64,9 +67,11 @@ private:
 	template <unsigned N>
 	void duart_write(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
 
-	uint32_t dsp_data_cnt = 0;
-	uint32_t m_fpgasoft_unk = 0;
-	uint32_t m_fpgasoft_transfer_len[2] = {};
+	uint32_t m_dsp_unk_flags[0x100] = {};
+	int32_t m_dsp_fifo_read_len[4] = {};
+	int32_t m_dsp_fifo_write_len[4] = {};
+	uint16_t m_dsp_fifo_status;
+	bool m_dsp_fifo_irq_triggered;
 };
 
 #endif // MAME_MACHINE_K573MSU_H

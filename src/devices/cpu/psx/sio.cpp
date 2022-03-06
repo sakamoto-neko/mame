@@ -714,7 +714,7 @@ void psxsio1_device::data_w(uint8_t data)
 
 	m_status &= ~SIO_STATUS_TX_RDY;
 
-	//printf("TX data_w %02x\n", data);
+	LOGBITS("TX data_w %02x\n", data);
 	check_for_tx_start();
 }
 
@@ -727,7 +727,7 @@ void psxsio1_device::data_w(uint8_t data)
 
 void psxsio1_device::receive_character(uint8_t ch)
 {
-	//printf("RX receive_character %02x\n", ch);
+	LOGBITS("RX receive_character %02x\n", ch);
 
 	m_rx_data = ch;
 

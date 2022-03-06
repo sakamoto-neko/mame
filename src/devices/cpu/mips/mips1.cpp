@@ -22,13 +22,22 @@
 #define LOG_TLB     (1U << 1)
 #define LOG_IOP     (1U << 2)
 #define LOG_RISCOS  (1U << 3)
-#define LOG_TX39_GENERAL (1U << 4)
+
+#define LOG_TX39_TMR (1U << 4)
+#define LOG_TX39_SIO (1U << 5)
+#define LOG_TX39_IRC (1U << 6)
+#define LOG_TX39_CCFG (1U << 7)
+#define LOG_TX39_SDRAM (1U << 8)
+#define LOG_TX39_ROM (1U << 9)
+#define LOG_TX39_DMA (1U << 10)
+#define LOG_TX39_PCI (1U << 11)
+#define LOG_TX39_PIO (1U << 12)
 
 #include <iostream>
 
 //#define VERBOSE     (LOG_GENERAL|LOG_TLB)
-#define VERBOSE (LOG_TX39_GENERAL)
-//#define LOG_OUTPUT_STREAM std::cout
+//#define VERBOSE (LOG_TX39_SIO)
+#define LOG_OUTPUT_STREAM std::cout
 
 #include "logmacro.h"
 
@@ -1154,6 +1163,7 @@ void mips1core_device_base::handle_cop2(u32 const op)
 					m_branch_state = BRANCH;
 					m_branch_target = m_pc + 4 + (s32(SIMMVAL) << 2);
 				}
+				break;
 			case 0x02: // BC2FL
 				if (!m_in_brcond[2]())
 				{
@@ -2345,7 +2355,7 @@ void tx3927_sio::transmit_clock(bool is_cts)
 	if (!is_transmit_register_empty())
 	{
 		uint8_t data = transmit_register_get_data_bit();
-		LOGMASKED(LOG_TX39_GENERAL, "Tx Present a %d\n", data);
+		LOGMASKED(LOG_TX39_SIO, "Tx Present a %d\n", data);
 		m_txd_handler(data);
 	}
 }
@@ -2359,7 +2369,7 @@ WRITE_LINE_MEMBER(tx3927_sio::write_rxd)
 	// RXD is not treated as a start bit at the time when the SIFLCR.RSDE bit is cleared.When a valid start
 	// bit has been detected, the receive controller begins sampling data received on the RXD pin
 
-	LOGMASKED(LOG_TX39_GENERAL, "sio: Presented a %02x\n", state);
+	LOGMASKED(LOG_TX39_SIO, "sio: Presented a %02x\n", state);
 
 	m_recv_timeout_counter = machine().time();
 
@@ -2454,10 +2464,10 @@ void tx3927_sio::sio_timer_adjust()
 		if (clock_div != 0 && brd_div != 0)
 		{
 			n_time = attotime::from_hz(target_clock.as_hz() / clock_div / brd_div / 16);
-			//LOGMASKED(LOG_TX39_GENERAL, "sio_timer_adjust( %s ) = %s ( %d x %d )\n", tag(), n_time.as_string(), clock_div, brd_div);
+			//LOGMASKED(LOG_TX39_SIO, "sio_timer_adjust( %s ) = %s ( %d x %d )\n", tag(), n_time.as_string(), clock_div, brd_div);
 		}
 		else {
-			//LOGMASKED(LOG_TX39_GENERAL, "sio_timer_adjust( %s ) invalid baud rate ( %d x %d )\n", tag(), clock_div, brd_div);
+			//LOGMASKED(LOG_TX39_SIO, "sio_timer_adjust( %s ) invalid baud rate ( %d x %d )\n", tag(), clock_div, brd_div);
 		}
 
 		m_timer->adjust(n_time);
@@ -2472,7 +2482,7 @@ uint32_t tx3927_sio::read(offs_t offset, uint32_t mem_mask)
 {
 	auto sio_offset = (offset & 0x3f) * 4;
 
-	//LOGMASKED(LOG_TX39_GENERAL, "%s: sio_read %08x %08x | %04x\n", machine().describe_context().c_str(), offset * 4, mem_mask, sio_offset);
+	//LOGMASKED(LOG_TX39_SIO, "%s: sio_read %08x %08x | %04x\n", machine().describe_context().c_str(), offset * 4, mem_mask, sio_offset);
 
 	switch (sio_offset) {
 	case 0x00:
@@ -2533,7 +2543,7 @@ uint32_t tx3927_sio::read(offs_t offset, uint32_t mem_mask)
 			}
 		}
 
-		//LOGMASKED(LOG_TX39_GENERAL, "sio data %08x\n", m_sidisr);
+		//LOGMASKED(LOG_TX39_SIO, "sio data %08x\n", m_sidisr);
 
 		return m_sidisr;
 	}
@@ -2561,7 +2571,7 @@ uint32_t tx3927_sio::read(offs_t offset, uint32_t mem_mask)
 			m_siscisr &= ~(1 << SISCISR_TXALS);
 		}
 
-		//LOGMASKED(LOG_TX39_GENERAL, "sio data %08x\n", m_siscisr);
+		//LOGMASKED(LOG_TX39_SIO, "sio data %08x\n", m_siscisr);
 
 		return m_siscisr;
 	case 0x10:
@@ -2650,7 +2660,7 @@ void tx3927_sio::write(offs_t offset, uint32_t data, uint32_t mem_mask)
 {
 	auto sio_offset = (offset & 0x3f) * 4;
 
-	LOGMASKED(LOG_TX39_GENERAL, "%s: sio_write %08x %08x %08x\n", machine().describe_context().c_str(), offset * 4, data, mem_mask);
+	LOGMASKED(LOG_TX39_SIO, "%s: sio_write %08x %08x %08x\n", machine().describe_context().c_str(), offset * 4, data, mem_mask);
 
 	switch (sio_offset) {
 	case 0x00:
@@ -2720,7 +2730,7 @@ void tx3927_sio::write(offs_t offset, uint32_t data, uint32_t mem_mask)
 		break;
 
 	case 0x1c:
-		LOGMASKED(LOG_TX39_GENERAL, "sio_write %08x %c\n", data, data & 0xff);
+		LOGMASKED(LOG_TX39_SIO, "sio_write %08x %c\n", data, data & 0xff);
 
 		if (m_sitfifo_len < 8) {
 			//m_sitfifo[m_sitfifo_len++] = data;
@@ -2737,8 +2747,7 @@ DEFINE_DEVICE_TYPE(TX3927_SIO, tx3927_sio, "tx3927_sio", "Toshiba TX3927 Serial 
 tx3927_device::tx3927_device(const machine_config& mconfig, const char* tag, device_t* owner, uint32_t clock, size_t icache_size, size_t dcache_size) :
 	mips1_device_base(mconfig, TX3927, tag, owner, clock, 0x3927, icache_size, dcache_size),
 	m_program_config("program", ENDIANNESS_BIG, 32, 32, 0, address_map_constructor(FUNC(tx3927_device::amap), this)),
-	m_sio(*this, "sio%d", 0L),
-	m_timer_cb(*this)
+	m_sio(*this, "sio%d", 0L)
 {
 }
 
@@ -2754,10 +2763,14 @@ void tx3927_device::device_reset()
 {
 	mips1core_device_base::device_reset();
 
-	m_irq_status = 0;
-	m_irq_control_enable = 0;
-	m_irq_mask = 0;
-	std::fill(std::begin(m_interrupt_levels), std::end(m_interrupt_levels), 0);
+	m_irc_irscr = 0;
+	m_irc_irssr = 0;
+	m_irc_ircsr = (1 << IRCSR_IF) | 0x1f;
+	m_irc_ircer = 0;
+	m_irc_irimr = 0;
+	std::fill(std::begin(m_irc_irilr_full), std::end(m_irc_irilr_full), 0);
+	std::fill(std::begin(m_irc_irilr), std::end(m_irc_irilr), 0);
+	std::fill(std::begin(m_irc_ircr), std::end(m_irc_ircr), 0);
 
 	std::fill(std::begin(pio_flags), std::end(pio_flags), 0);
 
@@ -2771,8 +2784,6 @@ void tx3927_device::device_reset()
 		m_tmr[i].TMPGMR = 0;
 		m_tmr[i].TMWTMR = 0;
 		m_tmr[i].TMTRR = 0;
-		m_tmr[i].irq_triggered = false;
-		m_tmr[i].irq_triggered_once = false;
 	}
 
 	m_ccfg = 0x0d;
@@ -2804,8 +2815,6 @@ void tx3927_device::device_reset()
 
 void tx3927_device::device_resolve_objects()
 {
-	// resolve callbacks
-	m_timer_cb.resolve_safe();
 }
 
 device_memory_interface::space_config_vector tx3927_device::memory_space_config() const
@@ -2866,6 +2875,72 @@ void tx3927_device::update_timer_speed()
 	}
 }
 
+void tx3927_device::trigger_irq(int irq, int state)
+{
+	// IRQ vector priority, highest to lowest
+	//  0 INT[0]
+	//  1 INT[1]
+	//  2 INT[2]
+	//  3 INT[3]
+	//  4 INT[4]
+	//  5 INT[5]
+	//  6 SIO[0]
+	//  7 SIO[1]
+	//  8 DMA
+	//  9 PIO
+	// 10 PCI
+	// 11 (Reserved)
+	// 12 (Reserved)
+	// 13 TMR[0]
+	// 14 TMR[1]
+	// 15 TMR[2]
+
+	if (state) {
+		m_irc_irssr |= 1 << irq;
+	}
+	else {
+		m_irc_irssr &= ~(1 << irq);
+		m_irc_ircsr = (1 << IRCSR_IF) | 0x1f;
+	}
+
+	if (!BIT(m_irc_ircer, 0)) // Interrupts disabled
+		return;
+
+	CAUSE &= ~CAUSE_IP;
+	if (state) {
+		// Find highest priority interrupt
+		for (int i = 0; i < 16; i++) {
+			int curlevel = 0;
+			int curmask = BIT(m_irc_irimr, 0, 3);
+			int curirq = BIT(m_irc_ircsr, IRCSR_IVL, 5);
+
+			if (!BIT(m_irc_irssr, i))
+				continue;
+
+			if (m_irc_irilr[i] == 0) // Disabled IRQ
+				continue;
+
+			if (m_irc_irilr[i] < curmask) // Masked IRQ
+				continue;
+
+			if (!BIT(m_irc_ircsr, IRCSR_IF))
+				curlevel = BIT(m_irc_ircsr, IRCSR_ILV, 3);
+
+			auto accept = BIT(m_irc_ircsr, IRCSR_IF) // No IRQ
+				|| curlevel == 0 // Disabled IRQ level
+				|| m_irc_irilr[i] < curlevel // Higher priority
+				|| (m_irc_irilr[i] == curlevel && i < curirq); // Same priority + lower interrupt vector
+			if (accept) {
+				// The IP[5] bit in the Cause register is set to 1 to indicate an interrupt
+				// The IP[4:0] field captures the interrupt vector associated with its source
+				CAUSE |= (i & 0xf) << 10;
+				CAUSE |= CAUSE_IPEX5;
+				m_irc_ircsr = (m_irc_irilr[irq] << 8) | irq;
+			}
+		}
+	}
+}
+
 template <int N> TIMER_CALLBACK_MEMBER(tx3927_device::update_timer)
 {
 	if (BIT(m_tmr[N].TMTCR, TMTCR_TMODE, 2) == 3) {
@@ -2881,7 +2956,7 @@ template <int N> TIMER_CALLBACK_MEMBER(tx3927_device::update_timer)
 		if (m_tmr[N].TMTRR > 0xffffff)
 			m_tmr[N].TMTRR = 0xffffff;
 
-		//LOGMASKED(LOG_TX39_GENERAL, "tmr[%d].TMTRR: %d %d | %d\n", N, m_tmr[N].TMTRR, m_tmr[N].TMCPRA, BIT(m_tmr[N].TMITMR, TMITMR_TIIE));
+		//LOGMASKED(LOG_TX39_TMR, "tmr[%d].TMTRR: %d %d | %d\n", N, m_tmr[N].TMTRR, m_tmr[N].TMCPRA, BIT(m_tmr[N].TMITMR, TMITMR_TIIE));
 	}
 
 	if (m_tmr[N].TMTRR >= m_tmr[N].TMCPRA) {
@@ -2889,14 +2964,11 @@ template <int N> TIMER_CALLBACK_MEMBER(tx3927_device::update_timer)
 			m_tmr[N].TMTRR = 0;
 		}
 
-		if (BIT(m_tmr[N].TMITMR, TMITMR_TIIE))
-		{
+		if (BIT(m_tmr[N].TMITMR, TMITMR_TIIE)) {
 			// Timer Interval Interrupt Enabled
-			m_timer_cb(ASSERT_LINE);
-			m_tmr[N].irq_triggered = true;
+			trigger_irq(13 + N, ASSERT_LINE);
 		}
 
-		m_irq_status |= 1 << 13;
 		m_tmr[N].TMTISR |= 1 << TMTISR_TIIS; // Set interrupt on TIIS
 	}
 }
@@ -2933,7 +3005,7 @@ uint32_t tx3927_device::tmr_read(offs_t offset, uint32_t mem_mask)
 	}
 	}
 
-	LOGMASKED(LOG_TX39_GENERAL, "%s: tmr read %08x %08x\n", machine().describe_context().c_str(), offset * 4, mem_mask);
+	LOGMASKED(LOG_TX39_TMR, "%s: tmr read %08x %08x\n", machine().describe_context().c_str(), offset * 4, mem_mask);
 	return 0;
 }
 
@@ -2948,7 +3020,7 @@ void tx3927_device::tmr_write(offs_t offset, uint32_t data, uint32_t mem_mask)
 
 		if (BIT(m_tmr[tmr_idx].TMTCR, TMTCR_TCE) == 0 && BIT(m_tmr[tmr_idx].TMTCR, TMTCR_CRE)) {
 			// Disable + reset enabled = zero counter
-			LOGMASKED(LOG_TX39_GENERAL, "Timer %d counter reset\n", tmr_idx);
+			LOGMASKED(LOG_TX39_TMR, "Timer %d counter reset\n", tmr_idx);
 			m_tmr[tmr_idx].TMTRR = 0;
 		}
 
@@ -2958,15 +3030,12 @@ void tx3927_device::tmr_write(offs_t offset, uint32_t data, uint32_t mem_mask)
 		m_tmr[tmr_idx].TMTISR = data & 0xe;
 
 		if (BIT(data, 0) == 0) { // Has no effect when 1 is written
-			if (m_tmr[tmr_idx].irq_triggered) {
-				m_timer_cb(CLEAR_LINE);
-				m_irq_status &= ~(1 << 13);
+			if (BIT(m_irc_irssr, 13 + tmr_idx)) {
+				trigger_irq(13 + tmr_idx, CLEAR_LINE);
 			}
 
 			m_tmr[tmr_idx].TMTISR &= ~(1 << 0); // Unset interrupt
-			m_tmr[tmr_idx].irq_triggered = false;
 		}
-
 		break;
 	case 0x08:
 		m_tmr[tmr_idx].TMCPRA = data & 0xffffff;
@@ -2992,12 +3061,12 @@ void tx3927_device::tmr_write(offs_t offset, uint32_t data, uint32_t mem_mask)
 	}
 
 	if (offset != 1)
-		LOGMASKED(LOG_TX39_GENERAL, "%s: tmr write %08x %08x %08x\n", machine().describe_context().c_str(), offset * 4, data, mem_mask);
+		LOGMASKED(LOG_TX39_TMR, "%s: tmr write %08x %08x %08x\n", machine().describe_context().c_str(), offset * 4, data, mem_mask);
 }
 
 uint32_t tx3927_device::ccfg_read(offs_t offset, uint32_t mem_mask)
 {
-	LOGMASKED(LOG_TX39_GENERAL, "%s: ccfg read %08x %08x\n", machine().describe_context().c_str(), offset * 4, mem_mask);
+	LOGMASKED(LOG_TX39_CCFG, "%s: ccfg read %08x %08x\n", machine().describe_context().c_str(), offset * 4, mem_mask);
 	switch (offset * 4) {
 	case 0x00:
 		// CCFG
@@ -3021,7 +3090,7 @@ uint32_t tx3927_device::ccfg_read(offs_t offset, uint32_t mem_mask)
 
 void tx3927_device::ccfg_write(offs_t offset, uint32_t data, uint32_t mem_mask)
 {
-	LOGMASKED(LOG_TX39_GENERAL, "%s: ccfg write %08x %08x %08x\n", machine().describe_context().c_str(), offset * 4, data, mem_mask);
+	LOGMASKED(LOG_TX39_CCFG, "%s: ccfg write %08x %08x %08x\n", machine().describe_context().c_str(), offset * 4, data, mem_mask);
 
 	switch (offset * 4) {
 	case 0x00:
@@ -3041,7 +3110,7 @@ void tx3927_device::ccfg_write(offs_t offset, uint32_t data, uint32_t mem_mask)
 
 uint32_t tx3927_device::sdram_read(offs_t offset, uint32_t mem_mask)
 {
-	LOGMASKED(LOG_TX39_GENERAL, "%s: sdram_read %08x %08x\n", machine().describe_context().c_str(), offset * 4, mem_mask);
+	LOGMASKED(LOG_TX39_SDRAM, "%s: sdram_read %08x %08x\n", machine().describe_context().c_str(), offset * 4, mem_mask);
 
 	if ((offset * 4) == 0x20) {
 		// SDCTR1
@@ -3057,29 +3126,29 @@ uint32_t tx3927_device::sdram_read(offs_t offset, uint32_t mem_mask)
 
 void tx3927_device::sdram_write(offs_t offset, uint32_t data, uint32_t mem_mask)
 {
-	LOGMASKED(LOG_TX39_GENERAL, "%s: sdram_write %08x %08x %08x\n", machine().describe_context().c_str(), offset * 4, data, mem_mask);
+	LOGMASKED(LOG_TX39_SDRAM, "%s: sdram_write %08x %08x %08x\n", machine().describe_context().c_str(), offset * 4, data, mem_mask);
 }
 
 uint32_t tx3927_device::rom_read(offs_t offset, uint32_t mem_mask)
 {
-	LOGMASKED(LOG_TX39_GENERAL, "%s: rom_read %08x %08x\n", machine().describe_context().c_str(), offset * 4, mem_mask);
+	LOGMASKED(LOG_TX39_ROM, "%s: rom_read %08x %08x\n", machine().describe_context().c_str(), offset * 4, mem_mask);
 	return 0;
 }
 
 void tx3927_device::rom_write(offs_t offset, uint32_t data, uint32_t mem_mask)
 {
-	LOGMASKED(LOG_TX39_GENERAL, "%s: rom_write %08x %08x %08x\n", machine().describe_context().c_str(), offset * 4, data, mem_mask);
+	LOGMASKED(LOG_TX39_ROM, "%s: rom_write %08x %08x %08x\n", machine().describe_context().c_str(), offset * 4, data, mem_mask);
 }
 
 uint32_t tx3927_device::dma_read(offs_t offset, uint32_t mem_mask)
 {
-	LOGMASKED(LOG_TX39_GENERAL, "%s: dma_read %08x %08x\n", machine().describe_context().c_str(), offset * 4, mem_mask);
+	LOGMASKED(LOG_TX39_DMA, "%s: dma_read %08x %08x\n", machine().describe_context().c_str(), offset * 4, mem_mask);
 	return 0;
 }
 
 void tx3927_device::dma_write(offs_t offset, uint32_t data, uint32_t mem_mask)
 {
-	LOGMASKED(LOG_TX39_GENERAL, "%s: dma_write %08x %08x %08x\n", machine().describe_context().c_str(), offset * 4, data, mem_mask);
+	LOGMASKED(LOG_TX39_DMA, "%s: dma_write %08x %08x %08x\n", machine().describe_context().c_str(), offset * 4, data, mem_mask);
 }
 
 uint32_t tx3927_device::irc_read(offs_t offset, uint32_t mem_mask)
@@ -3089,7 +3158,7 @@ uint32_t tx3927_device::irc_read(offs_t offset, uint32_t mem_mask)
 	switch (offset * 4) {
 	case 0x00:
 		// Interrupt Control Enable Register
-		ret = m_irq_control_enable;
+		ret = m_irc_ircer;
 		break;
 	case 0x04:
 		// Interrupt Control Mode Register 0
@@ -3100,110 +3169,142 @@ uint32_t tx3927_device::irc_read(offs_t offset, uint32_t mem_mask)
 	case 0x10:
 		// Interrupt Level 0 000000000111 HDD
 		// Interrupt Level 1 011100000000 CD-ROM
-		ret = m_interrupt_levels[0];
+		ret = m_irc_irilr_full[0];
 		break;
 	case 0x14:
 		// Interrupt Level 2 000000000111
 		// Interrupt Level 3 011100000000
-		ret = m_interrupt_levels[1];
+		ret = m_irc_irilr_full[1];
 		break;
 	case 0x18:
 		// Interrupt Level 4 000000000111
 		// Interrupt Level 5 011100000000
-		ret = m_interrupt_levels[2];
+		ret = m_irc_irilr_full[2];
 		break;
 	case 0x1c:
 		// Interrupt Level 6 000000000111
 		// Interrupt Level 7 011100000000
-		ret = m_interrupt_levels[3];
+		ret = m_irc_irilr_full[3];
 		break;
 	case 0x20:
 		// Interrupt Level 8 000000000111
 		// Interrupt Level 9 011100000000
-		ret = m_interrupt_levels[4];
+		ret = m_irc_irilr_full[4];
 		break;
 	case 0x24:
 		// Interrupt Level 10 000000000111
-		ret = m_interrupt_levels[5];
+		ret = m_irc_irilr_full[5];
 		break;
 	case 0x28:
 		// Interrupt Level 13 011100000000
-		ret = m_interrupt_levels[6];
+		ret = m_irc_irilr_full[6];
 		break;
 	case 0x2c:
 		// Interrupt Level 14 000000000111
 		// Interrupt Level 15 011100000000
-		ret = m_interrupt_levels[7];
+		ret = m_irc_irilr_full[7];
 		break;
 	case 0x40:
 		// Interrupt Mask Level
-		ret = m_irq_mask;
+		ret = m_irc_irimr;
 		break;
 	case 0x60:
 		// Interrupt Status/Control Register
 		break;
 	case 0x80:
 		// Interrupt Source Status Register
-		ret = m_irq_status;
+		ret = m_irc_irssr;
 		break;
 	case 0xa0:
 		// Interrupt Current Status Register
+		ret = m_irc_ircsr;
 		break;
 	}
 
-	LOGMASKED(LOG_TX39_GENERAL, "%s: irc_read %08x | %08x\n", machine().describe_context().c_str(), offset * 4, ret);
+	LOGMASKED(LOG_TX39_IRC, "%s: irc_read %08x | %08x\n", machine().describe_context().c_str(), offset * 4, ret);
 
 	return ret;
 }
 
 void tx3927_device::irc_write(offs_t offset, uint32_t data, uint32_t mem_mask)
 {
-	LOGMASKED(LOG_TX39_GENERAL, "%s: irc_write %08x %08x %08x\n", machine().describe_context().c_str(), offset * 4, data, mem_mask);
+	LOGMASKED(LOG_TX39_IRC, "%s: irc_write %08x %08x %08x\n", machine().describe_context().c_str(), offset * 4, data, mem_mask);
 
 	switch (offset * 4) {
 	case 0x00:
-		m_irq_control_enable = data;
+		m_irc_ircer = data;
+		break;
+	case 0x04:
+		for (int i = 0; i < 8; i++)
+			m_irc_ircr[i] = BIT(data, i * 2, 2);
+		break;
+	case 0x08:
+		for (int i = 0; i < 8; i++)
+			m_irc_ircr[8+i] = BIT(data, i * 2, 2);
 		break;
 	case 0x10:
 		// Interrupt Level 0 000000000111 HDD
 		// Interrupt Level 1 011100000000 CD-ROM
-		m_interrupt_levels[0] = data;
+		m_irc_irilr_full[0] = data;
+		m_irc_irilr[0] = BIT(data, 0, 3);
+		m_irc_irilr[1] = BIT(data, 8, 3);
 		break;
 	case 0x14:
 		// Interrupt Level 2 000000000111
 		// Interrupt Level 3 011100000000
-		m_interrupt_levels[1] = data;
+		m_irc_irilr_full[1] = data;
+		m_irc_irilr[2] = BIT(data, 0, 3);
+		m_irc_irilr[3] = BIT(data, 8, 3);
 		break;
 	case 0x18:
 		// Interrupt Level 4 000000000111
 		// Interrupt Level 5 011100000000
-		m_interrupt_levels[2] = data;
+		m_irc_irilr_full[2] = data;
+		m_irc_irilr[4] = BIT(data, 0, 3);
+		m_irc_irilr[5] = BIT(data, 8, 3);
 		break;
 	case 0x1c:
 		// Interrupt Level 6 000000000111
 		// Interrupt Level 7 011100000000
-		m_interrupt_levels[3] = data;
+		m_irc_irilr_full[3] = data;
+		m_irc_irilr[6] = BIT(data, 0, 3);
+		m_irc_irilr[7] = BIT(data, 8, 3);
 		break;
 	case 0x20:
 		// Interrupt Level 8 000000000111
 		// Interrupt Level 9 011100000000
-		m_interrupt_levels[4] = data;
+		m_irc_irilr_full[4] = data;
+		m_irc_irilr[8] = BIT(data, 0, 3);
+		m_irc_irilr[9] = BIT(data, 8, 3);
 		break;
 	case 0x24:
 		// Interrupt Level 10 000000000111
-		m_interrupt_levels[5] = data;
+		m_irc_irilr_full[5] = data;
+		m_irc_irilr[10] = BIT(data, 0, 3);
+		m_irc_irilr[11] = BIT(data, 8, 3);
 		break;
 	case 0x28:
 		// Interrupt Level 13 011100000000
-		m_interrupt_levels[6] = data;
+		m_irc_irilr_full[6] = data;
+		m_irc_irilr[12] = BIT(data, 0, 3);
+		m_irc_irilr[13] = BIT(data, 8, 3);
 		break;
 	case 0x2c:
 		// Interrupt Level 14 000000000111
 		// Interrupt Level 15 011100000000
-		m_interrupt_levels[7] = data;
+		m_irc_irilr_full[7] = data;
+		m_irc_irilr[14] = BIT(data, 0, 3);
+		m_irc_irilr[15] = BIT(data, 8, 3);
 		break;
 	case 0x40:
-		m_irq_mask = data;
+		m_irc_irimr = data;
+		break;
+	case 0x60:
+		m_irc_irscr = data & 0xffffefff;
+		if (BIT(data, 8)) {
+			auto source = BIT(m_irc_irscr, 0, 4);
+			trigger_irq(source, CLEAR_LINE);
+		}
 		break;
 	}
 }
@@ -3298,14 +3399,14 @@ uint32_t tx3927_device::pci_read(offs_t offset, uint32_t mem_mask)
 	}
 	}
 
-	LOGMASKED(LOG_TX39_GENERAL, "%s: pci_read %08x %08x\n", machine().describe_context().c_str(), offset * 4, r);
+	LOGMASKED(LOG_TX39_PCI, "%s: pci_read %08x %08x\n", machine().describe_context().c_str(), offset * 4, r);
 
 	return r;
 }
 
 void tx3927_device::pci_write(offs_t offset, uint32_t data, uint32_t mem_mask)
 {
-	LOGMASKED(LOG_TX39_GENERAL, "%s: pci_write %08x %08x\n", machine().describe_context().c_str(), offset * 4, data);
+	LOGMASKED(LOG_TX39_PCI, "%s: pci_write %08x %08x\n", machine().describe_context().c_str(), offset * 4, data);
 
 	switch (offset * 4) {
 	case 0x04:
@@ -3373,13 +3474,13 @@ void tx3927_device::pci_write(offs_t offset, uint32_t data, uint32_t mem_mask)
 uint32_t tx3927_device::pio_read(offs_t offset, uint32_t mem_mask)
 {
 	if (offset != 0)
-		LOGMASKED(LOG_TX39_GENERAL, "%s: pio_read %08x %08x\n", machine().describe_context().c_str(), offset * 4, mem_mask);
+		LOGMASKED(LOG_TX39_PIO, "%s: pio_read %08x %08x\n", machine().describe_context().c_str(), offset * 4, mem_mask);
 	return pio_flags[offset];
 }
 
 void tx3927_device::pio_write(offs_t offset, uint32_t data, uint32_t mem_mask)
 {
 	if (offset != 0)
-		LOGMASKED(LOG_TX39_GENERAL, "%s: pio_write %08x %08x %08x\n", machine().describe_context().c_str(), offset * 4, data, mem_mask);
+		LOGMASKED(LOG_TX39_PIO, "%s: pio_write %08x %08x %08x\n", machine().describe_context().c_str(), offset * 4, data, mem_mask);
 	pio_flags[offset] = data;
 }

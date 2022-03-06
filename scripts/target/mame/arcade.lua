@@ -212,6 +212,7 @@ SOUNDS["OKIM9810"] = true
 SOUNDS["UPD7759"] = true
 SOUNDS["HC55516"] = true
 SOUNDS["TC8830F"] = true
+SOUNDS["TC9446F"] = true
 SOUNDS["K005289"] = true
 SOUNDS["K007232"] = true
 SOUNDS["K051649"] = true

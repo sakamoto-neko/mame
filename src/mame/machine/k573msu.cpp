@@ -11,11 +11,14 @@
 #include "k573msu.h"
 #include "bus/rs232/rs232.h"
 
-#define LOG_GENERAL  (1 << 0)
-#define VERBOSE      (LOG_GENERAL)
-#define LOG_OUTPUT_STREAM std::cout
+#define LOG_GENERAL    (1 << 0)
+#define LOG_INT_ATA    (1 << 1)
+#define LOG_INT_SERIAL (1 << 2)
+#define LOG_FPGA       (1 << 3)
+#define LOG_DSP        (1 << 4)
 
-#define LOGGENERAL(...)        LOGMASKED(LOG_GENERAL, __VA_ARGS__)
+#define VERBOSE      (LOG_DSP)
+#define LOG_OUTPUT_STREAM std::cout
 
 #include "logmacro.h"
 
@@ -86,11 +89,11 @@
   Notes:
   CPU IRQs
 	IRQ handler is called by calculating irq_handlers[(cause >> 8) & 0x3c](...)
-	IRQ 0 = HDD interrupt (= ?)
-	IRQ 1 = CD-ROM interrupt (= IRQ 0)
-	IRQ 4 = Serial/RS232 interrupt (= IRQ 2)
-	IRQ 5 = DSP interrupt (= IRQ 3)
-	IRQ 13 = Timer interrupt (= IRQ 0 + IRQ 2 + IRQ 3)
+	IRQ 0 = HDD interrupt
+	IRQ 1 = CD-ROM interrupt
+	IRQ 4 = Serial/RS232 interrupt
+	IRQ 5 = DSP interrupt
+	IRQ 13 = Timer interrupt
 */
 
 k573msu_device::k573msu_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock) :
@@ -99,7 +102,8 @@ k573msu_device::k573msu_device(const machine_config &mconfig, const char *tag, d
 	m_maincpu(*this, "maincpu"),
 	m_ram(*this, "ram"),
 	m_duart_com(*this, "duart_com_%d", 0L),
-	m_ata_cdrom(*this, "ata_cdrom")
+	m_ata_cdrom(*this, "ata_cdrom"),
+	m_dsp(*this, "dsp_%d", 0L)
 {
 }
 
@@ -116,12 +120,11 @@ void k573msu_device::device_add_mconfig(machine_config &config)
 	m_maincpu->in_brcond<1>().set([]() { return 1; }); // writeback complete
 	m_maincpu->in_brcond<2>().set([]() { return 1; }); // writeback complete
 	m_maincpu->in_brcond<3>().set([]() { return 1; }); // writeback complete
-	m_maincpu->timer_callback().set(FUNC(k573msu_device::timer_interrupt));
 
 	RAM(config, m_ram).set_default_size("32M").set_default_value(0);
 
 	ATA_INTERFACE(config, m_ata_cdrom).options(k573msu_ata_devices, "cdrom", nullptr, true);
-	m_ata_cdrom->irq_handler().set(FUNC(k573msu_device::ata_interrupt<0>));
+	m_ata_cdrom->irq_handler().set(FUNC(k573msu_device::ata_interrupt<1>));
 	m_ata_cdrom->slot(0).set_fixed(true);
 
 	M48T58(config, "m48t58y", 0);
@@ -142,13 +145,23 @@ void k573msu_device::device_add_mconfig(machine_config &config)
 
 	auto& duart_chan3(NS16550(config, "duart_com_1:chan0", 18.432_MHz_XTAL));
 	duart_chan3.out_int_callback().set(FUNC(k573msu_device::serial_interrupt<3>));
+
+	TC9446F(config, "dsp_0", 0);
+	TC9446F(config, "dsp_1", 0);
+	TC9446F(config, "dsp_2", 0);
+	TC9446F(config, "dsp_3", 0);
+
+	TIMER(config, "fifo_timer").configure_periodic(FUNC(k573msu_device::fifo_timer_callback), attotime::from_hz(100));
 }
 
 void k573msu_device::device_reset()
 {
-	dsp_data_cnt = 0;
-	m_fpgasoft_unk = 0;
-	std::fill(std::begin(m_fpgasoft_transfer_len), std::end(m_fpgasoft_transfer_len), 0);
+	std::fill(std::begin(m_dsp_fifo_read_len), std::end(m_dsp_fifo_read_len), 0);
+	std::fill(std::begin(m_dsp_fifo_write_len), std::end(m_dsp_fifo_write_len), 0);
+	std::fill(std::begin(m_dsp_unk_flags), std::end(m_dsp_unk_flags), 0);
+
+	m_dsp_fifo_status = 0;
+	m_dsp_fifo_irq_triggered = false;
 }
 
 void k573msu_device::device_start()
@@ -158,178 +171,225 @@ void k573msu_device::device_start()
 template<unsigned N>
 void k573msu_device::ata_interrupt(int state)
 {
-	//LOGGENERAL("ata_interrupt<%d> %d\n", N, state);
-
-	m_maincpu->set_input_line(INPUT_LINE_IRQ0 + N, state);
+	LOGMASKED(LOG_INT_ATA, "ata_interrupt<%d> %d\n", N, state);
+	m_maincpu->trigger_irq(N, state);
 }
 
 template<unsigned N>
 void k573msu_device::serial_interrupt(int state)
 {
-	//LOGGENERAL("serial_interrupt<%d> %d\n", N, state);
-
-	m_maincpu->set_input_line(INPUT_LINE_IRQ2, state);
+	LOGMASKED(LOG_INT_SERIAL, "serial_interrupt<%d> %d\n", N, state);
+	m_maincpu->trigger_irq(4, state);
 }
 
-template<unsigned N>
-void k573msu_device::dsp_interrupt(int state)
+TIMER_DEVICE_CALLBACK_MEMBER(k573msu_device::fifo_timer_callback)
 {
-	//LOGGENERAL("dsp_interrupt %d\n", state);
-
-	m_maincpu->set_input_line(INPUT_LINE_IRQ3, state);
-}
-
-void k573msu_device::timer_interrupt(int state)
-{
-	//LOGGENERAL("timer_interrupt %d\n", state);
-
-	m_maincpu->set_input_line(INPUT_LINE_IRQ0, state);
-	m_maincpu->set_input_line(INPUT_LINE_IRQ2, state);
-	m_maincpu->set_input_line(INPUT_LINE_IRQ3, state);
-}
-
-uint16_t k573msu_device::fpgasoft_read(offs_t offset, uint16_t mem_mask)
-{
-	if (offset != 0x10 && offset != 0x780) {
-		LOGGENERAL("%s: fpgasoft_read %08x %08x\n", machine().describe_context().c_str(), offset * 2, mem_mask);
+	// TODO: Figure out exactly how to trigger this
+	if (!m_dsp_fifo_irq_triggered && m_dsp_fifo_status != 0) {
+		m_maincpu->trigger_irq(5, ASSERT_LINE);
+		m_dsp_fifo_irq_triggered = true;
+	} else if (m_dsp_fifo_irq_triggered){
+		m_maincpu->trigger_irq(5, CLEAR_LINE);
+		m_dsp_fifo_irq_triggered = false;
 	}
+}
+
+uint16_t k573msu_device::fpga_dsp_read(offs_t offset, uint16_t mem_mask)
+{
+	auto r = 0;
 
 	switch (offset * 2) {
-	case 0x0a:
-		// Some kind of flag? Seems to have 3 bits * 4 so I think it might be a combined flag for all 4 DSPs
-		return m_fpgasoft_unk;
-
+	// For the DSP chips
 	case 0x0c:
-		// 0x0c and 0x0e are length registers
-		// A length is an 8-bit value. Each register packs 2 sound chips worth of data.
-		// DSP 0 = 0x0c upper
-		// DSP 1 = 0x0c lower
-		// DSP 2 = 0x0e upper
-		// DSP 3 = 0x0e lower
-		return m_fpgasoft_transfer_len[0];
+		r = (m_dsp_fifo_read_len[0] << 8) | m_dsp_fifo_read_len[1];
+		break;
+
 	case 0x0e:
-		return m_fpgasoft_transfer_len[1];
+		r = (m_dsp_fifo_read_len[2] << 8) | m_dsp_fifo_read_len[3];
+		break;
 
 	case 0x20:
-		// MIACK
-		// TODO: Implement ack properly
-		if (dsp_data_cnt > 1) {
-			dsp_data_cnt = 0;
-			return 1;
-		}
-		return 0;
+		for (int i = 0; i < 4; i++)
+			r |= m_dsp[i]->miack_r();
+		break;
+
+	case 0x24: case 0x26:
+		// Response data from DSP?
+		r = 0;
+		break;
+
+	// Required for the MSU to work? Something DSP related?
+	case 0x50: case 0x52:
+		r = 0;
+		break;
+
+	case 0x00: case 0x02:
+	case 0x04: case 0x06:
+		// Write data to FIFO buffer in FPGA?
+		break;
+
+	case 0x0a:
+		r = ~m_dsp_unk_flags[offset];
+		break;
+
+	case 0x08:
+	case 0x4c: case 0x4e:
+	case 0x54: case 0x56:
+	case 0x58: case 0x5a:
+	case 0x5c: case 0x5e:
+		// Some kind of bitfield, one for each DSP. Write only??
+		r = m_dsp_unk_flags[offset];
+		break;
 
 	case 0x60:
-		// Something to do with IRQs for the DSP chips?
-		// Setting 0x10 will trigger thread 0x0c.
-		// Setting the bottom 4 bits will trigger for DSPs 0 to 3.
-		// This only seems to be read when CPU IRQ 5 is triggered.
-		return 0;
+		r = ~m_dsp_fifo_status;
+		break;
 
+	// For the FPGA itself
 	case 0xe00:
 		// Setting this to 2 makes the code go down a path that seems to expect a device to exist on the serial port.
-		return 2;
+		r = 2;
+		break;
 
 	case 0xf00:
 		// Xilinx FPGA version?
 		// 5963 = XC9536?
-		return 0x5963;
-	}
-
-	return 0;
-}
-
-void k573msu_device::fpgasoft_write(offs_t offset, uint16_t data, uint16_t mem_mask)
-{
-	if (offset != 0x12 && offset != 0x13) {
-		LOGGENERAL("%s: fpgasoft_write %08x %08x %08x\n", machine().describe_context().c_str(), offset * 2, data, mem_mask);
-	}
-
-	switch (offset * 2) {
-	case 0x08:
-		// Writes flags:
-		// ffbf
-		// ffef
-		// fffb
-		// fffe
+		r = 0x5963;
 		break;
 
-	case 0x0a:
-		m_fpgasoft_unk = data;
+	default:
+		r = m_dsp_unk_flags[offset];
+		break;
+	}
+
+	if (offset != 0x10 && offset != 0x780 && !(offset >= 0x30 && offset <= 0x34) && offset != 6 && offset != 7) {
+		LOGMASKED(LOG_DSP, "%s: fpgasoft_read %08x | %04x\n", machine().describe_context().c_str(), offset * 2, mem_mask, r);
+	}
+
+	return r;
+}
+
+void k573msu_device::fpga_dsp_write(offs_t offset, uint16_t data, uint16_t mem_mask)
+{
+	if (offset != 0x12 && offset != 0x13 && !(offset >= 0x30 && offset <= 0x34) && offset >= 4) {
+		LOGMASKED(LOG_DSP, "%s: fpgasoft_write %08x %08x\n", machine().describe_context().c_str(), offset * 2, data);
+	}
+
+	m_dsp_unk_flags[offset] = data;
+
+	switch (offset * 2) {
+	case 0x00: case 0x02:
+	case 0x04: case 0x06:
+		break;
+
+	case 0x08: case 0x0a:
+		// Encodes 4 different 2 bit status flags, except in reverse order?
+		// DSP 1 = bits 6-8
+		// DSP 2 = bits 4-6
+		// DSP 3 = bits 2-4
+		// DSP 4 = bits 0-2
+		m_dsp_unk_flags[offset] = data;
 		break;
 
 	case 0x0c:
-		// 0x0c and 0x0e are length registers
-		// A length is an 8-bit value. Each register packs 2 sound chips worth of data.
-		// DSP 0 = 0x0c upper
-		// DSP 1 = 0x0c lower
-		// DSP 2 = 0x0e upper
-		// DSP 3 = 0x0e lower
-		m_fpgasoft_transfer_len[0] = data;
+		m_dsp_fifo_read_len[0] = data >> 8;
+		m_dsp_fifo_read_len[1] = data & 0xff;
 		break;
+
 	case 0x0e:
-		m_fpgasoft_transfer_len[1] = data;
+		m_dsp_fifo_read_len[2] = data >> 8;
+		m_dsp_fifo_read_len[3] = data & 0xff;
 		break;
 
 	case 0x20:
-		// Seems to be used to trigger broadcasts to the enabled DSP chips?
-		// Writes flags:
-		// fff7
-		// fff3
-		// fff1
-		// fff0
+		// Encodes 4 different 1 bit status flags, except in reverse order?
+		// DSP 1 = bits 3
+		// DSP 2 = bits 2
+		// DSP 3 = bits 1
+		// DSP 4 = bits 0
+		m_dsp_unk_flags[offset] = data;
 		break;
 
 	case 0x22:
-		// ?
+		for (int i = 0; i < 4; i++) {
+			m_dsp[i]->mics_w(data);
+		}
 		break;
 
 	case 0x24:
-		// upper 8 bits of 24-bit command
-		//dsp_data = (dsp_data & 0xffff) | ((data & 0xff) << 16);
-		dsp_data_cnt++;
+		// upper 8 bits of 24-bit data
+		// If 0x100 is set then it's invalid data??
+		for (int i = 0; i < 8; i++) {
+			for (int idx = 0; idx < 4; idx++) {
+				m_dsp[idx]->midio_w(BIT(data, 7 - i));
+			}
+		}
 		break;
 
 	case 0x26:
-		// bottom 16 bits of 24-bit command
-		//dsp_data = (dsp_data & 0xff0000) | data;
-		dsp_data_cnt++;
+		// bottom 16 bits of 24-bit data
+		for (int i = 0; i < 16; i++) {
+			for (int idx = 0; idx < 4; idx++) {
+				m_dsp[idx]->midio_w(BIT(data, 15 - i));
+			}
+		}
 		break;
 
 	case 0x28:
-		// MICS?
+		// ?
+		break;
+
+	case 0x2a:
+		// More reversed 1 bit status fields?
 		break;
 
 	case 0x40:
-		// ?
-		// 0080
-		// 8080
-		// c080
+		// More status flags:
+		// idx = ((3 - dsp_idx) * 2) + x where x is 7, 8, 9
+		// value = (val & 1) << idx
 		break;
 
-	case 0x4c:
-		// ?
+	case 0x58: case 0x5a:
+	case 0x5c: case 0x5e:
+		m_dsp_unk_flags[offset] = data;
 		break;
 
-	case 0x50:
-		// ?
-		// 7fff
-		// 5fff
-		// 57ff
-		// 55ff
+	case 0x4c: case 0x4e:
+	case 0x54: case 0x56:
+		// Encodes 5 status flags each.
+		// value = (param_2 & 3) << 8 | (param_3 & 3) << 6 | (param_4 & 3) << 4 | (param_5 & 3) << 2 | param_6 & 3
+		m_dsp_unk_flags[offset] = data;
 		break;
 
-	case 0x5a:
-		// Some kind of flags?
-		// 0008
-		// 000c
-		// 000e
-		// 000f
+	case 0x50: case 0x52:
+		// Encoding:
+		// Shift is calcaulated as: (dsp_idx * 8) + bitoffset
+		// (DAT_8003c91e & ~(3 << shift)) | ((val & 3) << shift)
+		// Each individual DSP's status bits fit into 8 bits, so the bottom byte of offset 0x50 is for DSP 1 and top byte is for DSP 2
+		// Each byte encodes 4 different 2-bit statuses
+		m_dsp_unk_flags[offset] = data;
 		break;
 
+	case 0x60:
+	case 0x62:
+	case 0x64:
+	case 0x66:
 	case 0x68:
-		// ?
+	{
+		// If bit is set to 1 then the device has data to transfer?
+		// For 0x60-0x66 it will read in data from the DSP if set to 1.
+		// 0x68 calls thread 0x0c if set to 1.
+		// My guess is that 0x60-0x68 all address specific things, but you read the status back through 0x60 for all.
+
+		// Thread 0x0c seems to be "dspctrl".
+		// If something has 0x10 set, then it writes to the DSP's serial, otherwise it reads.
+		auto bit = offset - 0x30;
+		if (data)
+			m_dsp_fifo_status |= 1 << bit;
+		else
+			m_dsp_fifo_status &= ~(1 << bit);
 		break;
+	}
 	}
 }
 
@@ -338,7 +398,7 @@ uint16_t k573msu_device::fpga_read(offs_t offset, uint16_t mem_mask)
 	if (offset == 1)
 		return 1;
 
-	LOGGENERAL("%s: fpga_read %08x %08x\n", machine().describe_context().c_str(), offset * 2, mem_mask);
+	LOGMASKED(LOG_FPGA, "%s: fpga_read %08x %08x\n", machine().describe_context().c_str(), offset * 2, mem_mask);
 
 	return 0;
 }
@@ -346,7 +406,7 @@ uint16_t k573msu_device::fpga_read(offs_t offset, uint16_t mem_mask)
 void k573msu_device::fpga_write(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
 	if (offset != 4)
-		LOGGENERAL("%s: fpga_write %08x %08x %08x\n", machine().describe_context().c_str(), offset * 2, data, mem_mask);
+		LOGMASKED(LOG_FPGA, "%s: fpga_write %08x %08x %08x\n", machine().describe_context().c_str(), offset * 2, data, mem_mask);
 }
 
 void k573msu_device::amap(address_map& map)
@@ -354,10 +414,6 @@ void k573msu_device::amap(address_map& map)
 	map(0x00000000, 0x0fffffff).ram().share("ram");
 	map(0x80000000, 0x8fffffff).ram().share("ram");
 	map(0xa0000000, 0xafffffff).ram().share("ram");
-
-	// Encountered unknown ranges:
-	// 10340000
-	// 10343000
 
 	//map(0x10000000, 0x1000000f).rw(m_ata_hdd, FUNC(ata_interface_device::cs0_r), FUNC(ata_interface_device::cs0_w)); // HDD - unused on real hardware
 	//map(0x10000080, 0x1000008f).rw(m_ata_hdd, FUNC(ata_interface_device::cs1_r), FUNC(ata_interface_device::cs1_w));
@@ -369,7 +425,9 @@ void k573msu_device::amap(address_map& map)
 	// 0x10260000 might be related to 0x10220000???
 	map(0x10300000, 0x1030001f).rw(m_duart_com[0], FUNC(pc16552_device::read), FUNC(pc16552_device::write)).umask16(0xff);
 	map(0x10320000, 0x1032001f).rw(m_duart_com[1], FUNC(pc16552_device::read), FUNC(pc16552_device::write)).umask16(0xff);
-	map(0x10400000, 0x10400fff).rw(FUNC(k573msu_device::fpgasoft_read), FUNC(k573msu_device::fpgasoft_write));
+	// 10340000 Unknown
+	// 10343000 Unknown
+	map(0x10400000, 0x10400fff).rw(FUNC(k573msu_device::fpga_dsp_read), FUNC(k573msu_device::fpga_dsp_write));
 
 	map(0x1f400800, 0x1f400bff).rw("m48t58y", FUNC(timekeeper_device::read), FUNC(timekeeper_device::write)).umask32(0x00ff00ff);
 	map(0x1fc00000, 0x1fc7ffff).rom().region("tmpr3927", 0);
