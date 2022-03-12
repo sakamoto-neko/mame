@@ -161,6 +161,7 @@ void k573msu_device::device_reset()
 	std::fill(std::begin(m_dsp_unk_flags), std::end(m_dsp_unk_flags), 0);
 
 	m_dsp_fifo_status = 0;
+	m_dsp_dest_flag = 0xffff;
 	m_dsp_fifo_irq_triggered = false;
 }
 
@@ -200,49 +201,50 @@ uint16_t k573msu_device::fpga_dsp_read(offs_t offset, uint16_t mem_mask)
 
 	switch (offset * 2) {
 	// For the DSP chips
-	case 0x0c:
-		r = (m_dsp_fifo_read_len[0] << 8) | m_dsp_fifo_read_len[1];
+	case 0x08: case 0x0a:
+		r = ~m_dsp_unk_flags[offset];
 		break;
 
-	case 0x0e:
-		r = (m_dsp_fifo_read_len[2] << 8) | m_dsp_fifo_read_len[3];
+	case 0x0c: case 0x0e:
+		// Some kind of length
+		r = (m_dsp_fifo_read_len[(offset - 6) * 2] << 8) | m_dsp_fifo_read_len[(offset - 6) * 2 + 1];
 		break;
 
 	case 0x20:
+		// Is read at all of the places that a MIACK should normally be used during DSP communication.
+		// The code checks for if this is 0, 1, or non-0 so seems maybe a combined MIACK?
 		for (int i = 0; i < 4; i++)
 			r |= m_dsp[i]->miack_r();
 		break;
 
 	case 0x24: case 0x26:
-		// Response data from DSP?
-		r = 0;
+		// Response data (24 bit word) from DSP
+		// TODO: Find a place this is actually used and verify it
+		for (int i = 0; i < 4; i++) {
+			if (!BIT(m_dsp_dest_flag, 3 - i)) {
+				for (int j = 0; j < 24; j++) {
+					r = (r << 1) | m_dsp[i]->midio_r();
+				}
+				break;
+			}
+		}
 		break;
 
-	// Required for the MSU to work? Something DSP related?
 	case 0x50: case 0x52:
+		// Required or else the MSU will return an error
 		r = 0;
 		break;
 
-	case 0x00: case 0x02:
-	case 0x04: case 0x06:
-		// Write data to FIFO buffer in FPGA?
+	case 0x60:
+		r = ~m_dsp_fifo_status;
 		break;
 
-	case 0x0a:
-		r = ~m_dsp_unk_flags[offset];
-		break;
-
-	case 0x08:
 	case 0x4c: case 0x4e:
 	case 0x54: case 0x56:
 	case 0x58: case 0x5a:
 	case 0x5c: case 0x5e:
 		// Some kind of bitfield, one for each DSP. Write only??
 		r = m_dsp_unk_flags[offset];
-		break;
-
-	case 0x60:
-		r = ~m_dsp_fifo_status;
 		break;
 
 	// For the FPGA itself
@@ -280,6 +282,8 @@ void k573msu_device::fpga_dsp_write(offs_t offset, uint16_t data, uint16_t mem_m
 	switch (offset * 2) {
 	case 0x00: case 0x02:
 	case 0x04: case 0x06:
+		// Write data to FIFO buffer in FPGA?
+		m_dsp_unk_flags[offset] = data;
 		break;
 
 	case 0x08: case 0x0a:
@@ -291,14 +295,9 @@ void k573msu_device::fpga_dsp_write(offs_t offset, uint16_t data, uint16_t mem_m
 		m_dsp_unk_flags[offset] = data;
 		break;
 
-	case 0x0c:
-		m_dsp_fifo_read_len[0] = data >> 8;
-		m_dsp_fifo_read_len[1] = data & 0xff;
-		break;
-
-	case 0x0e:
-		m_dsp_fifo_read_len[2] = data >> 8;
-		m_dsp_fifo_read_len[3] = data & 0xff;
+	case 0x0c: case 0x0e:
+		m_dsp_fifo_read_len[(offset - 6) * 2] = BIT(data, 8, 8);
+		m_dsp_fifo_read_len[(offset - 6) * 2 + 1] = BIT(data, 0, 8);
 		break;
 
 	case 0x20:
@@ -307,7 +306,7 @@ void k573msu_device::fpga_dsp_write(offs_t offset, uint16_t data, uint16_t mem_m
 		// DSP 2 = bits 2
 		// DSP 3 = bits 1
 		// DSP 4 = bits 0
-		m_dsp_unk_flags[offset] = data;
+		m_dsp_dest_flag = data;
 		break;
 
 	case 0x22:
@@ -336,10 +335,12 @@ void k573msu_device::fpga_dsp_write(offs_t offset, uint16_t data, uint16_t mem_m
 		break;
 
 	case 0x28:
-		// ?
+		// Flag to reset the DSPs via the FPGA? Is only 0 or 1.
+		// Only gets used when during the start sequence when the DSPs are expected to be reset.
 		break;
 
 	case 0x2a:
+		// Unused?
 		// More reversed 1 bit status fields?
 		break;
 

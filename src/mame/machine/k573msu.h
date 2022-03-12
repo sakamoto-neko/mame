@@ -71,6 +71,7 @@ private:
 	int32_t m_dsp_fifo_read_len[4] = {};
 	int32_t m_dsp_fifo_write_len[4] = {};
 	uint16_t m_dsp_fifo_status;
+	uint16_t m_dsp_dest_flag;
 	bool m_dsp_fifo_irq_triggered;
 };
 
