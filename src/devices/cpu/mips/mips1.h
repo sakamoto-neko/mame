@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "machine/ram.h"
+
 class mips1core_device_base : public cpu_device
 {
 public:
@@ -532,11 +534,13 @@ protected:
 	void amap(address_map& map);
 
 	const address_space_config m_program_config;
+	address_space *m_program;
 
 private:
 	required_device_array<tx3927_sio, 2> m_sio;
 
 	void update_timer_speed();
+	void update_rom_config(int idx);
 
 	uint32_t tmr_read(offs_t offset, uint32_t mem_mask);
 	void tmr_write(offs_t offset, uint32_t data, uint32_t mem_mask);
@@ -561,6 +565,9 @@ private:
 
 	uint32_t pio_read(offs_t offset, uint32_t mem_mask);
 	void pio_write(offs_t offset, uint32_t data, uint32_t mem_mask);
+
+	// ROM
+	uint32_t m_rom_rccr[8];
 
 	// TMR
 	enum : u32 {
@@ -616,7 +623,7 @@ private:
 	uint32_t m_pdcr;
 
 	// PIO
-	uint32_t pio_flags[64] = {};
+	uint32_t m_pio_flags[64] = {};
 
 	// PCIC
 	uint32_t m_pci_istat;

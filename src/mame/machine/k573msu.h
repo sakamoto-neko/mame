@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include <deque>
+
 #include "cpu/mips/mips1.h"
 #include "bus/ata/ataintf.h"
 #include "bus/ata/atapicdr.h"
@@ -26,6 +28,9 @@ class k573msu_device : public device_t
 {
 public:
 	k573msu_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock);
+
+	template<unsigned N> void mpeg_frame_sync(int state);
+	template<unsigned N> void audio_demand(int state);
 
 protected:
 	virtual void device_start() override;
@@ -67,12 +72,22 @@ private:
 	template <unsigned N>
 	void duart_write(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
 
+	void update_playback_timer(int idx);
+
 	uint32_t m_dsp_unk_flags[0x100] = {};
-	int32_t m_dsp_fifo_read_len[4] = {};
-	int32_t m_dsp_fifo_write_len[4] = {};
+	int8_t m_dsp_fifo_read_len[4] = {};
+	int8_t m_dsp_fifo_write_len[4] = {};
 	uint16_t m_dsp_fifo_status;
 	uint16_t m_dsp_dest_flag;
 	bool m_dsp_fifo_irq_triggered;
+
+	int m_playback_frame[4];
+	attotime m_playback_timers[4];
+	attotime m_playback_timers_base[4];
+
+	const int m_dsp_fifo_len = 0x100;
+	bool m_dsp_fifo_enabled[4];
+	std::deque<uint8_t> m_dsp_fifo_buffer[4];
 };
 
 #endif // MAME_MACHINE_K573MSU_H

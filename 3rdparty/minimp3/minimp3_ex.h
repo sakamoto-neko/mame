@@ -234,12 +234,12 @@ static int mp3dec_check_vbrtag(const uint8_t *frame, int frame_size, uint32_t *f
     return 1;
 }
 
-int mp3dec_detect_buf(const uint8_t *buf, size_t buf_size)
+inline int mp3dec_detect_buf(const uint8_t *buf, size_t buf_size)
 {
     return mp3dec_detect_cb(0, (uint8_t *)buf, buf_size);
 }
 
-int mp3dec_detect_cb(mp3dec_io_t *io, uint8_t *buf, size_t buf_size)
+inline int mp3dec_detect_cb(mp3dec_io_t *io, uint8_t *buf, size_t buf_size)
 {
     if (!buf || (size_t)-1 == buf_size || (io && buf_size < MINIMP3_BUF_SIZE))
         return MP3D_E_PARAM;
@@ -277,12 +277,12 @@ int mp3dec_detect_cb(mp3dec_io_t *io, uint8_t *buf, size_t buf_size)
     return MP3D_E_USER;
 }
 
-int mp3dec_load_buf(mp3dec_t *dec, const uint8_t *buf, size_t buf_size, mp3dec_file_info_t *info, MP3D_PROGRESS_CB progress_cb, void *user_data)
+inline int mp3dec_load_buf(mp3dec_t *dec, const uint8_t *buf, size_t buf_size, mp3dec_file_info_t *info, MP3D_PROGRESS_CB progress_cb, void *user_data)
 {
     return mp3dec_load_cb(dec, 0, (uint8_t *)buf, buf_size, info, progress_cb, user_data);
 }
 
-int mp3dec_load_cb(mp3dec_t *dec, mp3dec_io_t *io, uint8_t *buf, size_t buf_size, mp3dec_file_info_t *info, MP3D_PROGRESS_CB progress_cb, void *user_data)
+inline int mp3dec_load_cb(mp3dec_t *dec, mp3dec_io_t *io, uint8_t *buf, size_t buf_size, mp3dec_file_info_t *info, MP3D_PROGRESS_CB progress_cb, void *user_data)
 {
     if (!dec || !buf || !info || (size_t)-1 == buf_size || (io && buf_size < MINIMP3_BUF_SIZE))
         return MP3D_E_PARAM;
@@ -496,7 +496,7 @@ int mp3dec_load_cb(mp3dec_t *dec, mp3dec_io_t *io, uint8_t *buf, size_t buf_size
     return ret;
 }
 
-int mp3dec_iterate_buf(const uint8_t *buf, size_t buf_size, MP3D_ITERATE_CB callback, void *user_data)
+inline int mp3dec_iterate_buf(const uint8_t *buf, size_t buf_size, MP3D_ITERATE_CB callback, void *user_data)
 {
     const uint8_t *orig_buf = buf;
     if (!buf || (size_t)-1 == buf_size || !callback)
@@ -535,7 +535,7 @@ int mp3dec_iterate_buf(const uint8_t *buf, size_t buf_size, MP3D_ITERATE_CB call
     return 0;
 }
 
-int mp3dec_iterate_cb(mp3dec_io_t *io, uint8_t *buf, size_t buf_size, MP3D_ITERATE_CB callback, void *user_data)
+inline int mp3dec_iterate_cb(mp3dec_io_t *io, uint8_t *buf, size_t buf_size, MP3D_ITERATE_CB callback, void *user_data)
 {
     if (!io || !buf || (size_t)-1 == buf_size || buf_size < MINIMP3_BUF_SIZE || !callback)
         return MP3D_E_PARAM;
@@ -669,7 +669,7 @@ static int mp3dec_load_index(void *user_data, const uint8_t *frame, int frame_si
     return 0;
 }
 
-int mp3dec_ex_open_buf(mp3dec_ex_t *dec, const uint8_t *buf, size_t buf_size, int flags)
+inline int mp3dec_ex_open_buf(mp3dec_ex_t *dec, const uint8_t *buf, size_t buf_size, int flags)
 {
     if (!dec || !buf || (size_t)-1 == buf_size || (flags & (~MP3D_FLAGS_MASK)))
         return MP3D_E_PARAM;
@@ -712,7 +712,7 @@ static size_t mp3dec_idx_binary_search(mp3dec_index_t *idx, uint64_t position)
 }
 #endif
 
-int mp3dec_ex_seek(mp3dec_ex_t *dec, uint64_t position)
+inline int mp3dec_ex_seek(mp3dec_ex_t *dec, uint64_t position)
 {
     size_t i;
     if (!dec)
@@ -850,7 +850,7 @@ do_exit:
     return 0;
 }
 
-size_t mp3dec_ex_read_frame(mp3dec_ex_t *dec, mp3d_sample_t **buf, mp3dec_frame_info_t *frame_info, size_t max_samples)
+inline size_t mp3dec_ex_read_frame(mp3dec_ex_t *dec, mp3d_sample_t **buf, mp3dec_frame_info_t *frame_info, size_t max_samples)
 {
     if (!dec || !buf || !frame_info)
     {
@@ -944,7 +944,7 @@ return_e_decode:
     return out_samples;
 }
 
-size_t mp3dec_ex_read(mp3dec_ex_t *dec, mp3d_sample_t *buf, size_t samples)
+inline size_t mp3dec_ex_read(mp3dec_ex_t *dec, mp3d_sample_t *buf, size_t samples)
 {
     if (!dec || !buf)
     {
@@ -970,7 +970,7 @@ size_t mp3dec_ex_read(mp3dec_ex_t *dec, mp3d_sample_t *buf, size_t samples)
     return samples_requested - samples;
 }
 
-int mp3dec_ex_open_cb(mp3dec_ex_t *dec, mp3dec_io_t *io, int flags)
+inline int mp3dec_ex_open_cb(mp3dec_ex_t *dec, mp3dec_io_t *io, int flags)
 {
     if (!dec || !io || (flags & (~MP3D_FLAGS_MASK)))
         return MP3D_E_PARAM;
@@ -1376,7 +1376,7 @@ int mp3dec_ex_open_w(mp3dec_ex_t *dec, const wchar_t *file_name, int flags)
 }
 #endif
 #else /* MINIMP3_NO_STDIO */
-void mp3dec_ex_close(mp3dec_ex_t *dec)
+inline void mp3dec_ex_close(mp3dec_ex_t *dec)
 {
 #ifdef MINIMP3_HAVE_RING
     if (dec->io)

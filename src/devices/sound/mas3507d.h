@@ -60,6 +60,9 @@ private:
 	void fill_buffer();
 	void append_buffer(std::vector<write_stream_view> &outputs, int &pos, int scount);
 
+	int gain_to_db(double val);
+	float gain_to_percentage(int val);
+
 	devcb_write_line cb_mpeg_frame_sync;
 	devcb_write_line cb_demand;
 

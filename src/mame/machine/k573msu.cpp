@@ -17,7 +17,7 @@
 #define LOG_FPGA       (1 << 3)
 #define LOG_DSP        (1 << 4)
 
-#define VERBOSE      (LOG_DSP)
+//#define VERBOSE      (LOG_DSP)
 #define LOG_OUTPUT_STREAM std::cout
 
 #include "logmacro.h"
@@ -114,7 +114,7 @@ static void k573msu_ata_devices(device_slot_interface& device)
 
 void k573msu_device::device_add_mconfig(machine_config &config)
 {
-	TX3927(config, m_maincpu, 20_MHz_XTAL);
+	TX3927(config, m_maincpu, 25_MHz_XTAL); // TODO: Fix clock
 	m_maincpu->set_addrmap(AS_PROGRAM, &k573msu_device::amap);
 	m_maincpu->in_brcond<0>().set([]() { return 1; }); // writeback complete
 	m_maincpu->in_brcond<1>().set([]() { return 1; }); // writeback complete
@@ -134,24 +134,102 @@ void k573msu_device::device_add_mconfig(machine_config &config)
 	// Serial for the 4 subboards
 	PC16552D(config, "duart_com_0", 0);
 	auto& duart_chan0(NS16550(config, "duart_com_0:chan1", 18.432_MHz_XTAL));
+	auto& rs232_port1(RS232_PORT(config, "msu_port1", default_rs232_devices, nullptr));
+	rs232_port1.rxd_handler().set("duart_com_0:chan1", FUNC(ins8250_uart_device::rx_w));
+	rs232_port1.dcd_handler().set("duart_com_0:chan1", FUNC(ins8250_uart_device::dcd_w));
+	rs232_port1.dsr_handler().set("duart_com_0:chan1", FUNC(ins8250_uart_device::dsr_w));
+	rs232_port1.ri_handler().set("duart_com_0:chan1", FUNC(ins8250_uart_device::ri_w));
+	rs232_port1.cts_handler().set("duart_com_0:chan1", FUNC(ins8250_uart_device::cts_w));
+	duart_chan0.out_tx_callback().set("msu_port1", FUNC(rs232_port_device::write_txd));
+	duart_chan0.out_dtr_callback().set("msu_port1", FUNC(rs232_port_device::write_dtr));
+	duart_chan0.out_rts_callback().set("msu_port1", FUNC(rs232_port_device::write_rts));
 	duart_chan0.out_int_callback().set(FUNC(k573msu_device::serial_interrupt<0>));
 
 	auto& duart_chan1(NS16550(config, "duart_com_0:chan0", 18.432_MHz_XTAL));
+	auto& rs232_port2(RS232_PORT(config, "msu_port2", default_rs232_devices, nullptr));
+	rs232_port2.rxd_handler().set("duart_com_0:chan0", FUNC(ins8250_uart_device::rx_w));
+	rs232_port2.dcd_handler().set("duart_com_0:chan0", FUNC(ins8250_uart_device::dcd_w));
+	rs232_port2.dsr_handler().set("duart_com_0:chan0", FUNC(ins8250_uart_device::dsr_w));
+	rs232_port2.ri_handler().set("duart_com_0:chan0", FUNC(ins8250_uart_device::ri_w));
+	rs232_port2.cts_handler().set("duart_com_0:chan0", FUNC(ins8250_uart_device::cts_w));
+	duart_chan1.out_tx_callback().set("msu_port2", FUNC(rs232_port_device::write_txd));
+	duart_chan1.out_dtr_callback().set("msu_port2", FUNC(rs232_port_device::write_dtr));
+	duart_chan1.out_rts_callback().set("msu_port2", FUNC(rs232_port_device::write_rts));
 	duart_chan1.out_int_callback().set(FUNC(k573msu_device::serial_interrupt<1>));
 
 	PC16552D(config, "duart_com_1", 0);
 	auto& duart_chan2(NS16550(config, "duart_com_1:chan1", 18.432_MHz_XTAL));
+	auto& rs232_port3(RS232_PORT(config, "msu_port3", default_rs232_devices, nullptr));
+	rs232_port3.rxd_handler().set("duart_com_1:chan1", FUNC(ins8250_uart_device::rx_w));
+	rs232_port3.dcd_handler().set("duart_com_1:chan1", FUNC(ins8250_uart_device::dcd_w));
+	rs232_port3.dsr_handler().set("duart_com_1:chan1", FUNC(ins8250_uart_device::dsr_w));
+	rs232_port3.ri_handler().set("duart_com_1:chan1", FUNC(ins8250_uart_device::ri_w));
+	rs232_port3.cts_handler().set("duart_com_1:chan1", FUNC(ins8250_uart_device::cts_w));
+	duart_chan2.out_tx_callback().set("msu_port3", FUNC(rs232_port_device::write_txd));
+	duart_chan2.out_dtr_callback().set("msu_port3", FUNC(rs232_port_device::write_dtr));
+	duart_chan2.out_rts_callback().set("msu_port3", FUNC(rs232_port_device::write_rts));
 	duart_chan2.out_int_callback().set(FUNC(k573msu_device::serial_interrupt<2>));
 
 	auto& duart_chan3(NS16550(config, "duart_com_1:chan0", 18.432_MHz_XTAL));
+	auto& rs232_port4(RS232_PORT(config, "msu_port4", default_rs232_devices, nullptr));
+	rs232_port4.rxd_handler().set("duart_com_1:chan0", FUNC(ins8250_uart_device::rx_w));
+	rs232_port4.dcd_handler().set("duart_com_1:chan0", FUNC(ins8250_uart_device::dcd_w));
+	rs232_port4.dsr_handler().set("duart_com_1:chan0", FUNC(ins8250_uart_device::dsr_w));
+	rs232_port4.ri_handler().set("duart_com_1:chan0", FUNC(ins8250_uart_device::ri_w));
+	rs232_port4.cts_handler().set("duart_com_1:chan0", FUNC(ins8250_uart_device::cts_w));
+	duart_chan3.out_tx_callback().set("msu_port4", FUNC(rs232_port_device::write_txd));
+	duart_chan3.out_dtr_callback().set("msu_port4", FUNC(rs232_port_device::write_dtr));
+	duart_chan3.out_rts_callback().set("msu_port4", FUNC(rs232_port_device::write_rts));
 	duart_chan3.out_int_callback().set(FUNC(k573msu_device::serial_interrupt<3>));
 
-	TC9446F(config, "dsp_0", 0);
-	TC9446F(config, "dsp_1", 0);
-	TC9446F(config, "dsp_2", 0);
-	TC9446F(config, "dsp_3", 0);
+	auto& dsp0(TC9446F(config, "dsp_0", 0));
+	dsp0.mpeg_frame_sync_cb().set(*this, FUNC(k573msu_device::mpeg_frame_sync<0>));
+	dsp0.demand_cb().set(*this, FUNC(k573msu_device::audio_demand<0>));
+	dsp0.add_route(0, ":lspeaker", 0.65);
+	dsp0.add_route(1, ":rspeaker", 0.65);
 
-	TIMER(config, "fifo_timer").configure_periodic(FUNC(k573msu_device::fifo_timer_callback), attotime::from_hz(100));
+	auto& dsp1(TC9446F(config, "dsp_1", 0));
+	dsp1.mpeg_frame_sync_cb().set(*this, FUNC(k573msu_device::mpeg_frame_sync<1>));
+	dsp1.demand_cb().set(*this, FUNC(k573msu_device::audio_demand<1>));
+	dsp1.add_route(0, ":lspeaker", 0.65);
+	dsp1.add_route(1, ":rspeaker", 0.65);
+
+	auto& dsp2(TC9446F(config, "dsp_2", 0));
+	dsp2.mpeg_frame_sync_cb().set(*this, FUNC(k573msu_device::mpeg_frame_sync<2>));
+	dsp2.demand_cb().set(*this, FUNC(k573msu_device::audio_demand<2>));
+	dsp2.add_route(0, ":lspeaker", 0.65);
+	dsp2.add_route(1, ":rspeaker", 0.65);
+
+	auto& dsp3(TC9446F(config, "dsp_3", 0));
+	dsp3.mpeg_frame_sync_cb().set(*this, FUNC(k573msu_device::mpeg_frame_sync<3>));
+	dsp3.demand_cb().set(*this, FUNC(k573msu_device::audio_demand<3>));
+	dsp3.add_route(0, ":lspeaker", 0.65);
+	dsp3.add_route(1, ":rspeaker", 0.65);
+
+	TIMER(config, "fifo_timer").configure_periodic(FUNC(k573msu_device::fifo_timer_callback), attotime::from_hz(1000));
+}
+
+
+template<unsigned N>
+void k573msu_device::mpeg_frame_sync(int state)
+{
+	if (!state)
+		return;
+
+	if (m_playback_frame[N] == 0)
+		m_playback_timers[N] = m_playback_timers_base[N] = machine().time();
+
+	m_playback_frame[N]++;
+}
+
+template<unsigned N>
+void k573msu_device::audio_demand(int state)
+{
+	if (state && m_dsp_fifo_buffer[N].size() > 0) {
+		auto c = m_dsp_fifo_buffer[N].front();
+		m_dsp_fifo_buffer[N].pop_front();
+		m_dsp[N]->audio_w(c);
+	}
 }
 
 void k573msu_device::device_reset()
@@ -159,6 +237,11 @@ void k573msu_device::device_reset()
 	std::fill(std::begin(m_dsp_fifo_read_len), std::end(m_dsp_fifo_read_len), 0);
 	std::fill(std::begin(m_dsp_fifo_write_len), std::end(m_dsp_fifo_write_len), 0);
 	std::fill(std::begin(m_dsp_unk_flags), std::end(m_dsp_unk_flags), 0);
+	std::fill(std::begin(m_dsp_fifo_enabled), std::end(m_dsp_fifo_enabled), false);
+
+	std::fill(std::begin(m_playback_frame), std::end(m_playback_frame), 0);
+	std::fill(std::begin(m_playback_timers), std::end(m_playback_timers), attotime::zero);
+	std::fill(std::begin(m_playback_timers_base), std::end(m_playback_timers_base), attotime::zero);
 
 	m_dsp_fifo_status = 0;
 	m_dsp_dest_flag = 0xffff;
@@ -186,15 +269,29 @@ void k573msu_device::serial_interrupt(int state)
 TIMER_DEVICE_CALLBACK_MEMBER(k573msu_device::fifo_timer_callback)
 {
 	// TODO: Figure out exactly how to trigger this
-	if (!m_dsp_fifo_irq_triggered && m_dsp_fifo_status != 0) {
+	if (!m_dsp_fifo_irq_triggered) {
 		m_maincpu->trigger_irq(5, ASSERT_LINE);
 		m_dsp_fifo_irq_triggered = true;
-	} else if (m_dsp_fifo_irq_triggered){
+	}
+	else if (m_dsp_fifo_irq_triggered) {
 		m_maincpu->trigger_irq(5, CLEAR_LINE);
 		m_dsp_fifo_irq_triggered = false;
 	}
 }
 
+void k573msu_device::update_playback_timer(int idx)
+{
+	auto cur = machine().time();
+
+	m_playback_timers[idx] = cur;
+
+	if (m_playback_frame[idx] == 0 || !BIT(m_dsp_unk_flags[0x28 + (idx / 2)], 7 + (8 * (1 - (idx & 1))))) {
+		// This bit always seems to be non-zero when the specified DSP should be in playback mode
+		m_playback_timers_base[idx] = cur;
+	}
+}
+
+int cur_offset = 0;
 uint16_t k573msu_device::fpga_dsp_read(offs_t offset, uint16_t mem_mask)
 {
 	auto r = 0;
@@ -206,22 +303,28 @@ uint16_t k573msu_device::fpga_dsp_read(offs_t offset, uint16_t mem_mask)
 		break;
 
 	case 0x0c: case 0x0e:
-		// Some kind of length
-		r = (m_dsp_fifo_read_len[(offset - 6) * 2] << 8) | m_dsp_fifo_read_len[(offset - 6) * 2 + 1];
+		// Number of bytes to read into the FIFO
+		r |= (m_dsp_fifo_enabled[offset - 6] ? std::min(std::max(m_dsp_fifo_len - (int)m_dsp_fifo_buffer[offset - 6].size(), 0), 0xff) : 0) << 8;
+		r |= m_dsp_fifo_enabled[offset - 6 + 1] ? std::min(std::max(m_dsp_fifo_len - (int)m_dsp_fifo_buffer[offset - 6 + 1].size(), 0), 0xff) : 0;
 		break;
 
 	case 0x20:
 		// Is read at all of the places that a MIACK should normally be used during DSP communication.
 		// The code checks for if this is 0, 1, or non-0 so seems maybe a combined MIACK?
-		for (int i = 0; i < 4; i++)
-			r |= m_dsp[i]->miack_r();
+		for (int i = 0; i < 4; i++) {
+			if (BIT(~m_dsp_dest_flag, 3 - i)) {
+				for (int j = 0; j < 24; j++) {
+					r |= m_dsp[i]->miack_r();
+				}
+			}
+		}
 		break;
 
 	case 0x24: case 0x26:
 		// Response data (24 bit word) from DSP
 		// TODO: Find a place this is actually used and verify it
 		for (int i = 0; i < 4; i++) {
-			if (!BIT(m_dsp_dest_flag, 3 - i)) {
+			if (BIT(~m_dsp_dest_flag, 3 - i)) {
 				for (int j = 0; j < 24; j++) {
 					r = (r << 1) | m_dsp[i]->midio_r();
 				}
@@ -230,22 +333,40 @@ uint16_t k573msu_device::fpga_dsp_read(offs_t offset, uint16_t mem_mask)
 		}
 		break;
 
-	case 0x50: case 0x52:
-		// Required or else the MSU will return an error
-		r = 0;
-		break;
-
 	case 0x60:
-		r = ~m_dsp_fifo_status;
+		r = ((m_dsp_fifo_enabled[3] && m_dsp_fifo_buffer[3].size() >= m_dsp_fifo_len) << 3)
+			| ((m_dsp_fifo_enabled[2] && m_dsp_fifo_buffer[2].size() >= m_dsp_fifo_len) << 2)
+			| ((m_dsp_fifo_enabled[1] && m_dsp_fifo_buffer[1].size() >= m_dsp_fifo_len) << 1)
+			| ((m_dsp_fifo_enabled[0] && m_dsp_fifo_buffer[0].size() >= m_dsp_fifo_len) << 0);
 		break;
 
 	case 0x4c: case 0x4e:
+		// ??
+		r = m_dsp_unk_flags[offset];
+		break;
+
+	case 0x50: case 0x52:
 	case 0x54: case 0x56:
 	case 0x58: case 0x5a:
 	case 0x5c: case 0x5e:
-		// Some kind of bitfield, one for each DSP. Write only??
-		r = m_dsp_unk_flags[offset];
+	{
+		// Playback timer
+		auto idx = (offset - 0x28) / 2;
+
+		if (!BIT(offset, 0)) {
+			update_playback_timer(idx);
+		}
+
+		auto t = uint32_t((m_playback_timers[idx] - m_playback_timers_base[idx]).as_double() * 44100.0);
+
+		if (offset & 1) {
+			r = t & 0xffff;
+		}
+		else {
+			r = (t >> 16) & 0xffff;
+		}
 		break;
+	}
 
 	// For the FPGA itself
 	case 0xe00:
@@ -264,8 +385,10 @@ uint16_t k573msu_device::fpga_dsp_read(offs_t offset, uint16_t mem_mask)
 		break;
 	}
 
+	r &= 0xffff;
+
 	if (offset != 0x10 && offset != 0x780 && !(offset >= 0x30 && offset <= 0x34) && offset != 6 && offset != 7) {
-		LOGMASKED(LOG_DSP, "%s: fpgasoft_read %08x | %04x\n", machine().describe_context().c_str(), offset * 2, mem_mask, r);
+		LOGMASKED(LOG_DSP, "%s: fpgasoft_read %08x | %04x\n", machine().describe_context().c_str(), offset * 2, r);
 	}
 
 	return r;
@@ -273,17 +396,18 @@ uint16_t k573msu_device::fpga_dsp_read(offs_t offset, uint16_t mem_mask)
 
 void k573msu_device::fpga_dsp_write(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
-	if (offset != 0x12 && offset != 0x13 && !(offset >= 0x30 && offset <= 0x34) && offset >= 4) {
+	if (!(offset >= 0x30 && offset <= 0x34) && offset >= 4) {
 		LOGMASKED(LOG_DSP, "%s: fpgasoft_write %08x %08x\n", machine().describe_context().c_str(), offset * 2, data);
 	}
-
-	m_dsp_unk_flags[offset] = data;
 
 	switch (offset * 2) {
 	case 0x00: case 0x02:
 	case 0x04: case 0x06:
-		// Write data to FIFO buffer in FPGA?
-		m_dsp_unk_flags[offset] = data;
+		// MP3 data gets written here. Presumably the FPGA will be forwarding it to the DSP chips as required
+		if (m_dsp_fifo_enabled[offset]) {
+			m_dsp_fifo_buffer[offset].push_back(data >> 8);
+			m_dsp_fifo_buffer[offset].push_back(data & 0xff);
+		}
 		break;
 
 	case 0x08: case 0x0a:
@@ -320,7 +444,9 @@ void k573msu_device::fpga_dsp_write(offs_t offset, uint16_t data, uint16_t mem_m
 		// If 0x100 is set then it's invalid data??
 		for (int i = 0; i < 8; i++) {
 			for (int idx = 0; idx < 4; idx++) {
-				m_dsp[idx]->midio_w(BIT(data, 7 - i));
+				if (BIT(~m_dsp_dest_flag, 3 - idx)) {
+					m_dsp[idx]->midio_w(BIT(data, 7 - i));
+				}
 			}
 		}
 		break;
@@ -329,7 +455,9 @@ void k573msu_device::fpga_dsp_write(offs_t offset, uint16_t data, uint16_t mem_m
 		// bottom 16 bits of 24-bit data
 		for (int i = 0; i < 16; i++) {
 			for (int idx = 0; idx < 4; idx++) {
-				m_dsp[idx]->midio_w(BIT(data, 15 - i));
+				if (BIT(~m_dsp_dest_flag, 3 - idx)) {
+					m_dsp[idx]->midio_w(BIT(data, 15 - i));
+				}
 			}
 		}
 		break;
@@ -357,10 +485,26 @@ void k573msu_device::fpga_dsp_write(offs_t offset, uint16_t data, uint16_t mem_m
 
 	case 0x4c: case 0x4e:
 	case 0x54: case 0x56:
+	{
 		// Encodes 5 status flags each.
 		// value = (param_2 & 3) << 8 | (param_3 & 3) << 6 | (param_4 & 3) << 4 | (param_5 & 3) << 2 | param_6 & 3
+		int idx = offset - 0x26;
+
+		if (offset >= 0x2a)
+			idx = offset - 0x28;
+
+		// If bit 8 is set then playback is enabled
+		// This is just a hack but reset buffers when the playback is stopped
+		if (!BIT(data, 8)) {
+			m_dsp_fifo_buffer[idx].clear();
+			m_dsp[idx]->reset_playback();
+		}
+
+		m_dsp_fifo_enabled[idx] = BIT(data, 8);
 		m_dsp_unk_flags[offset] = data;
+
 		break;
+	}
 
 	case 0x50: case 0x52:
 		// Encoding:
@@ -392,6 +536,8 @@ void k573msu_device::fpga_dsp_write(offs_t offset, uint16_t data, uint16_t mem_m
 		break;
 	}
 	}
+
+	m_dsp_unk_flags[offset] = data;
 }
 
 uint16_t k573msu_device::fpga_read(offs_t offset, uint16_t mem_mask)
@@ -421,16 +567,11 @@ void k573msu_device::amap(address_map& map)
 	map(0x10100000, 0x1010000f).rw(m_ata_cdrom, FUNC(ata_interface_device::cs0_r), FUNC(ata_interface_device::cs0_w)); // CD
 	map(0x10100080, 0x1010008f).rw(m_ata_cdrom, FUNC(ata_interface_device::cs1_r), FUNC(ata_interface_device::cs1_w));
 	map(0x10200000, 0x1020000f).rw(FUNC(k573msu_device::fpga_read), FUNC(k573msu_device::fpga_write));
-	// 0x10220000 Seems to be related to the ATA drives in some way. Will write 1 for ata[0], 4 for ata[1], and 5 for both?
 	map(0x10240004, 0x10240007).portr("IN1").nopw(); // write = LEDx16 near dipsw?
-	// 0x10260000 might be related to 0x10220000???
 	map(0x10300000, 0x1030001f).rw(m_duart_com[0], FUNC(pc16552_device::read), FUNC(pc16552_device::write)).umask16(0xff);
 	map(0x10320000, 0x1032001f).rw(m_duart_com[1], FUNC(pc16552_device::read), FUNC(pc16552_device::write)).umask16(0xff);
-	// 10340000 Unknown
-	// 10343000 Unknown
 	map(0x10400000, 0x10400fff).rw(FUNC(k573msu_device::fpga_dsp_read), FUNC(k573msu_device::fpga_dsp_write));
 
-	map(0x1f400800, 0x1f400bff).rw("m48t58y", FUNC(timekeeper_device::read), FUNC(timekeeper_device::write)).umask32(0x00ff00ff);
 	map(0x1fc00000, 0x1fc7ffff).rom().region("tmpr3927", 0);
 }
 

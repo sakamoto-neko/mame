@@ -37,6 +37,7 @@
 
 //#define VERBOSE     (LOG_GENERAL|LOG_TLB)
 //#define VERBOSE (LOG_TX39_SIO)
+//#define VERBOSE (LOG_TX39_TMR|LOG_TX39_SIO|LOG_TX39_IRC|LOG_TX39_CCFG|LOG_TX39_SDRAM|LOG_TX39_ROM|LOG_TX39_DMA|LOG_TX39_PCI|LOG_TX39_PIO)
 #define LOG_OUTPUT_STREAM std::cout
 
 #include "logmacro.h"
@@ -2772,7 +2773,7 @@ void tx3927_device::device_reset()
 	std::fill(std::begin(m_irc_irilr), std::end(m_irc_irilr), 0);
 	std::fill(std::begin(m_irc_ircr), std::end(m_irc_ircr), 0);
 
-	std::fill(std::begin(pio_flags), std::end(pio_flags), 0);
+	std::fill(std::begin(m_pio_flags), std::end(m_pio_flags), 0);
 
 	for (int i = 0; i < 3; i++) {
 		m_tmr[i].TMTCR = 0;
@@ -2811,6 +2812,10 @@ void tx3927_device::device_reset()
 	m_pci_iomas = 0;
 	m_pci_ipciaddr = 0;
 	m_pci_ipcidata = 0;
+
+	std::fill(std::begin(m_rom_rccr), std::end(m_rom_rccr), 0x1fc30000);
+	m_rom_rccr[0] = 0x1fc3e280; // Should have BAI, B16, BBC, BME set based on input pins
+	update_rom_config(0);
 }
 
 void tx3927_device::device_resolve_objects()
@@ -2843,6 +2848,8 @@ void tx3927_device::amap(address_map& map)
 void tx3927_device::device_start()
 {
 	mips1core_device_base::device_start();
+
+	m_program = &space(AS_PROGRAM);
 
 	m_timer[0] = machine().scheduler().timer_alloc(timer_expired_delegate(FUNC(tx3927_device::update_timer<0>), this));
 	m_timer[1] = machine().scheduler().timer_alloc(timer_expired_delegate(FUNC(tx3927_device::update_timer<1>), this));
@@ -3132,12 +3139,44 @@ void tx3927_device::sdram_write(offs_t offset, uint32_t data, uint32_t mem_mask)
 uint32_t tx3927_device::rom_read(offs_t offset, uint32_t mem_mask)
 {
 	LOGMASKED(LOG_TX39_ROM, "%s: rom_read %08x %08x\n", machine().describe_context().c_str(), offset * 4, mem_mask);
-	return 0;
+
+	if (offset > 7)
+		return 0;
+
+	return m_rom_rccr[offset];
+}
+
+void tx3927_device::update_rom_config(int idx)
+{
+	auto base_addr = BIT(m_rom_rccr[idx], 20, 12) << 20;
+	auto bus_width = BIT(m_rom_rccr[idx], 7) ? 1 : 2;
+	auto channel_size = std::min(
+		int(pow(2, BIT(m_rom_rccr[idx], 8, 4))) * 1024 * 1024 * bus_width,
+		0x20000000
+	);
+
+	LOGMASKED(LOG_TX39_ROM, "ram[%d]: %08x | %06x | %08x -> %08x\n", idx, m_rom_rccr[idx], channel_size, base_addr, base_addr + channel_size - 1);
+
+	/*
+	if (m_ram[idx] && m_ram[idx]->pointer()) {
+		m_program->install_ram(0x00000000 + base_addr, 0x00000000 + base_addr + channel_size - 1, m_ram[idx]->pointer());
+		m_program->install_ram(0x80000000 + base_addr, 0x80000000 + base_addr + channel_size - 1, m_ram[idx]->pointer());
+		m_program->install_ram(0xa0000000 + base_addr, 0xa0000000 + base_addr + channel_size - 1, m_ram[idx]->pointer());
+	}
+	*/
 }
 
 void tx3927_device::rom_write(offs_t offset, uint32_t data, uint32_t mem_mask)
 {
 	LOGMASKED(LOG_TX39_ROM, "%s: rom_write %08x %08x %08x\n", machine().describe_context().c_str(), offset * 4, data, mem_mask);
+
+	if (offset > 7)
+		return;
+
+	if (m_rom_rccr[offset] != data) {
+		m_rom_rccr[offset] = data;
+		update_rom_config(offset);
+	}
 }
 
 uint32_t tx3927_device::dma_read(offs_t offset, uint32_t mem_mask)
@@ -3475,12 +3514,12 @@ uint32_t tx3927_device::pio_read(offs_t offset, uint32_t mem_mask)
 {
 	if (offset != 0)
 		LOGMASKED(LOG_TX39_PIO, "%s: pio_read %08x %08x\n", machine().describe_context().c_str(), offset * 4, mem_mask);
-	return pio_flags[offset];
+	return m_pio_flags[offset];
 }
 
 void tx3927_device::pio_write(offs_t offset, uint32_t data, uint32_t mem_mask)
 {
 	if (offset != 0)
 		LOGMASKED(LOG_TX39_PIO, "%s: pio_write %08x %08x %08x\n", machine().describe_context().c_str(), offset * 4, data, mem_mask);
-	pio_flags[offset] = data;
+	m_pio_flags[offset] = data;
 }

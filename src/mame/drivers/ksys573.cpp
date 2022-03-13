@@ -392,6 +392,7 @@ Notes: (all ICs shown)
 #include "bus/ata/ataintf.h"
 #include "bus/ata/cr589.h"
 #include "bus/rs232/rs232.h"
+#include "bus/rs232/null_modem.h"
 #include "machine/adc083x.h"
 #include "machine/bankdev.h"
 #include "machine/ds2401.h"
@@ -521,7 +522,6 @@ void sys573_jvs_host::send_packet(uint8_t *data, int length)
 	commit_raw();
 }
 
-
 class ksys573_state : public driver_device
 {
 public:
@@ -608,7 +608,8 @@ public:
 	void gtrfrks(machine_config &config);
 	void gchgchmp(machine_config &config);
 	void ddr5m(machine_config &config);
-	void msu_local(machine_config& config);
+	void msu_local(machine_config &config);
+	void msu_remote(machine_config &config);
 	void drmn4m(machine_config &config);
 	void fbaitbc(machine_config &config);
 	void ddr4ms(machine_config &config);
@@ -2925,9 +2926,10 @@ void ksys573_state::drmn2m(machine_config &config)
 	cassxzi(config);
 }
 
-void ksys573_state::msu_local(machine_config& config)
+void ksys573_state::msu_local(machine_config &config)
 {
 	KONAMI_573_MULTI_SESSION_UNIT(config, "k573msu", 0);
+
 	auto duart_chan = subdevice<ns16550_device>("k573msu:duart_com_0:chan1");
 	auto sio1 = subdevice<psxsio1_device>("maincpu:sio1");
 
@@ -2938,6 +2940,19 @@ void ksys573_state::msu_local(machine_config& config)
 	duart_chan->out_tx_callback().set(*sio1, FUNC(psxsio1_device::write_rxd));
 	duart_chan->out_dtr_callback().set(*sio1, FUNC(psxsio1_device::write_dsr));
 	duart_chan->out_rts_callback().set(*sio1, FUNC(psxsio1_device::write_cts));
+}
+
+void ksys573_state::msu_remote(machine_config &config)
+{
+	auto sio1 = subdevice<psxsio1_device>("maincpu:sio1");
+
+	if (sio1 == nullptr)
+		return;
+
+	rs232_port_device& rs232_network(RS232_PORT(config, "rs232_network", default_rs232_devices, nullptr));
+	sio1->txd_handler().set(rs232_network, FUNC(rs232_port_device::write_txd));
+	sio1->dtr_handler().set(rs232_network, FUNC(rs232_port_device::write_dtr));
+	rs232_network.rxd_handler().set(*sio1, FUNC(psxsio1_device::write_rxd));
 }
 
 void ksys573_state::drmn4m(machine_config &config)
@@ -3011,6 +3026,7 @@ void ksys573_state::gtrfrk5m(machine_config &config)
 	k573d(config);
 	casszi(config);
 	pccard1_32mb(config);
+	msu_remote(config);
 }
 
 void ksys573_state::gtrfrk7m(machine_config &config)
@@ -3018,6 +3034,7 @@ void ksys573_state::gtrfrk7m(machine_config &config)
 	k573d(config);
 	casszi(config);
 	pccard1_32mb(config);
+	msu_remote(config);
 }
 
 void ksys573_state::gtfrk10m(machine_config &config)
@@ -3025,6 +3042,7 @@ void ksys573_state::gtfrk10m(machine_config &config)
 	k573d(config);
 	casszi(config);
 	pccard1_32mb(config);
+	msu_remote(config);
 }
 
 void ksys573_state::gtfrk10mb(machine_config &config)
@@ -3039,6 +3057,7 @@ void ksys573_state::gtfrk11m(machine_config &config)
 	k573d(config);
 	casszi(config);
 	pccard1_32mb(config);
+	msu_remote(config);
 }
 
 // Miscellaneous

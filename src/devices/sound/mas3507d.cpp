@@ -375,11 +375,11 @@ void mas3507d_device::i2c_device_got_stop()
 	LOGOTHER("MAS I2C: got stop\n");
 }
 
-int gain_to_db(double val) {
+int mas3507d_device::gain_to_db(double val) {
 	return round(20 * log10((0x100000 - val) / 0x80000));
 }
 
-float gain_to_percentage(int val) {
+float mas3507d_device::gain_to_percentage(int val) {
 	if(val == 0)
 		return 0; // Special case for muting it seems
 
