@@ -63,17 +63,22 @@
         SP232    - Sipex Corporation SP232 Enhanced RS-232 Line Drivers/Receiver (SOIC16)
         RJ45     - RJ45 network connector
         DIP40    - Empty DIP40 socket
-        CN1      - Custom multi-pin connector for special cable. The other end of the
-                   cable has a PCMCIA card which plugs into the PCMCIA slot on a
-                   System 573 main board
+        CN1      - 68-pin VHDCI connector. Uses a VHDCI to VHDCI cable to connect with the main Sys573 via a PCMCIA card that has a VHDCI connector on the end.
         CN2      - 6-pin power input connector
         CN3      - 4-pin connector
         L        - LED
 
+  The related PCMCIA card that is inserted into the System 573 and is used as the connection point between the NPU and Sys573 is a simple passthrough card
+  with 2 capacitors on the VHDCI side of the board and 6 ferrite bead chips (ZBDS5101-8PT).
+  Card is marked "K5010-2501 Ver 1.1 CARD-BUS".
+
 */
 
 k573npu_device::k573npu_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock) :
-	device_t(mconfig, KONAMI_573_NETWORK_PCB_UNIT, tag, owner, clock)
+	device_t(mconfig, KONAMI_573_NETWORK_PCB_UNIT, tag, owner, clock),
+	digital_id(*this, "digital_id"),
+	m_maincpu(*this, "maincpu"),
+	m_ram(*this, "ram")
 {
 }
 
@@ -81,9 +86,107 @@ void k573npu_device::device_start()
 {
 }
 
+void k573npu_device::device_reset()
+{
+}
+
+void k573npu_device::device_add_mconfig(machine_config& config)
+{
+	RAM(config, m_ram).set_default_size("16M").set_default_value(0);
+
+	TX3927(config, m_maincpu, 20_MHz_XTAL);
+	m_maincpu->set_addrmap(AS_PROGRAM, &k573npu_device::amap);
+	m_maincpu->in_brcond<0>().set([]() { return 1; }); // writeback complete
+	m_maincpu->in_brcond<1>().set([]() { return 1; }); // writeback complete
+	m_maincpu->in_brcond<2>().set([]() { return 1; }); // writeback complete
+	m_maincpu->in_brcond<3>().set([]() { return 1; }); // writeback complete
+
+	DS2401(config, digital_id);
+
+	//pci_bus_legacy_device& pcibus(PCI_BUS_LEGACY(config, "pcibus", 0, 0));
+}
+
+void k573npu_device::timer_interrupt(int state)
+{
+	//printf("timer_interrupt %d\n", state);
+
+	// TODO: What IRQ?
+	//m_maincpu->set_input_line(INPUT_LINE_IRQ0, state);
+}
+
+uint16_t k573npu_device::fpga_dsp_read(offs_t offset, uint16_t mem_mask)
+{
+	/*
+	if (offset * 2 != 0x20) {
+		printf("%s: fpgasoft_read %08x %08x\n", machine().describe_context().c_str(), offset * 2, mem_mask);
+	}
+	*/
+
+	switch (offset * 2) {
+	case 0x20:
+		// Communication with Dallas serial
+		return digital_id->read();
+
+	case 0x24:
+		// Version
+		return 1;
+
+	case 0x26:
+		// Xilinx FPGA version?
+		// 5963 = XC9536?
+		return 0x5963;
+	}
+
+	return 0;
+}
+
+void k573npu_device::fpga_dsp_write(offs_t offset, uint16_t data, uint16_t mem_mask)
+{
+	//printf("%s: fpgasoft_write %08x %08x %08x\n", machine().describe_context().c_str(), offset * 2, data, mem_mask);
+
+	switch (offset * 2) {
+	case 0x20:
+		// Communication with Dallas serial
+		digital_id->write(data & 1);
+		break;
+	}
+}
+
+uint16_t k573npu_device::fpga_read(offs_t offset, uint16_t mem_mask)
+{
+	if (offset == 1)
+		return 3;
+
+	printf("%s: fpga_read %08x %08x\n", machine().describe_context().c_str(), offset * 2, mem_mask);
+
+	return 0;
+}
+
+void k573npu_device::fpga_write(offs_t offset, uint16_t data, uint16_t mem_mask)
+{
+	if (offset != 4)
+		printf("%s: fpga_write %08x %08x %08x\n", machine().describe_context().c_str(), offset * 2, data, mem_mask);
+}
+
+
+void k573npu_device::amap(address_map& map)
+{
+	map(0x00000000, 0x0fffffff).ram().share("ram");
+	map(0x80000000, 0x8fffffff).ram().share("ram");
+	map(0xa0000000, 0xafffffff).ram().share("ram");
+
+	map(0x10200000, 0x1020000f).rw(FUNC(k573npu_device::fpga_read), FUNC(k573npu_device::fpga_write));
+	map(0x10400000, 0x10400fff).rw(FUNC(k573npu_device::fpga_dsp_read), FUNC(k573npu_device::fpga_dsp_write));
+
+	map(0x1fc00000, 0x1fc7ffff).rom().region("tmpr3927", 0);
+}
+
 ROM_START( k573npu )
-	ROM_REGION( 0x080000, "tmpr3927", 0 )
-	ROM_LOAD( "29f400.24e",   0x000000, 0x080000, CRC(8dcf294b) SHA1(efac79e18db22c30886463ec1bc448187da7a95a) )
+	ROM_REGION32_BE( 0x080000, "tmpr3927", 0 )
+	ROM_LOAD16_WORD_SWAP( "29f400.24e",   0x000000, 0x080000, CRC(8dcf294b) SHA1(efac79e18db22c30886463ec1bc448187da7a95a) )
+
+	ROM_REGION( 0x000008, "digital_id", 0 )
+	ROM_LOAD( "digital-id.bin",   0x000000, 0x000008, CRC(2b977f4d) SHA1(2b108a56653f91cb3351718c45dfcf979bc35ef1) )
 ROM_END
 
 const tiny_rom_entry *k573npu_device::device_rom_region() const
