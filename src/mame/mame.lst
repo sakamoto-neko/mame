@@ -10019,6 +10019,7 @@ capbowl4                        // (c) 1989 Incredible Technologies
 clbowl                          // (c) 1989 Incredible Technologies
 
 @source:capcom.cpp
+abv105                          //
 abv106                          //
 abv106r                         //
 bbb108                          //
@@ -13627,7 +13628,8 @@ eva11                           //
 eva24                           //
 
 @source:evmbug.cpp
-evmbug                          //
+evmbug                          // TI TMAM6095
+tms9995bb                       // TMS9995 breadboard
 
 @source:ews4800.cpp
 ews4800_310                     // NEC EWS4800/310
@@ -16764,6 +16766,7 @@ t7in1ss                         // Tiger Electronics
 tandy12                         // Tandy Corporation
 tbreakup                        // Tomy
 tc4                             // Coleco
+tc7atc                          // Bandai
 tcfball                         // Tandy Corporation
 tcfballa                        // Tandy Corporation
 ti1000                          // Texas Instruments
@@ -23979,6 +23982,7 @@ desert                          // 1994.07 Desert Tank
 doa                             // 1997.01 Dead or Alive (Revision C)
 doab                            // 1996.12 Dead or Alive (Revision B)
 doaa                            // 1996.11 Dead or Alive (Revision A)
+doaab                           // 1996.11 Dead or Alive (Revision A)
 dynabb                          // 1996.08 Dynamite Baseball
 dynabb97                        // 1997.04 Dynamite Baseball 97 (Revision A)
 dynamcop                        // 1998.09 Dynamic Cop (Export)
@@ -33488,6 +33492,7 @@ redhawkg                        // (c) 1997
 redhawki                        // (c) 1997 Haedong Corp. license
 redhawkk                        // (c) 1997
 redhawks                        // (c) 1997 Haedong Corp. license
+redhawksa                       // (c) 1997 Haedong Corp. license
 sabotenb                        // (c) 1992 NMK / Tecmo
 sabotenba                       // (c) 1992 NMK / Tecmo
 sbsgomo                         // UPL-90062 (c) 1990 UPL
@@ -39027,7 +39032,6 @@ denseib                         // bootleg
 denseib2                        // bootleg
 endless                         // bootleg
 endlessa                        // bootleg
-fatfurspb                       // bootleg
 ffight2b                        // bootleg
 ffight3b                        // bootleg
 iron                            // bootleg
@@ -39040,6 +39044,7 @@ venom                           // bootleg
 wldgunsb                        // bootleg
 
 @source:snesb51.cpp
+fatfurspb
 mk3snes
 snes4sl
 snes4sln
@@ -43783,6 +43788,7 @@ wy50                            // WY-50
 wy75                            // WY-75
 
 @source:wy55.cpp
+wy185es                         // WY-185ES
 wy55                            // WY-55
 wy65                            // WY-65
 
