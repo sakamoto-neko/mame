@@ -1,5 +1,5 @@
 // license:BSD-3-Clause
-// copyright-holders:smf
+// copyright-holders:windyfairy
 /*
  * Konami 573 Multi Session Unit
  *
@@ -388,7 +388,7 @@ uint16_t k573msu_device::fpga_dsp_read(offs_t offset, uint16_t mem_mask)
 	r &= 0xffff;
 
 	if (offset != 0x10 && offset != 0x780 && !(offset >= 0x30 && offset <= 0x34) && offset != 6 && offset != 7) {
-		LOGMASKED(LOG_DSP, "%s: fpgasoft_read %08x | %04x\n", machine().describe_context().c_str(), offset * 2, r);
+		LOGMASKED(LOG_DSP, "%s: fpga_dsp_read %08x | %04x\n", machine().describe_context().c_str(), offset * 2, r);
 	}
 
 	return r;
@@ -397,7 +397,7 @@ uint16_t k573msu_device::fpga_dsp_read(offs_t offset, uint16_t mem_mask)
 void k573msu_device::fpga_dsp_write(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
 	if (!(offset >= 0x30 && offset <= 0x34) && offset >= 4) {
-		LOGMASKED(LOG_DSP, "%s: fpgasoft_write %08x %08x\n", machine().describe_context().c_str(), offset * 2, data);
+		LOGMASKED(LOG_DSP, "%s: fpga_dsp_write %08x %08x\n", machine().describe_context().c_str(), offset * 2, data);
 	}
 
 	switch (offset * 2) {

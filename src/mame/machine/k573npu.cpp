@@ -1,12 +1,22 @@
 // license:BSD-3-Clause
-// copyright-holders:smf
+// copyright-holders:windyfairy
 /*
  * Konami 573 Network PCB Unit
  *
  */
 
+#include <iostream>
+
 #include "emu.h"
 #include "k573npu.h"
+
+#define LOG_GENERAL    (1 << 0)
+#define LOG_FPGA       (1 << 1)
+
+#define VERBOSE        (LOG_GENERAL)
+#define LOG_OUTPUT_STREAM std::cout
+
+#include "logmacro.h"
 
 /*
 
@@ -92,7 +102,7 @@ void k573npu_device::device_reset()
 
 void k573npu_device::device_add_mconfig(machine_config& config)
 {
-	RAM(config, m_ram).set_default_size("16M").set_default_value(0);
+	RAM(config, m_ram).set_default_size("32M").set_default_value(0);
 
 	TX3927(config, m_maincpu, 20_MHz_XTAL);
 	m_maincpu->set_addrmap(AS_PROGRAM, &k573npu_device::amap);
@@ -106,21 +116,11 @@ void k573npu_device::device_add_mconfig(machine_config& config)
 	//pci_bus_legacy_device& pcibus(PCI_BUS_LEGACY(config, "pcibus", 0, 0));
 }
 
-void k573npu_device::timer_interrupt(int state)
+uint16_t k573npu_device::fpgasoft_read(offs_t offset, uint16_t mem_mask)
 {
-	//printf("timer_interrupt %d\n", state);
-
-	// TODO: What IRQ?
-	//m_maincpu->set_input_line(INPUT_LINE_IRQ0, state);
-}
-
-uint16_t k573npu_device::fpga_dsp_read(offs_t offset, uint16_t mem_mask)
-{
-	/*
 	if (offset * 2 != 0x20) {
-		printf("%s: fpgasoft_read %08x %08x\n", machine().describe_context().c_str(), offset * 2, mem_mask);
+		LOGMASKED(LOG_GENERAL, "%s: fpgasoft_read %08x %08x\n", machine().describe_context().c_str(), offset * 2, mem_mask);
 	}
-	*/
 
 	switch (offset * 2) {
 	case 0x20:
@@ -140,9 +140,9 @@ uint16_t k573npu_device::fpga_dsp_read(offs_t offset, uint16_t mem_mask)
 	return 0;
 }
 
-void k573npu_device::fpga_dsp_write(offs_t offset, uint16_t data, uint16_t mem_mask)
+void k573npu_device::fpgasoft_write(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
-	//printf("%s: fpgasoft_write %08x %08x %08x\n", machine().describe_context().c_str(), offset * 2, data, mem_mask);
+	LOGMASKED(LOG_GENERAL, "%s: fpgasoft_write %08x %08x %08x\n", machine().describe_context().c_str(), offset * 2, data, mem_mask);
 
 	switch (offset * 2) {
 	case 0x20:
@@ -157,7 +157,7 @@ uint16_t k573npu_device::fpga_read(offs_t offset, uint16_t mem_mask)
 	if (offset == 1)
 		return 3;
 
-	printf("%s: fpga_read %08x %08x\n", machine().describe_context().c_str(), offset * 2, mem_mask);
+	LOGMASKED(LOG_FPGA, "%s: fpga_read %08x %08x\n", machine().describe_context().c_str(), offset * 2, mem_mask);
 
 	return 0;
 }
@@ -165,7 +165,7 @@ uint16_t k573npu_device::fpga_read(offs_t offset, uint16_t mem_mask)
 void k573npu_device::fpga_write(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
 	if (offset != 4)
-		printf("%s: fpga_write %08x %08x %08x\n", machine().describe_context().c_str(), offset * 2, data, mem_mask);
+		LOGMASKED(LOG_FPGA, "%s: fpga_write %08x %08x %08x\n", machine().describe_context().c_str(), offset * 2, data, mem_mask);
 }
 
 
@@ -176,7 +176,7 @@ void k573npu_device::amap(address_map& map)
 	map(0xa0000000, 0xafffffff).ram().share("ram");
 
 	map(0x10200000, 0x1020000f).rw(FUNC(k573npu_device::fpga_read), FUNC(k573npu_device::fpga_write));
-	map(0x10400000, 0x10400fff).rw(FUNC(k573npu_device::fpga_dsp_read), FUNC(k573npu_device::fpga_dsp_write));
+	map(0x10400000, 0x10400fff).rw(FUNC(k573npu_device::fpgasoft_read), FUNC(k573npu_device::fpgasoft_write));
 
 	map(0x1fc00000, 0x1fc7ffff).rom().region("tmpr3927", 0);
 }

@@ -1,5 +1,5 @@
 // license:BSD-3-Clause
-// copyright-holders:smf
+// copyright-holders:windyfairy
 /*
  * Konami 573 Multi Session Unit
  *

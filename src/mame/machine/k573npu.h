@@ -1,5 +1,5 @@
 // license:BSD-3-Clause
-// copyright-holders:smf
+// copyright-holders:windyfairy
 /*
  * Konami 573 Network PCB Unit
  *
@@ -34,15 +34,13 @@ protected:
 
 	virtual const tiny_rom_entry* device_rom_region() const override;
 
-	void timer_interrupt(int state);
-
 private:
 	required_device<ds2401_device> digital_id;
 	required_device<tx3927_device> m_maincpu;
 	required_device<ram_device> m_ram;
 
-	uint16_t fpga_dsp_read(offs_t offset, uint16_t mem_mask);
-	void fpga_dsp_write(offs_t offset, uint16_t data, uint16_t mem_mask);
+	uint16_t fpgasoft_read(offs_t offset, uint16_t mem_mask);
+	void fpgasoft_write(offs_t offset, uint16_t data, uint16_t mem_mask);
 
 	uint16_t fpga_read(offs_t offset, uint16_t mem_mask);
 	void fpga_write(offs_t offset, uint16_t data, uint16_t mem_mask);
