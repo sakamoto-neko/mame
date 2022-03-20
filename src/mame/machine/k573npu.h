@@ -9,7 +9,7 @@
 
 #pragma once
 
-#include "cpu/mips/mips1.h"
+#include "cpu/tx3927/tx3927.h"
 #include "bus/ata/ataintf.h"
 #include "bus/ata/atapicdr.h"
 #include "bus/ata/idehd.h"
