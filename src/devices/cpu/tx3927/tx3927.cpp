@@ -4,6 +4,16 @@
 /*
  * Toshiba TX3927 emulation.
  * Based on MIPS I with extensions and peripherals.
+ *
+ * TODO:
+ *  - Move opcode handler changes from mips1.cpp to this file
+ *  - Properly implement the code to replace the memory_translate hack in mips1.cpp for this CPU
+ *  - CCFG
+ *  - SDRAM
+ *  - ROM
+ *  - DMA
+ *  - PCI
+ *  - PIO
  */
 
 #include "emu.h"
