@@ -51,6 +51,9 @@ void k573fpga_device::device_start()
 	save_item(NAME(crypto_key1));
 	save_item(NAME(crypto_key2));
 	save_item(NAME(crypto_key3));
+	save_item(NAME(crypto_key1_start));
+	save_item(NAME(crypto_key2_start));
+	save_item(NAME(crypto_key3_start));
 	save_item(NAME(mp3_start_addr));
 	save_item(NAME(mp3_end_addr));
 	save_item(NAME(mp3_cur_start_addr));
@@ -84,9 +87,9 @@ void k573fpga_device::device_reset()
 	mp3_data = 0;
 	mp3_remaining_bytes = 0;
 
-	crypto_key1 = 0;
-	crypto_key2 = 0;
-	crypto_key3 = 0;
+	crypto_key1_start = crypto_key1 = 0;
+	crypto_key2_start = crypto_key2 = 0;
+	crypto_key3_start = crypto_key3 = 0;
 
 	counter_current = counter_base = machine().time();
 
@@ -224,7 +227,11 @@ void k573fpga_device::update_mp3_decode_state()
 	mp3_cur_end_addr = mp3_end_addr;
 	is_mpeg_frame_synced = false;
 	mp3_remaining_bytes = 0;
+	crypto_key1 = crypto_key1_start;
+	crypto_key2 = crypto_key2_start;
+	crypto_key3 = crypto_key3_start;
 	reset_counter();
+	mas3507d->reset_playback();
 }
 
 uint16_t k573fpga_device::decrypt_default(uint16_t v)
@@ -327,12 +334,13 @@ uint16_t k573fpga_device::decrypt_ddrsbm(uint16_t data)
 
 TIMER_CALLBACK_MEMBER(k573fpga_device::update_stream)
 {
+	// Note: The FPGA code seems to have an off by 1 error where it'll always decrypt and send an extra word at the end of every MP3 which corresponds to decrypting the value 0x0000.
+
 	if (!(mpeg_status & PLAYBACK_STATE_DEMAND)) {
 		// If the data isn't being demanded currently then it has enough data to decode a few frames already
 		return;
 	}
 
-	// Note: The FPGA code seems to have an off by 1 error where it'll always decrypt and send an extra word at the end of every MP3 which corresponds to decrypting the value 0x0000.
 	if (!BIT(fpga_status, FPGA_UNK_ENABLE)
 		|| !BIT(fpga_status, FPGA_STREAMING_ENABLE)
 		|| mp3_cur_addr < mp3_cur_start_addr

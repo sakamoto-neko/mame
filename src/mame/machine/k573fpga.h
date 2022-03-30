@@ -29,15 +29,15 @@ public:
 	DECLARE_WRITE_LINE_MEMBER(mas3507d_demand);
 
 	void set_crypto_key1(uint16_t v) {
-		crypto_key1 = v;
+		crypto_key1_start = crypto_key1 = v;
 		update_mp3_decode_state();
 	}
 	void set_crypto_key2(uint16_t v) {
-		crypto_key2 = v;
+		crypto_key2_start = crypto_key2 = v;
 		update_mp3_decode_state();
 	}
 	void set_crypto_key3(uint8_t v) {
-		crypto_key3 = v;
+		crypto_key3_start = crypto_key3 = v;
 		update_mp3_decode_state();
 	}
 
@@ -115,6 +115,8 @@ private:
 
 	uint16_t crypto_key1, crypto_key2;
 	uint8_t crypto_key3;
+	uint16_t crypto_key1_start, crypto_key2_start;
+	uint8_t crypto_key3_start;
 
 	uint32_t mp3_start_addr, mp3_end_addr;
 	uint32_t mp3_cur_start_addr, mp3_cur_end_addr, mp3_cur_addr;
