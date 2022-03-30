@@ -28,15 +28,30 @@ public:
 	DECLARE_WRITE_LINE_MEMBER(mpeg_frame_sync);
 	DECLARE_WRITE_LINE_MEMBER(mas3507d_demand);
 
-	void set_crypto_key1(uint16_t v) { crypto_key1 = v; }
-	void set_crypto_key2(uint16_t v) { crypto_key2 = v; }
-	void set_crypto_key3(uint8_t v) { crypto_key3 = v; }
+	void set_crypto_key1(uint16_t v) {
+		crypto_key1 = v;
+		update_mp3_decode_state();
+	}
+	void set_crypto_key2(uint16_t v) {
+		crypto_key2 = v;
+		update_mp3_decode_state();
+	}
+	void set_crypto_key3(uint8_t v) {
+		crypto_key3 = v;
+		update_mp3_decode_state();
+	}
 
 	uint32_t get_mp3_start_addr() { return mp3_start_addr; }
-	void set_mp3_start_addr(uint32_t v) { mp3_start_addr = v; }
+	void set_mp3_start_addr(uint32_t v) {
+		mp3_start_addr = v;
+		update_mp3_decode_state();
+	}
 
 	uint32_t get_mp3_end_addr() { return mp3_end_addr; }
-	void set_mp3_end_addr(uint32_t v) { mp3_end_addr = v; }
+	void set_mp3_end_addr(uint32_t v) {
+		mp3_end_addr = v;
+		update_mp3_decode_state();
+	}
 
 	uint16_t mas_i2c_r();
 	void mas_i2c_w(uint16_t data);
@@ -70,22 +85,33 @@ private:
 	emu_timer* m_counter_timer;
 
 	enum {
-		PLAYBACK_STATE_UNKNOWN = 0x8000,
-
-		// The only time demand shouldn't be set is when the MAS3507D's MP3 buffer is full and isn't requesting more data through the demand pin
+		PLAYBACK_STATE_ENABLED = 0x8000,
 		PLAYBACK_STATE_DEMAND = 0x1000,
+		PLAYBACK_STATE_IDLE = PLAYBACK_STATE_ENABLED | 0x2000,
+		PLAYBACK_STATE_PLAYING = PLAYBACK_STATE_ENABLED | 0x4000,
+	};
 
-		// Set when the mas3507d's frame counter isn't being updated anymore.
-		// Shortly after the last MP3 frame is played the state goes back to idle.
-		// TODO: Add mas3507d MP3 frame sync pin callback
-		PLAYBACK_STATE_IDLE = PLAYBACK_STATE_UNKNOWN | 0x2000,
+	enum {
+		// Allows data to be decrypted?
+		// Doesn't seem to have a huge difference compared to FPGA_STREAMING_ENABLE.
+		// If this is 0 then data won't be sent to the MAS3507D even if FPGA_STREAMING_ENABLE is 1.
+		FPGA_UNK_ENABLE = 13,
 
-		// Set when the mas3507d's frame counter is being updated still.
-		PLAYBACK_STATE_PLAYING = PLAYBACK_STATE_UNKNOWN | 0x4000,
+		// Allows data to be streamed to MAS3507D?
+		// This needs to be set before the register at 0x1f6400ae will return the streaming status.
+		FPGA_STREAMING_ENABLE = 14,
+
+		// Allows frame counter to be incremented based on the MPEG frame sync pin from the MAS3507D.
+		// Setting this to 0 resets the frame counter register.
+		FPGA_FRAME_COUNTER_ENABLE = 15,
 	};
 
 	required_shared_ptr<uint16_t> ram;
 	required_device<mas3507d_device> mas3507d;
+
+	bool is_ddrsbm_fpga;
+
+	uint16_t mpeg_status, fpga_status;
 
 	uint16_t crypto_key1, crypto_key2;
 	uint8_t crypto_key3;
@@ -94,14 +120,17 @@ private:
 	uint32_t mp3_cur_start_addr, mp3_cur_end_addr, mp3_cur_addr;
 	uint16_t mp3_data;
 	int mp3_remaining_bytes;
-	bool is_ddrsbm_fpga;
 
-	bool is_stream_enabled;
+	bool is_mpeg_frame_synced;
+	uint32_t mp3_frame_counter;
+
 	attotime counter_current, counter_base;
-
-	uint16_t mpeg_status, fpga_status;
-	uint32_t frame_counter, frame_counter_base;
 	double counter_value;
+
+	void update_mp3_decode_state();
+
+	// The higher the number, the more the chart/visuals will be delayed
+	attotime sample_skip_offset;
 };
 
 #endif // MAME_MACHINE_K573FPGA_H

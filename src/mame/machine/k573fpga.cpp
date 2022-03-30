@@ -13,14 +13,12 @@
 
 #include <algorithm>
 
-// The higher the number, the more the chart/visuals will be delayed
-attotime sample_skip_offset = attotime::zero;
-
 k573fpga_device::k573fpga_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock) :
 	device_t(mconfig, KONAMI_573_DIGITAL_FPGA, tag, owner, clock),
 	ram(*this, finder_base::DUMMY_TAG),
 	mas3507d(*this, "mpeg"),
-	is_ddrsbm_fpga(false)
+	is_ddrsbm_fpga(false),
+	sample_skip_offset(attotime::zero)
 {
 }
 
@@ -61,14 +59,13 @@ void k573fpga_device::device_start()
 	save_item(NAME(mp3_data));
 	save_item(NAME(mp3_remaining_bytes));
 	save_item(NAME(is_ddrsbm_fpga));
-	save_item(NAME(is_stream_enabled));
 	save_item(NAME(mpeg_status));
 	save_item(NAME(fpga_status));
-	save_item(NAME(frame_counter));
-	save_item(NAME(frame_counter_base));
+	save_item(NAME(mp3_frame_counter));
 	save_item(NAME(counter_value));
 	save_item(NAME(counter_current));
 	save_item(NAME(counter_base));
+	save_item(NAME(is_mpeg_frame_synced));
 
 	m_stream_timer = machine().scheduler().timer_alloc(timer_expired_delegate(FUNC(k573fpga_device::update_stream), this));
 	m_stream_timer->adjust(attotime::zero, 0, attotime::from_hz(clock() / 100));
@@ -91,13 +88,12 @@ void k573fpga_device::device_reset()
 	crypto_key2 = 0;
 	crypto_key3 = 0;
 
-	is_stream_enabled = false;
-
 	counter_current = counter_base = machine().time();
 
 	mpeg_status = PLAYBACK_STATE_IDLE;
-	frame_counter = frame_counter_base = 0;
+	mp3_frame_counter = 0;
 	counter_value = 0;
+	is_mpeg_frame_synced = false;
 
 	mas3507d->reset_playback();
 }
@@ -110,7 +106,7 @@ void k573fpga_device::reset_counter()
 	// Drummania 5th mix seems to not like it when the counter is reset immediately because it isn't able to read 
 	counter_current = counter_base = machine().time();
 	counter_value = 0;
-	frame_counter_base = frame_counter;
+	is_mpeg_frame_synced = false;
 }
 
 TIMER_CALLBACK_MEMBER(k573fpga_device::update_counter_callback)
@@ -130,28 +126,23 @@ void k573fpga_device::update_counter()
 		return;
 	}
 
-	// The timer in any game outside of DDR Solo Bass Mix is both tied to the MP3 playback and independent.
-	// The timer will only start when an MP3 begins playback (seems to be synced to when the MP3 frame counter increments).
-	// The timer will keep going long after the MP3 has stopped playing.
-	// If the timer is zero'd out while it's running (k573dio mp3_counter_low_w), it will start counting up from zero again.
-	// TODO: What happens if a non-zero value is written to mp3_counter_low_w?
-	// TODO: What happens if you write to mp3_counter_high_w?
-	// TODO: How exactly do you stop the timer? Can it even be stopped once it's started?
-	if (frame_counter - frame_counter_base == 0) {
+	// Timer only seems to start when the first MPEG frame sync is encountered, so wait for that trigger
+	if (!is_mpeg_frame_synced) {
 		return;
 	}
 
 	counter_base = counter_current;
 	counter_current = machine().time();
-
-	auto diff = (counter_current - counter_base).as_double();
-	counter_value += diff;
+	counter_value += (counter_current - counter_base).as_double();
 }
 
 uint32_t k573fpga_device::get_counter()
 {
-	auto t = std::max(0.0, (counter_value - sample_skip_offset.as_double()) * m_clock_scale);
-	return t * 44100;
+	auto t = std::max(
+		0.0,
+		counter_value - sample_skip_offset.as_double()
+	);
+	return t * 44100 * m_clock_scale;
 }
 
 uint32_t k573fpga_device::get_counter_diff()
@@ -169,7 +160,7 @@ uint16_t k573fpga_device::get_mp3_frame_count()
 {
 	// All games can read this but only DDR Solo Bass Mix actively uses it.
 	// Returns the same value as using a default read to get the frame counter from the MAS3507D over i2c.
-	return frame_counter & 0xffff;
+	return mp3_frame_counter & 0xffff;
 }
 
 uint16_t k573fpga_device::mas_i2c_r()
@@ -194,65 +185,46 @@ uint16_t k573fpga_device::get_fpga_ctrl()
 {
 	// 0x0000 Not Streaming
 	// 0x1000 Streaming
-	return (is_stream_enabled && mp3_cur_addr >= mp3_cur_start_addr && mp3_cur_addr < mp3_cur_end_addr) << 12;
+
+	if (!BIT(fpga_status, FPGA_STREAMING_ENABLE)) {
+		// Bit 14 must be set to enable streaming
+		return 0;
+	}
+
+	return (mp3_cur_addr >= mp3_cur_start_addr && mp3_cur_addr < mp3_cur_end_addr) << 12;
 }
 
 void k573fpga_device::set_fpga_ctrl(uint16_t data)
 {
-	/*
-	TODO: what's the difference between the two pre-stream start up sequences?
-
-	Unique sequences:
-	On start up and before starting a new stream:
-		x x 1
-		x x 0
-		x x 1
-		x x 1
-		x x 1
-
-	Also on start up and before starting a new stream:
-		0 x x
-		1 x x
-
-	Stop streaming:
-		x 0 x
-
-	Start streaming:
-		x 1 x
-
-	x is remains the same as the previous command
-	*/
-
 	LOG("FPGA MPEG control %c%c%c | %04x\n",
-				data & 0x8000 ? '#' : '.',
-				data & 0x4000 ? '#' : '.', // "Active" flag. The FPGA will never start streaming data without this bit set
-				data & 0x2000 ? '#' : '.',
+				BIT(data, FPGA_FRAME_COUNTER_ENABLE) ? '#' : '.',
+				BIT(data, FPGA_STREAMING_ENABLE) ? '#' : '.',
+				BIT(data, FPGA_UNK_ENABLE) ? '#' : '.',
 				data);
 
-	if (BIT(data, 14) && (is_ddrsbm_fpga || !BIT(fpga_status, 14))) {
-		// Start streaming
-		is_stream_enabled = true;
-		mp3_cur_addr = mp3_start_addr;
-		mp3_cur_start_addr = mp3_start_addr;
-		mp3_cur_end_addr = mp3_end_addr;
-		frame_counter = 0;
-		reset_counter();
-	} else if (!BIT(data, 14) && (is_ddrsbm_fpga || BIT(fpga_status, 14))) {
-		// Stop stream
-		is_stream_enabled = false;
+	if (!BIT(data, FPGA_FRAME_COUNTER_ENABLE) && BIT(fpga_status, FPGA_FRAME_COUNTER_ENABLE)) {
+		// When this bit transitions from 1 to 0 it resets the frame counter
+		mp3_frame_counter = 0;
+	}
 
-		if (!is_ddrsbm_fpga)
-			reset_counter();
-
-		// This is a hack to get audio to stop playing immediatley when the stream is supposed to be stopped.
-		// In reality this is probably something else. I don't have proof yet but I think there might be a chance
-		// that the FPGA is responsible for passing the output samples from the MAS3507D to the DAC for output.
-		// If that's the case then this might be something simple like stopping the forwarding of audio samples.
-		// The current implementation of the MAS3507D in MAME does not currently allow for such an interaction though.
+	if (BIT(data, FPGA_UNK_ENABLE) && (is_ddrsbm_fpga || !BIT(fpga_status, FPGA_UNK_ENABLE))) {
+		// Stop playback
 		mas3507d->reset_playback();
 	}
 
 	fpga_status = data;
+}
+
+
+void k573fpga_device::update_mp3_decode_state()
+{
+	// Found start of new MP3 request
+	mp3_cur_addr = mp3_start_addr;
+	mp3_cur_start_addr = mp3_start_addr;
+	mp3_cur_end_addr = mp3_end_addr;
+	is_mpeg_frame_synced = false;
+	mp3_remaining_bytes = 0;
+	reset_counter();
 }
 
 uint16_t k573fpga_device::decrypt_default(uint16_t v)
@@ -361,7 +333,10 @@ TIMER_CALLBACK_MEMBER(k573fpga_device::update_stream)
 	}
 
 	// Note: The FPGA code seems to have an off by 1 error where it'll always decrypt and send an extra word at the end of every MP3 which corresponds to decrypting the value 0x0000.
-	if (!is_stream_enabled || mp3_cur_addr < mp3_cur_start_addr || mp3_cur_addr > mp3_cur_end_addr) {
+	if (!BIT(fpga_status, FPGA_UNK_ENABLE)
+		|| !BIT(fpga_status, FPGA_STREAMING_ENABLE)
+		|| mp3_cur_addr < mp3_cur_start_addr
+		|| mp3_cur_addr > mp3_cur_end_addr) {
 		return;
 	}
 
@@ -384,11 +359,14 @@ WRITE_LINE_MEMBER(k573fpga_device::mpeg_frame_sync)
 
 	if (state) {
 		mpeg_status |= PLAYBACK_STATE_PLAYING;
-		frame_counter++;
 
-		if (frame_counter == 1) {
-			// Sync counter to start of MP3 playback
+		if (!is_mpeg_frame_synced) {
 			counter_current = counter_base = machine().time();
+			is_mpeg_frame_synced = true;
+		}
+
+		if (BIT(fpga_status, FPGA_FRAME_COUNTER_ENABLE)) {
+			mp3_frame_counter++;
 		}
 	}
 	else {
