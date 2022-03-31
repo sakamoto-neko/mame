@@ -141,11 +141,7 @@ void k573fpga_device::update_counter()
 
 uint32_t k573fpga_device::get_counter()
 {
-	auto t = std::max(
-		0.0,
-		counter_value - sample_skip_offset.as_double()
-	);
-	return t * 44100 * m_clock_scale;
+	return std::max(0.0, counter_value) * 44100 * m_clock_scale;
 }
 
 uint32_t k573fpga_device::get_counter_diff()
@@ -371,6 +367,7 @@ WRITE_LINE_MEMBER(k573fpga_device::mpeg_frame_sync)
 
 		if (!is_mpeg_frame_synced) {
 			counter_current = counter_base = machine().time();
+			counter_value = sample_skip_offset.as_double() * 44100.0;
 			is_mpeg_frame_synced = true;
 		}
 
