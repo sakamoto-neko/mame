@@ -230,6 +230,7 @@ void k573fpga_device::update_mp3_decode_state()
 	crypto_key1 = crypto_key1_start;
 	crypto_key2 = crypto_key2_start;
 	crypto_key3 = crypto_key3_start;
+	mp3_frame_counter = 0;
 	reset_counter();
 	mas3507d->reset_playback();
 }
