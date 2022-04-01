@@ -82,9 +82,6 @@ DEFINE_DEVICE_TYPE(KONAMI_573_DIGITAL_IO_BOARD, k573dio_device, "k573_dio", "Kon
 
 void k573dio_device::amap(address_map &map)
 {
-	// TODO: Separate Solo Bass Mix map and make any unimplemented registers return 0x7654?
-	// See: mp3_counter_high_r
-
 	map(0x00, 0x01).r(FUNC(k573dio_device::a00_r));
 	map(0x02, 0x03).r(FUNC(k573dio_device::a02_r));
 	map(0x04, 0x05).r(FUNC(k573dio_device::a04_r));
@@ -151,7 +148,6 @@ void k573dio_device::device_start()
 	save_item(NAME(network_id));
 
 	k573fpga->set_ddrsbm_fpga(is_ddrsbm_fpga);
-
 }
 
 void k573dio_device::device_reset()
@@ -198,7 +194,8 @@ void k573dio_device::device_timer(emu_timer &timer, device_timer_id id, int para
 
 void k573dio_device::explus_speed_normal()
 {
-	k573fpga->update_clock(29'500'000); // The normal digital I/O board uses a 29.450 MHz clock but the modboard has a 29.500 MHz clock on it to replace it.
+	// The normal digital I/O board uses a 29.450 MHz clock but the modboard has a 29.500 MHz clock on it to replace it.
+	k573fpga->update_clock(29'500'000);
 }
 
 void k573dio_device::explus_speed_inc1()
@@ -376,7 +373,7 @@ void k573dio_device::ram_read_adr_low_w(uint16_t data)
 uint16_t k573dio_device::mp3_counter_high_r()
 {
 	if (is_ddrsbm_fpga)
-		return 0x7654;
+		return 0x7654; // Fixed value for DDR Solo Bass Mix's FPGA code only
 
 	return (k573fpga->get_counter() & 0xffff0000) >> 16;
 }
