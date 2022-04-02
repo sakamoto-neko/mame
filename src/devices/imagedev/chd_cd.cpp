@@ -67,11 +67,25 @@ void cdrom_image_device::device_start()
 	chd_file *chd = machine().rom_load().get_disk_handle(owner()->tag());
 	if( chd != nullptr )
 	{
-		m_cdrom_handle = cdrom_open( chd );
+		try
+		{
+			m_cdrom_handle = new cdrom_file(chd);
+		}
+		catch (...)
+		{
+			m_cdrom_handle = nullptr;
+		}
 
 		if ( m_cdrom_handle == nullptr && m_enable_raw_images )
 		{
-			m_cdrom_handle = cdrom_open_raw( chd );
+			try
+			{
+				m_cdrom_handle = new cdrom_file(chd, true);
+			}
+			catch (...)
+			{
+				m_cdrom_handle = nullptr;
+			}
 		}
 	}
 	else
@@ -82,8 +96,8 @@ void cdrom_image_device::device_start()
 
 void cdrom_image_device::device_stop()
 {
-	if ( m_cdrom_handle )
-		cdrom_close( m_cdrom_handle );
+	if (m_cdrom_handle)
+		delete m_cdrom_handle;
 	if( m_self_chd.opened() )
 		m_self_chd.close();
 }
@@ -93,8 +107,8 @@ image_init_result cdrom_image_device::call_load()
 	std::error_condition err;
 	chd_file *chd = nullptr;
 
-	if ( m_cdrom_handle )
-		cdrom_close( m_cdrom_handle );
+	if (m_cdrom_handle)
+		delete m_cdrom_handle;
 
 	if (!loaded_through_softlist()) {
 		if (is_filetype("chd") && is_loaded()) {
@@ -112,14 +126,14 @@ image_init_result cdrom_image_device::call_load()
 
 	/* open the CHD file */
 	if (chd) {
-		m_cdrom_handle = cdrom_open(chd);
+		m_cdrom_handle = new cdrom_file(chd);
 
 		if (m_cdrom_handle == nullptr && m_enable_raw_images)
 		{
-			m_cdrom_handle = cdrom_open_raw(chd);
+			m_cdrom_handle = new cdrom_file(chd, true);
 		}
 	} else {
-		m_cdrom_handle = cdrom_open( filename() );
+		m_cdrom_handle = new cdrom_file(filename());
 	}
 	if (!m_cdrom_handle)
 		goto error;
@@ -136,8 +150,8 @@ error:
 
 void cdrom_image_device::call_unload()
 {
-	assert( m_cdrom_handle );
-	cdrom_close( m_cdrom_handle );
+	assert(m_cdrom_handle);
+	delete m_cdrom_handle;
 	m_cdrom_handle = nullptr;
 	if( m_self_chd.opened() )
 		m_self_chd.close();

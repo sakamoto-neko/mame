@@ -11,6 +11,7 @@
 #include "machine/6532riot.h"
 #include "sound/ay8910.h"
 #include "sound/dac.h"
+#include "sound/okim6295.h"
 #include "sound/sp0250.h"
 #include "sound/votrax.h"
 #include "sound/ymopm.h"
@@ -21,9 +22,11 @@
 //**************************************************************************
 
 DECLARE_DEVICE_TYPE(GOTTLIEB_SOUND_PIN2,        gottlieb_sound_p2_device)
+DECLARE_DEVICE_TYPE(GOTTLIEB_SOUND_PIN3,        gottlieb_sound_p3_device)
 DECLARE_DEVICE_TYPE(GOTTLIEB_SOUND_PIN4,        gottlieb_sound_p4_device)
 DECLARE_DEVICE_TYPE(GOTTLIEB_SOUND_PIN5,        gottlieb_sound_p5_device)
 DECLARE_DEVICE_TYPE(GOTTLIEB_SOUND_PIN6,        gottlieb_sound_p6_device)
+DECLARE_DEVICE_TYPE(GOTTLIEB_SOUND_PIN7,        gottlieb_sound_p7_device)
 DECLARE_DEVICE_TYPE(GOTTLIEB_SOUND_REV1,        gottlieb_sound_r1_device)
 DECLARE_DEVICE_TYPE(GOTTLIEB_SOUND_REV1_VOTRAX, gottlieb_sound_r1_with_votrax_device)
 DECLARE_DEVICE_TYPE(GOTTLIEB_SOUND_REV2,        gottlieb_sound_r2_device)
@@ -60,10 +63,41 @@ private:
 	required_device<m6502_device>       m_cpu;
 	required_device<mos6530_device>     m_r6530;
 
-	uint8_t m_sndcmd;
+	uint8_t m_sndcmd = 0;
 
 	uint8_t r6530b_r();
 };
+
+
+// ======================> gottlieb_sound_p3_device
+
+class gottlieb_sound_p3_device : public device_t, public device_mixer_interface
+{
+public:
+	// construction/destruction
+	gottlieb_sound_p3_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock = 0);
+
+	// read/write
+	void write(uint8_t data);
+
+protected:
+	// device-level overrides
+	virtual void device_add_mconfig(machine_config &config) override;
+	virtual void device_start() override;
+
+	void p3_map(address_map &map);
+
+private:
+	// devices
+	required_device<m6502_device>       m_cpu;
+	required_device<mos6530_device>     m_r6530;
+
+	uint8_t m_sndcmd = 0;
+
+	uint8_t r6530b_r();
+	void r6530b_w(u8);
+};
+
 
 // ======================> gottlieb_sound_r1_device
 
@@ -100,6 +134,9 @@ private:
 	required_device<riot6532_device> m_riot;
 	u8 m_dummy = 0;   // needed for save-state support
 };
+
+
+// ======================> gottlieb_sound_r1_with_votrax_device
 
 // fully populated rev 1 sound board
 class gottlieb_sound_r1_with_votrax_device : public gottlieb_sound_r1_device
@@ -187,16 +224,16 @@ protected:
 	required_device<ay8913_device>  m_ay2;
 
 	// internal state
-	emu_timer * m_nmi_timer;
-	uint8_t       m_nmi_rate;
-	uint8_t       m_nmi_state;
-	uint8_t       m_dcpu_latch;
-	uint8_t       m_ycpu_latch;
-	uint8_t       m_speech_control;
-	uint8_t       m_last_command;
-	uint8_t       m_psg_latch;
-	uint8_t       m_psg_data_latch;
-	uint8_t       m_dcpu2_latch;
+	emu_timer * m_nmi_timer = 0;
+	uint8_t       m_nmi_rate = 0;
+	uint8_t       m_nmi_state = 0;
+	uint8_t       m_dcpu_latch = 0;
+	uint8_t       m_ycpu_latch = 0;
+	uint8_t       m_speech_control = 0;
+	uint8_t       m_last_command = 0;
+	uint8_t       m_psg_latch = 0;
+	uint8_t       m_psg_data_latch = 0;
+	uint8_t       m_dcpu2_latch = 0;
 };
 
 
@@ -232,9 +269,10 @@ private:
 	optional_device<sp0250_device>  m_sp0250;
 
 	// internal state
-	bool     m_cobram3_mod;
-	uint8_t  m_sp0250_latch;
+	bool     m_cobram3_mod = 0;
+	uint8_t  m_sp0250_latch = 0;
 };
+
 
 // ======================> gottlieb_sound_p5_device
 
@@ -257,10 +295,10 @@ protected:
 	virtual void device_add_mconfig(machine_config &config) override;
 	virtual void device_start() override;
 
-private:
 	void p5_ymap(address_map &map);
 	optional_device<ym2151_device> m_ym2151;
 };
+
 
 // ======================> gottlieb_sound_p6_device
 
@@ -279,5 +317,29 @@ protected:
 private:
 	void p6_dmap(address_map &map);
 	uint8_t d2_data_r();
+};
+
+
+// ======================> gottlieb_sound_p7_device
+
+// same as p5 plus MSM6295.
+class gottlieb_sound_p7_device : public gottlieb_sound_p5_device
+{
+public:
+	// construction/destruction
+	gottlieb_sound_p7_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock = 0);
+
+protected:
+	// device-level overrides
+	virtual void device_add_mconfig(machine_config &config) override;
+	virtual void device_start() override;
+
+private:
+	void p7_ymap(address_map &map);
+	void y_ctrl_w(u8);
+	void y_latch_w(u8);
+	uint8_t m_msm_latch1 = 0;
+	uint8_t m_msm_latch2 = 0;
+	optional_device<okim6295_device> m_oki;
 };
 
