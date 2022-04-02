@@ -257,6 +257,9 @@ cdrom_file::cdrom_file(std::string_view inputfile)
 
 cdrom_file::cdrom_file(chd_file* _chd, bool is_raw)
 {
+	if (chd == nullptr)
+		throw nullptr;
+
 	if (is_raw)
 		this->cdrom_open_raw(_chd);
 	else
