@@ -58,6 +58,8 @@ protected:
 
 private:
 	TIMER_CALLBACK_MEMBER(update_stream);
+	void update_counter();
+	void update_mp3_decode_state();
 
 	uint16_t decrypt_default(uint16_t data);
 	uint16_t decrypt_ddrsbm(uint16_t data);
@@ -107,8 +109,6 @@ private:
 
 	attotime counter_current, counter_base;
 	double counter_value;
-
-	void update_mp3_decode_state();
 
 	// The higher the number, the more the chart/visuals will be delayed
 	attotime sample_skip_offset;

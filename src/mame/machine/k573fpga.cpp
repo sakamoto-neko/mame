@@ -105,7 +105,7 @@ void k573fpga_device::reset_counter()
 	counter_value = 0;
 }
 
-uint32_t k573fpga_device::get_counter()
+void k573fpga_device::update_counter()
 {
 	if (is_ddrsbm_fpga) {
 		// The counter for Solo Bass Mix is used differently than other games.
@@ -114,13 +114,18 @@ uint32_t k573fpga_device::get_counter()
 		// This counter register itself is always running even when no audio is playing.
 		// TODO: What happens when mp3_counter_low_w is written to on Solo Bass Mix?
 		counter_value = (machine().time() - counter_base).as_double();
-	} else if (is_mpeg_frame_synced) {
+	}
+	else if (is_mpeg_frame_synced) {
 		// Timer only seems to start when the first MPEG frame sync is encountered, so wait for that trigger
 		counter_base = counter_current;
 		counter_current = machine().time();
 		counter_value += (counter_current - counter_base).as_double();
 	}
+}
 
+uint32_t k573fpga_device::get_counter()
+{
+	update_counter();
 	return std::max(0.0, counter_value - sample_skip_offset.as_double()) * 44100 * m_clock_scale;
 }
 
@@ -131,8 +136,11 @@ uint32_t k573fpga_device::get_counter_diff()
 	// The functionality was tested using custom code running on real hardware.
 	// When this is called, it will return the difference between the current counter value
 	// and the last read counter value, and then reset the counter back to the previously read counter's value.
-	auto diff = machine().time() - counter_current;
-	return diff.as_double() * 44100;
+	auto prev = counter_value;
+	update_counter();
+	auto diff = counter_value - prev;
+	counter_value = prev;
+	return diff * 44100;
 }
 
 uint16_t k573fpga_device::get_mp3_frame_count()
