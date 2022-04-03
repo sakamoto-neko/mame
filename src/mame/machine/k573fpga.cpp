@@ -35,7 +35,7 @@ void k573fpga_device::update_clock(uint32_t speed)
 	counter_current = counter_base = machine().time();
 	set_clock_scale(scale);
 	mas3507d->set_clock_scale(scale);
-	m_stream_timer->adjust(attotime::zero, 0, attotime::from_hz(clock() / 100));
+	m_stream_timer->adjust(attotime::never);
 }
 
 void k573fpga_device::device_add_mconfig(machine_config &config)
@@ -70,14 +70,12 @@ void k573fpga_device::device_start()
 	save_item(NAME(is_mpeg_frame_synced));
 
 	m_stream_timer = machine().scheduler().timer_alloc(timer_expired_delegate(FUNC(k573fpga_device::update_stream), this));
-	m_stream_timer->adjust(attotime::zero, 0, attotime::from_hz(clock() / 100));
-
-	m_counter_timer = machine().scheduler().timer_alloc(timer_expired_delegate(FUNC(k573fpga_device::update_counter_callback), this));
-	m_counter_timer->adjust(attotime::zero, 0, attotime::from_hz(44100));
+	m_stream_timer->adjust(attotime::never);
 }
 
 void k573fpga_device::device_reset()
 {
+	fpga_status = 0;
 	mp3_start_addr = 0;
 	mp3_end_addr = 0;
 	mp3_cur_start_addr = 0;
@@ -92,7 +90,7 @@ void k573fpga_device::device_reset()
 
 	counter_current = counter_base = machine().time();
 
-	mpeg_status = PLAYBACK_STATE_IDLE;
+	mpeg_status = (1 << PLAYBACK_STATE_IDLE) | (1 << PLAYBACK_STATE_ENABLED);
 	mp3_frame_counter = 0;
 	counter_value = 0;
 	is_mpeg_frame_synced = false;
@@ -107,12 +105,7 @@ void k573fpga_device::reset_counter()
 	counter_value = 0;
 }
 
-TIMER_CALLBACK_MEMBER(k573fpga_device::update_counter_callback)
-{
-	update_counter();
-}
-
-void k573fpga_device::update_counter()
+uint32_t k573fpga_device::get_counter()
 {
 	if (is_ddrsbm_fpga) {
 		// The counter for Solo Bass Mix is used differently than other games.
@@ -121,21 +114,13 @@ void k573fpga_device::update_counter()
 		// This counter register itself is always running even when no audio is playing.
 		// TODO: What happens when mp3_counter_low_w is written to on Solo Bass Mix?
 		counter_value = (machine().time() - counter_base).as_double();
-		return;
+	} else if (is_mpeg_frame_synced) {
+		// Timer only seems to start when the first MPEG frame sync is encountered, so wait for that trigger
+		counter_base = counter_current;
+		counter_current = machine().time();
+		counter_value += (counter_current - counter_base).as_double();
 	}
 
-	// Timer only seems to start when the first MPEG frame sync is encountered, so wait for that trigger
-	if (!is_mpeg_frame_synced) {
-		return;
-	}
-
-	counter_base = counter_current;
-	counter_current = machine().time();
-	counter_value += (counter_current - counter_base).as_double();
-}
-
-uint32_t k573fpga_device::get_counter()
-{
 	return std::max(0.0, counter_value - sample_skip_offset.as_double()) * 44100 * m_clock_scale;
 }
 
@@ -170,6 +155,29 @@ void k573fpga_device::mas_i2c_w(uint16_t data)
 	mas3507d->i2c_sda_w(data & 0x1000);
 }
 
+void k573fpga_device::set_crypto_key1(uint16_t v) {
+	crypto_key1_start = crypto_key1 = v;
+	update_mp3_decode_state();
+}
+void k573fpga_device::set_crypto_key2(uint16_t v) {
+	crypto_key2_start = crypto_key2 = v;
+	update_mp3_decode_state();
+}
+void k573fpga_device::set_crypto_key3(uint8_t v) {
+	crypto_key3_start = crypto_key3 = v;
+	update_mp3_decode_state();
+}
+
+void k573fpga_device::set_mp3_start_addr(uint32_t v) {
+	mp3_start_addr = v;
+	update_mp3_decode_state();
+}
+
+void k573fpga_device::set_mp3_end_addr(uint32_t v) {
+	mp3_end_addr = v;
+	update_mp3_decode_state();
+}
+
 uint16_t k573fpga_device::get_mpeg_ctrl()
 {
 	return mpeg_status;
@@ -179,13 +187,9 @@ uint16_t k573fpga_device::get_fpga_ctrl()
 {
 	// 0x0000 Not Streaming
 	// 0x1000 Streaming
-
-	if (!BIT(fpga_status, FPGA_STREAMING_ENABLE)) {
-		// Bit 14 must be set to enable streaming
-		return 0;
-	}
-
-	return (mp3_cur_addr >= mp3_cur_start_addr && mp3_cur_addr < mp3_cur_end_addr) << 12;
+	return (BIT(fpga_status, FPGA_STREAMING_ENABLE)
+		&& mp3_cur_addr >= mp3_cur_start_addr
+		&& mp3_cur_addr < mp3_cur_end_addr) << 12;
 }
 
 void k573fpga_device::set_fpga_ctrl(uint16_t data)
@@ -193,16 +197,14 @@ void k573fpga_device::set_fpga_ctrl(uint16_t data)
 	LOG("FPGA MPEG control %c%c%c | %04x\n",
 				BIT(data, FPGA_FRAME_COUNTER_ENABLE) ? '#' : '.',
 				BIT(data, FPGA_STREAMING_ENABLE) ? '#' : '.',
-				BIT(data, FPGA_UNK_ENABLE) ? '#' : '.',
+				BIT(data, FPGA_MP3_ENABLE) ? '#' : '.',
 				data);
 
 	if (!BIT(data, FPGA_FRAME_COUNTER_ENABLE) && BIT(fpga_status, FPGA_FRAME_COUNTER_ENABLE)) {
-		// When this bit transitions from 1 to 0 it resets the frame counter
 		mp3_frame_counter = 0;
 	}
 
-	if (BIT(data, FPGA_UNK_ENABLE) && (is_ddrsbm_fpga || !BIT(fpga_status, FPGA_UNK_ENABLE))) {
-		// Stop playback
+	if (BIT(data, FPGA_MP3_ENABLE) && !BIT(fpga_status, FPGA_MP3_ENABLE)) {
 		mas3507d->reset_playback();
 	}
 
@@ -212,7 +214,9 @@ void k573fpga_device::set_fpga_ctrl(uint16_t data)
 
 void k573fpga_device::update_mp3_decode_state()
 {
-	// Found start of new MP3 request
+	// The exact timing of when the internal state in the FPGA updates is still unknown
+	// so update the state any time one of the core settings (decryption keys or data start/stop addr)
+	// for a stream changes.
 	mp3_cur_addr = mp3_start_addr;
 	mp3_cur_start_addr = mp3_start_addr;
 	mp3_cur_end_addr = mp3_end_addr;
@@ -223,6 +227,11 @@ void k573fpga_device::update_mp3_decode_state()
 	crypto_key3 = crypto_key3_start;
 	mp3_frame_counter = 0;
 	reset_counter();
+
+	if (is_ddrsbm_fpga) {
+		crypto_key3 = crypto_key3_start = 0;
+	}
+
 	mas3507d->reset_playback();
 }
 
@@ -279,11 +288,10 @@ uint16_t k573fpga_device::decrypt_default(uint16_t v)
 
 uint16_t k573fpga_device::decrypt_ddrsbm(uint16_t data)
 {
-	// TODO: Work out the proper algorithm here.
-	// ddrsbm is capable of sending a pre-mutated key, similar to the other games, that is used to simulate seeking.
-	// I couldn't find evidence that the game ever seeks in the MP3 so the game doesn't break from lack of support from what I can tell.
-	// The proper algorithm for mutating the key is: crypto_key1 = rol(crypto_key1, offset & 0x0f)
-	// A hack such as rotating the key back to its initial state could be done if ever required, until the proper algorithm is worked out.
+	// TODO: Work out the proper decryption algorithm.
+	// ddrsbm is capable of sending a pre-mutated key, similar to the other games, that is used to simulate seeking by starting MP3 playback from a non-zero offset.
+	// The MP3 seeking functionality doesn't appear to be used so the game doesn't break from lack of support from what I can tell.
+	// The proper key mutation is: crypto_key1 = rol(crypto_key1, offset & 0x0f)
 
 	uint8_t key[16] = {0};
 	uint16_t key_state = bitswap<16>(
@@ -326,14 +334,14 @@ uint16_t k573fpga_device::decrypt_ddrsbm(uint16_t data)
 
 TIMER_CALLBACK_MEMBER(k573fpga_device::update_stream)
 {
-	// Note: The FPGA code seems to have an off by 1 error where it'll always decrypt and send an extra word at the end of every MP3 which corresponds to decrypting the value 0x0000.
+	// Note: The FPGA code on real hardware seems to always sends an extra garbage word at the end of stream
+	// corresponding to the value 0x0000 run through the decryption function.
 
-	if (!(mpeg_status & PLAYBACK_STATE_DEMAND)) {
-		// If the data isn't being demanded currently then it has enough data to decode a few frames already
+	if (!BIT(mpeg_status, PLAYBACK_STATE_DEMAND)) {
 		return;
 	}
 
-	if (!BIT(fpga_status, FPGA_UNK_ENABLE)
+	if (!BIT(fpga_status, FPGA_MP3_ENABLE)
 		|| !BIT(fpga_status, FPGA_STREAMING_ENABLE)
 		|| mp3_cur_addr < mp3_cur_start_addr
 		|| mp3_cur_addr > mp3_cur_end_addr) {
@@ -355,10 +363,9 @@ TIMER_CALLBACK_MEMBER(k573fpga_device::update_stream)
 
 WRITE_LINE_MEMBER(k573fpga_device::mpeg_frame_sync)
 {
-	mpeg_status &= ~(PLAYBACK_STATE_PLAYING | PLAYBACK_STATE_IDLE);
-
 	if (state) {
-		mpeg_status |= PLAYBACK_STATE_PLAYING;
+		mpeg_status &= ~(1 << PLAYBACK_STATE_IDLE);
+		mpeg_status |= 1 << PLAYBACK_STATE_PLAYING;
 
 		if (!is_mpeg_frame_synced) {
 			reset_counter();
@@ -370,18 +377,24 @@ WRITE_LINE_MEMBER(k573fpga_device::mpeg_frame_sync)
 		}
 	}
 	else {
-		mpeg_status |= PLAYBACK_STATE_IDLE;
+		mpeg_status &= ~(1 << PLAYBACK_STATE_PLAYING);
+		mpeg_status |= 1 << PLAYBACK_STATE_IDLE;
 	}
 }
 
 WRITE_LINE_MEMBER(k573fpga_device::mas3507d_demand)
 {
 	// This will be set when the MAS3507D is requesting more data
-	if (state && !(mpeg_status & PLAYBACK_STATE_DEMAND)) {
-		mpeg_status |= PLAYBACK_STATE_DEMAND;
+	if (state && !BIT(mpeg_status, PLAYBACK_STATE_DEMAND)) {
+		mpeg_status |= 1 << PLAYBACK_STATE_DEMAND;
 	}
-	else if (!state && (mpeg_status & PLAYBACK_STATE_DEMAND)) {
-		mpeg_status &= ~PLAYBACK_STATE_DEMAND;
+	else if (!state && BIT(mpeg_status, PLAYBACK_STATE_DEMAND)) {
+		mpeg_status &= ~(1 << PLAYBACK_STATE_DEMAND);
+		m_stream_timer->adjust(attotime::never);
+	}
+
+	if (state && BIT(mpeg_status, PLAYBACK_STATE_DEMAND)) {
+		m_stream_timer->adjust(attotime::zero);
 	}
 }
 

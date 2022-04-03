@@ -21,37 +21,18 @@ public:
 
 	void set_ddrsbm_fpga(bool flag) { is_ddrsbm_fpga = flag; }
 
-	TIMER_CALLBACK_MEMBER(update_counter_callback);
-	TIMER_CALLBACK_MEMBER(update_stream);
-
-	uint32_t get_decrypted();
 	DECLARE_WRITE_LINE_MEMBER(mpeg_frame_sync);
 	DECLARE_WRITE_LINE_MEMBER(mas3507d_demand);
 
-	void set_crypto_key1(uint16_t v) {
-		crypto_key1_start = crypto_key1 = v;
-		update_mp3_decode_state();
-	}
-	void set_crypto_key2(uint16_t v) {
-		crypto_key2_start = crypto_key2 = v;
-		update_mp3_decode_state();
-	}
-	void set_crypto_key3(uint8_t v) {
-		crypto_key3_start = crypto_key3 = v;
-		update_mp3_decode_state();
-	}
+	void set_crypto_key1(uint16_t v);
+	void set_crypto_key2(uint16_t v);
+	void set_crypto_key3(uint8_t v);
 
 	uint32_t get_mp3_start_addr() { return mp3_start_addr; }
-	void set_mp3_start_addr(uint32_t v) {
-		mp3_start_addr = v;
-		update_mp3_decode_state();
-	}
+	void set_mp3_start_addr(uint32_t v);
 
 	uint32_t get_mp3_end_addr() { return mp3_end_addr; }
-	void set_mp3_end_addr(uint32_t v) {
-		mp3_end_addr = v;
-		update_mp3_decode_state();
-	}
+	void set_mp3_end_addr(uint32_t v);
 
 	uint16_t mas_i2c_r();
 	void mas_i2c_w(uint16_t data);
@@ -76,26 +57,24 @@ protected:
 	virtual void device_add_mconfig(machine_config &config) override;
 
 private:
+	TIMER_CALLBACK_MEMBER(update_stream);
+
 	uint16_t decrypt_default(uint16_t data);
 	uint16_t decrypt_ddrsbm(uint16_t data);
 
-	void update_counter();
-
 	emu_timer* m_stream_timer;
-	emu_timer* m_counter_timer;
 
 	enum {
-		PLAYBACK_STATE_ENABLED = 0x8000,
-		PLAYBACK_STATE_DEMAND = 0x1000,
-		PLAYBACK_STATE_IDLE = PLAYBACK_STATE_ENABLED | 0x2000,
-		PLAYBACK_STATE_PLAYING = PLAYBACK_STATE_ENABLED | 0x4000,
+		PLAYBACK_STATE_DEMAND = 12,
+		PLAYBACK_STATE_IDLE = 13,
+		PLAYBACK_STATE_PLAYING = 14,
+		PLAYBACK_STATE_ENABLED = 15,
 	};
 
 	enum {
-		// Allows data to be decrypted?
-		// Doesn't seem to have a huge difference compared to FPGA_STREAMING_ENABLE.
+		// Allows MP3 data to be decrypted?
 		// If this is 0 then data won't be sent to the MAS3507D even if FPGA_STREAMING_ENABLE is 1.
-		FPGA_UNK_ENABLE = 13,
+		FPGA_MP3_ENABLE = 13,
 
 		// Allows data to be streamed to MAS3507D?
 		// This needs to be set before the register at 0x1f6400ae will return the streaming status.

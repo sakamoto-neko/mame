@@ -145,6 +145,7 @@ void k573dio_device::device_start()
 	save_item(NAME(output_data));
 	save_item(NAME(is_ddrsbm_fpga));
 	save_item(NAME(crypto_key1));
+	save_item(NAME(fpga_counter));
 	save_item(NAME(network_id));
 
 	k573fpga->set_ddrsbm_fpga(is_ddrsbm_fpga);
@@ -155,6 +156,7 @@ void k573dio_device::device_reset()
 	ram_adr = 0;
 	ram_read_adr = 0;
 	crypto_key1 = 0;
+	fpga_counter = 0;
 
 	network_id = 0;
 	network_buffer_output_waiting_size = 0;
@@ -269,9 +271,6 @@ void k573dio_device::mpeg_start_adr_low_w(uint16_t data)
 {
 	LOGMP3("FPGA MPEG start address low %04x\n", data);
 	k573fpga->set_mp3_start_addr((k573fpga->get_mp3_start_addr() & 0xffff0000) | data); // low
-
-	if(is_ddrsbm_fpga)
-		k573fpga->set_crypto_key3(0);
 }
 
 uint16_t k573dio_device::mpeg_end_adr_high_r()
@@ -375,12 +374,13 @@ uint16_t k573dio_device::mp3_counter_high_r()
 	if (is_ddrsbm_fpga)
 		return 0x7654; // Fixed value for DDR Solo Bass Mix's FPGA code only
 
-	return (k573fpga->get_counter() & 0xffff0000) >> 16;
+	return (fpga_counter & 0xffff0000) >> 16;
 }
 
 uint16_t k573dio_device::mp3_counter_low_r()
 {
-	return k573fpga->get_counter() & 0x0000ffff;
+	fpga_counter = k573fpga->get_counter();
+	return fpga_counter & 0x0000ffff;
 }
 
 void k573dio_device::mp3_counter_low_w(uint16_t data)

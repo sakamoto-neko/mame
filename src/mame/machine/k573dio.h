@@ -110,6 +110,8 @@ private:
 
 	bool is_ddrsbm_fpga;
 	u16 crypto_key1;
+
+	uint32_t fpga_counter;
 };
 
 DECLARE_DEVICE_TYPE(KONAMI_573_DIGITAL_IO_BOARD, k573dio_device)
