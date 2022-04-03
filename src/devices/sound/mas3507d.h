@@ -25,20 +25,9 @@ public:
 
 	void sid_w(uint8_t byte);
 
-	uint32_t get_frame_count() const { return decoded_frame_count; }
-	uint32_t get_samples() const { return decoded_samples; }
-
 	void update_stream() { stream->update(); }
 
-	void set_stream_flags(sound_stream_flags new_stream_flags) { stream_flags = new_stream_flags; }
-
 	void reset_playback();
-
-	void update_sample_rate()
-	{
-		if (stream != nullptr)
-			stream->set_sample_rate(current_rate * m_clock_scale);
-	}
 
 protected:
 	virtual void device_start() override;
@@ -55,8 +44,6 @@ private:
 	void run_program(uint32_t adr);
 	void reg_write(uint32_t adr, uint32_t val);
 
-	int mp3_find_frame(int offset);
-	void stream_update();
 	void fill_buffer();
 	void append_buffer(std::vector<write_stream_view> &outputs, int &pos, int scount);
 
@@ -79,7 +66,6 @@ private:
 	enum i2c_bus_address_t : uint8_t { UNKNOWN = 0, VALIDATED, WRONG };
 	enum i2c_subdest_t : uint8_t { UNDEFINED = 0, CONTROL, DATA_READ, DATA_WRITE, BAD };
 	enum i2c_command_t : uint8_t { CMD_BAD = 0, CMD_RUN, CMD_READ_CTRL, CMD_WRITE_REG, CMD_WRITE_MEM, CMD_READ_REG, CMD_READ_MEM };
-	enum mp3_decoder_state_t : uint8_t { DECODER_STREAM_SEARCHING = 0, DECODER_STREAM_INITIAL_BUFFER, DECODER_STREAM_BUFFER_FILL, DECODER_STREAM_BUFFER };
 
 	i2c_bus_state_t i2c_bus_state;
 	i2c_bus_address_t i2c_bus_address;
@@ -90,7 +76,6 @@ private:
 	mp3dec_frame_info_t mp3_info;
 
 	sound_stream *stream;
-	sound_stream_flags stream_flags;
 
 	std::array<uint8_t, 0xe00> mp3data;
 	std::array<mp3d_sample_t, MINIMP3_MAX_SAMPLES_PER_FRAME> samples;
@@ -102,11 +87,8 @@ private:
 	uint32_t i2c_io_bank, i2c_io_adr, i2c_io_count, i2c_io_val;
 	uint32_t i2c_sdao_data;
 
-	mp3_decoder_state_t mp3_decoder_state;
-	int mp3_offset = 0;
-	int mp3_offset_last = 0;
-
-	uint32_t mp3data_count, current_rate;
+	bool mp3_is_buffered;
+	uint32_t mp3data_count;
 	uint32_t decoded_frame_count, decoded_samples;
 	int32_t sample_count, samples_idx;
 

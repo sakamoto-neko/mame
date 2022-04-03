@@ -32,16 +32,15 @@ void k573fpga_device::update_clock(uint32_t speed)
 	// For the DDR Extreme Plus hack.
 	// The game is capable of switching between 3 different crystals to change the playback speed.
 	double scale = speed / double(clock());
+	counter_current = counter_base = machine().time();
 	set_clock_scale(scale);
 	mas3507d->set_clock_scale(scale);
-	mas3507d->update_sample_rate();
 	m_stream_timer->adjust(attotime::zero, 0, attotime::from_hz(clock() / 100));
 }
 
 void k573fpga_device::device_add_mconfig(machine_config &config)
 {
 	MAS3507D(config, mas3507d, 29'450'000);
-	mas3507d->set_stream_flags(STREAM_SYNCHRONOUS);
 	mas3507d->mpeg_frame_sync_cb().set(*this, FUNC(k573fpga_device::mpeg_frame_sync));
 	mas3507d->demand_cb().set(*this, FUNC(k573fpga_device::mas3507d_demand));
 }
@@ -103,13 +102,9 @@ void k573fpga_device::device_reset()
 
 void k573fpga_device::reset_counter()
 {
-	// There is a delay when resetting the timer but I don't know exactly how long it is.
-	// DDR Extreme: when this register is reset, the game expects to be able to read back 0 from the counter for 2 consecutive reads
-	// or else it'll keep writing 0 to the register. Uses VSync(-1) to force timing to vblanks.
-	// Drummania 5th mix seems to not like it when the counter is reset immediately because it isn't able to read 
+	is_mpeg_frame_synced = false;
 	counter_current = counter_base = machine().time();
 	counter_value = 0;
-	is_mpeg_frame_synced = false;
 }
 
 TIMER_CALLBACK_MEMBER(k573fpga_device::update_counter_callback)
@@ -125,7 +120,7 @@ void k573fpga_device::update_counter()
 		// After that the playback timer is incremented using the difference between the last counter value and the current counter value.
 		// This counter register itself is always running even when no audio is playing.
 		// TODO: What happens when mp3_counter_low_w is written to on Solo Bass Mix?
-		counter_value = (machine().time() - counter_base).as_double() * m_clock_scale;
+		counter_value = (machine().time() - counter_base).as_double();
 		return;
 	}
 
@@ -141,7 +136,7 @@ void k573fpga_device::update_counter()
 
 uint32_t k573fpga_device::get_counter()
 {
-	return std::max(0.0, counter_value) * 44100 * m_clock_scale;
+	return std::max(0.0, counter_value - sample_skip_offset.as_double()) * 44100 * m_clock_scale;
 }
 
 uint32_t k573fpga_device::get_counter_diff()
@@ -366,8 +361,7 @@ WRITE_LINE_MEMBER(k573fpga_device::mpeg_frame_sync)
 		mpeg_status |= PLAYBACK_STATE_PLAYING;
 
 		if (!is_mpeg_frame_synced) {
-			counter_current = counter_base = machine().time();
-			counter_value = sample_skip_offset.as_double() * 44100.0;
+			reset_counter();
 			is_mpeg_frame_synced = true;
 		}
 
