@@ -163,25 +163,30 @@ void k573fpga_device::mas_i2c_w(uint16_t data)
 	mas3507d->i2c_sda_w(data & 0x1000);
 }
 
-void k573fpga_device::set_crypto_key1(uint16_t v) {
+void k573fpga_device::set_crypto_key1(uint16_t v)
+{
 	crypto_key1_start = crypto_key1 = v;
 	update_mp3_decode_state();
 }
-void k573fpga_device::set_crypto_key2(uint16_t v) {
+void k573fpga_device::set_crypto_key2(uint16_t v)
+{
 	crypto_key2_start = crypto_key2 = v;
 	update_mp3_decode_state();
 }
-void k573fpga_device::set_crypto_key3(uint8_t v) {
+void k573fpga_device::set_crypto_key3(uint8_t v)
+{
 	crypto_key3_start = crypto_key3 = v;
 	update_mp3_decode_state();
 }
 
-void k573fpga_device::set_mp3_start_addr(uint32_t v) {
+void k573fpga_device::set_mp3_start_addr(uint32_t v)
+{
 	mp3_start_addr = v;
 	update_mp3_decode_state();
 }
 
-void k573fpga_device::set_mp3_end_addr(uint32_t v) {
+void k573fpga_device::set_mp3_end_addr(uint32_t v)
+{
 	mp3_end_addr = v;
 	update_mp3_decode_state();
 }
@@ -297,9 +302,9 @@ uint16_t k573fpga_device::decrypt_default(uint16_t v)
 uint16_t k573fpga_device::decrypt_ddrsbm(uint16_t data)
 {
 	// TODO: Work out the proper decryption algorithm.
-	// ddrsbm is capable of sending a pre-mutated key, similar to the other games, that is used to simulate seeking by starting MP3 playback from a non-zero offset.
+	// Similar to the other games, ddrsbm is capable of sending a pre-mutated key that is used to simulate seeking by starting MP3 playback from a non-zero offset.
 	// The MP3 seeking functionality doesn't appear to be used so the game doesn't break from lack of support from what I can tell.
-	// The proper key mutation is: crypto_key1 = rol(crypto_key1, offset & 0x0f)
+	// The proper key mutation found in game code is: crypto_key1 = rol(crypto_key1, offset & 0x0f)
 
 	uint8_t key[16] = {0};
 	uint16_t key_state = bitswap<16>(
@@ -342,9 +347,6 @@ uint16_t k573fpga_device::decrypt_ddrsbm(uint16_t data)
 
 TIMER_CALLBACK_MEMBER(k573fpga_device::update_stream)
 {
-	// Note: The FPGA code on real hardware seems to always sends an extra garbage word at the end of stream
-	// corresponding to the value 0x0000 run through the decryption function.
-
 	if (!BIT(mpeg_status, PLAYBACK_STATE_DEMAND)) {
 		return;
 	}
@@ -352,7 +354,7 @@ TIMER_CALLBACK_MEMBER(k573fpga_device::update_stream)
 	if (!BIT(fpga_status, FPGA_MP3_ENABLE)
 		|| !BIT(fpga_status, FPGA_STREAMING_ENABLE)
 		|| mp3_cur_addr < mp3_cur_start_addr
-		|| mp3_cur_addr > mp3_cur_end_addr) {
+		|| mp3_cur_addr >= mp3_cur_end_addr) {
 		return;
 	}
 

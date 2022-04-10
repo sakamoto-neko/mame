@@ -441,7 +441,7 @@ void mas3507d_device::sid_w(uint8_t byte)
 	if (!mp3_is_buffered) {
 		// Only start the decoder when a full MP3 frame is found
 		int free_format_bytes = 0, frame_size = 0;
-		int frame_offset = mp3d_find_frame(static_cast<const uint8_t*>(&mp3data[0]), mp3data_count, &free_format_bytes, &frame_size);
+		int frame_offset = mp3d_find_frame(static_cast<const uint8_t *>(&mp3data[0]), mp3data_count, &free_format_bytes, &frame_size);
 		mp3_is_buffered = frame_size && frame_offset + frame_size < mp3data_count;
 	}
 
