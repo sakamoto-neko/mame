@@ -217,7 +217,8 @@ void k573fpga_device::set_fpga_ctrl(uint16_t data)
 		mp3_frame_counter = 0;
 	}
 
-	if (BIT(data, FPGA_MP3_ENABLE) && !BIT(fpga_status, FPGA_MP3_ENABLE)) {
+	if ((BIT(data, FPGA_MP3_ENABLE) != BIT(fpga_status, FPGA_MP3_ENABLE))
+		|| (BIT(data, FPGA_STREAMING_ENABLE) != BIT(fpga_status, FPGA_STREAMING_ENABLE))) {
 		mas3507d->reset_playback();
 	}
 
