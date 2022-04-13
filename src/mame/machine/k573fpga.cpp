@@ -90,7 +90,7 @@ void k573fpga_device::device_reset()
 
 	counter_current = counter_base = machine().time();
 
-	mpeg_status = (1 << PLAYBACK_STATE_IDLE) | (1 << PLAYBACK_STATE_ENABLED);
+	mpeg_status = 0;
 	mp3_frame_counter = 0;
 	counter_value = 0;
 	is_mpeg_frame_synced = false;
@@ -200,9 +200,10 @@ uint16_t k573fpga_device::get_fpga_ctrl()
 {
 	// 0x0000 Not Streaming
 	// 0x1000 Streaming
-	return (BIT(fpga_status, FPGA_STREAMING_ENABLE)
+	int is_streaming = BIT(fpga_status, FPGA_STREAMING_ENABLE)
 		&& mp3_cur_addr >= mp3_cur_start_addr
-		&& mp3_cur_addr < mp3_cur_end_addr) << 12;
+		&& mp3_cur_addr < mp3_cur_end_addr;
+	return is_streaming << 12;
 }
 
 void k573fpga_device::set_fpga_ctrl(uint16_t data)
@@ -228,7 +229,7 @@ void k573fpga_device::set_fpga_ctrl(uint16_t data)
 
 void k573fpga_device::update_mp3_decode_state()
 {
-	// The exact timing of when the internal state in the FPGA updates is still unknown
+	// HACK: The exact timing of when the internal state in the FPGA updates is still unknown
 	// so update the state any time one of the core settings (decryption keys or data start/stop addr)
 	// for a stream changes.
 	mp3_cur_addr = mp3_start_addr;
@@ -395,7 +396,6 @@ WRITE_LINE_MEMBER(k573fpga_device::mpeg_frame_sync)
 
 WRITE_LINE_MEMBER(k573fpga_device::mas3507d_demand)
 {
-	// This will be set when the MAS3507D is requesting more data
 	if (state && !BIT(mpeg_status, PLAYBACK_STATE_DEMAND)) {
 		mpeg_status |= 1 << PLAYBACK_STATE_DEMAND;
 	}

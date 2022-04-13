@@ -593,7 +593,7 @@ void twinkle_state::machine_start()
 	xvd701_player = subdevice<jvc_xvd701_device>("rs232_dvd:xvd701");
 
 	xvd701_player->set_media_type(
-		is_dvd_media ? jvc_xvd701_media_type::JVC_MEDIA_DVD : jvc_xvd701_media_type::JVC_MEDIA_VCD
+		is_dvd_media ? jvc_xvd701_device::JVC_MEDIA_DVD : jvc_xvd701_device::JVC_MEDIA_VCD
 	);
 
 	if (xvd701_player != nullptr) {
@@ -665,141 +665,6 @@ uint32_t twinkle_state::screen_update(screen_device &screen, bitmap_rgb32 &bitma
 	}
 
 	return 0;
-}
-
-void twinkle_state::twinkle_videomixer_w(offs_t offset, uint16_t data)
-{
-	// Bt812 NTSC/PAL to RGB/YCrCb Decoder chip
-	switch( offset )
-	{
-	case 0x00:
-		/*
-			Address Register offset
-			0x00 Command Register 0, Input Select Register
-			0x01 Reserved
-			0x02 Command Register 2, Status Register
-			0x03 Command Register 3, Output Format Register
-			0x04 Command Register 4, Operation Mode Select Register
-			0x05 Command Register 5, Input Format Register
-			0x06 Command Register 6, Clock Definition Register
-			0x07 Command Register 7, Video Timing Definition Register
-			0x08 Brightness Adjust Register
-			0x09 Contrast Adjust Register
-			0x0a Saturation Adjust Register
-			0x0b Hue Adjust Register
-			0x0c HCLOCK Low Register
-			0x0d HCLOCK High Register
-			0x0e HDELAY Low Register
-			0x0f HDELAY High Register
-			0x10 ACTIVE_PIXELS Low Register
-			0x11 ACTIVE_PIXELS High Register
-			0x12 VDELAY Low Register
-			0x13 VDELAY High Register
-			0x14 ACTIVE_LINES Low Register
-			0x15 ACTIVE_LINES High Register
-			0x16 P (subcarrier freq) Register 0
-			0x17 P (subcarrier freq) Register 1
-			0x18 P (subcarrier freq) Register 2
-			0x19 AGC Delay Register
-			0x1a Burst Delay Register
-			0x1b Sample Rate Conversion Low Register
-			0x1c Sample Rate Conversion High Register
-			0x1d Command Register 1D, Video Timing Polarity Register
-			0x1e-0xfe Reserved
-			0xff Software Reset
-		*/
-		m_videomixer_addr_offset = data;
-		break;
-	case 0x04:
-		/*
-			Register data
-
-			Game initialized values:
-			HCLOCK 853
-			HDELAY 126
-			ACTIVE_PIXELS 706
-			VDELAY 22
-			ACTIVE_LINES 16
-		*/
-		// TODO: At the very least save the brightness/contrast/saturation/hue and use them when mixing the video data
-		// printf("twinkle_videomixer_w reg[%02x] data[%02x]\n", m_videomixer_addr_offset, data);
-
-		switch (m_videomixer_addr_offset) {
-			case 0x08:
-				// -64 to +63
-				m_videomixer_brightness = int16_t(data & 0xfe) / 2;
-				// printf("Video mixer: brightness set to %d (%02x)\n", m_videomixer_brightness, data);
-				break;
-			case 0x09:
-				// 0 to 198.44%
-				m_videomixer_contrast = double(data & 0xfe) / 2 * (100.0 / 64);
-				// printf("Video mixer: contrast set to %lf (%02x)\n", m_videomixer_contrast, data);
-				break;
-			case 0x0a:
-				// 0 to 198.44%
-				m_videomixer_saturation = double(data & 0xfe) / 2 * (100.0 / 64);
-				// printf("Video mixer: saturation set to %lf (%02x)\n", m_videomixer_saturation, data);
-				break;
-			case 0x0b:
-				// -45 to +44.3
-				m_videomixer_hue = double(int16_t(data & 0xfe)) / 2 * (100.0 / 64);
-				// printf("Video mixer: hue set to %lf (%02x)\n", m_videomixer_hue, data);
-				break;
-		}
-
-		break;
-	case 0x08:
-		// Some kind of status flag
-		// Known values:
-		// 0x01 - ?
-		// 0x02 - Perform overlay mixing
-		// 0x08 - ?
-		m_videomixer_mix_enabled = BIT(data, 1) != 0;
-		break;
-	case 0x10:
-		{
-			// Always writes 0x214 and 0x128 here?
-			int clock = (data >> 0) & 1;
-			int _do = (data >> 1) & 1;
-			int cs = (data >> 2) & 1;
-
-			//printf( "output do=%d clock=%d cs=%d (remaining %02x)\n", _do, clock, cs, data & 0xfff8 );
-
-			if (!cs && m_output_cs)
-			{
-				m_output_shift = 0;
-				m_output_bits = 0;
-			}
-
-			if (clock && !m_output_clock && m_output_bits < 8)
-			{
-				m_output_shift <<= 1;
-				m_output_shift |= _do;
-				m_output_bits++;
-
-				if (m_output_bits == 8)
-				{
-					// printf( "output %02x (%d)\n", m_output_shift, m_output_shift );
-
-					m_output_bits = 0;
-					m_output_shift = 0;
-				}
-			}
-
-			m_output_cs = cs;
-			m_output_clock = clock;
-		}
-		break;
-	case 0x18:
-		// Always 0x69?
-		break;
-	case 0x30:
-		// Always 0x10?
-		break;
-	case 0x48:
-		// 0x20 - Powered on?
-		break;
-	}
 }
 
 void twinkle_state::twinkle_io_w(offs_t offset, uint8_t data)
@@ -944,6 +809,142 @@ uint8_t twinkle_state::twinkle_io_r(offs_t offset)
 	}
 
 	return data;
+}
+
+void twinkle_state::twinkle_videomixer_w(offs_t offset, uint16_t data)
+{
+	// Bt812 NTSC/PAL to RGB/YCrCb Decoder chip
+	switch( offset )
+	{
+	case 0x00:
+		/*
+			Address Register offset
+			0x00 Command Register 0, Input Select Register
+			0x01 Reserved
+			0x02 Command Register 2, Status Register
+			0x03 Command Register 3, Output Format Register
+			0x04 Command Register 4, Operation Mode Select Register
+			0x05 Command Register 5, Input Format Register
+			0x06 Command Register 6, Clock Definition Register
+			0x07 Command Register 7, Video Timing Definition Register
+			0x08 Brightness Adjust Register (range: -64 to +63)
+			0x09 Contrast Adjust Register (range: 0 to 198.44%)
+			0x0a Saturation Adjust Register (range: 0 to 198.44%)
+			0x0b Hue Adjust Register (range: -45 to +44.3)
+			0x0c HCLOCK Low Register
+			0x0d HCLOCK High Register
+			0x0e HDELAY Low Register
+			0x0f HDELAY High Register
+			0x10 ACTIVE_PIXELS Low Register
+			0x11 ACTIVE_PIXELS High Register
+			0x12 VDELAY Low Register
+			0x13 VDELAY High Register
+			0x14 ACTIVE_LINES Low Register
+			0x15 ACTIVE_LINES High Register
+			0x16 P (subcarrier freq) Register 0
+			0x17 P (subcarrier freq) Register 1
+			0x18 P (subcarrier freq) Register 2
+			0x19 AGC Delay Register
+			0x1a Burst Delay Register
+			0x1b Sample Rate Conversion Low Register
+			0x1c Sample Rate Conversion High Register
+			0x1d Command Register 1D, Video Timing Polarity Register
+			0x1e-0xfe Reserved
+			0xff Software Reset
+		*/
+		m_videomixer_addr_offset = data;
+		break;
+	case 0x04:
+		/*
+			Register data
+			Uses offset given in the address register offset command.
+
+			Game initialized values:
+			HCLOCK 853
+			HDELAY 126
+			ACTIVE_PIXELS 706
+			VDELAY 22
+			ACTIVE_LINES 16
+		*/
+		// TODO: At the very least save the brightness/contrast/saturation/hue and use them when mixing the video data
+		// printf("twinkle_videomixer_w reg[%02x] data[%02x]\n", m_videomixer_addr_offset, data);
+
+		switch (m_videomixer_addr_offset) {
+			case 0x08:
+				// -64 to +63
+				m_videomixer_brightness = int16_t(data & 0xfe) / 2;
+				// printf("Video mixer: brightness set to %d (%02x)\n", m_videomixer_brightness, data);
+				break;
+			case 0x09:
+				// 0 to 198.44%
+				m_videomixer_contrast = double(data & 0xfe) / 2 * (100.0 / 64);
+				// printf("Video mixer: contrast set to %lf (%02x)\n", m_videomixer_contrast, data);
+				break;
+			case 0x0a:
+				// 0 to 198.44%
+				m_videomixer_saturation = double(data & 0xfe) / 2 * (100.0 / 64);
+				// printf("Video mixer: saturation set to %lf (%02x)\n", m_videomixer_saturation, data);
+				break;
+			case 0x0b:
+				// -45 to +44.3
+				m_videomixer_hue = double(int16_t(data & 0xfe)) / 2 * (100.0 / 64);
+				// printf("Video mixer: hue set to %lf (%02x)\n", m_videomixer_hue, data);
+				break;
+		}
+
+		break;
+	case 0x08:
+		// Some kind of status flag
+		// Known values:
+		// 0x01 - ?
+		// 0x02 - Perform overlay mixing
+		// 0x08 - ?
+		m_videomixer_mix_enabled = BIT(data, 1) != 0;
+		break;
+	case 0x10:
+		{
+			// Always writes 0x214 and 0x128 here?
+			int clock = (data >> 0) & 1;
+			int _do = (data >> 1) & 1;
+			int cs = (data >> 2) & 1;
+
+			//printf( "output do=%d clock=%d cs=%d (remaining %02x)\n", _do, clock, cs, data & 0xfff8 );
+
+			if (!cs && m_output_cs)
+			{
+				m_output_shift = 0;
+				m_output_bits = 0;
+			}
+
+			if (clock && !m_output_clock && m_output_bits < 8)
+			{
+				m_output_shift <<= 1;
+				m_output_shift |= _do;
+				m_output_bits++;
+
+				if (m_output_bits == 8)
+				{
+					// printf( "output %02x (%d)\n", m_output_shift, m_output_shift );
+
+					m_output_bits = 0;
+					m_output_shift = 0;
+				}
+			}
+
+			m_output_cs = cs;
+			m_output_clock = clock;
+		}
+		break;
+	case 0x18:
+		// Always 0x69?
+		break;
+	case 0x30:
+		// Always 0x10?
+		break;
+	case 0x48:
+		// 0x20 - Powered on?
+		break;
+	}
 }
 
 void twinkle_state::led_w(uint16_t data)

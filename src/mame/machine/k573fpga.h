@@ -78,7 +78,7 @@ private:
 		// If this is 0 then data won't be sent to the MAS3507D even if FPGA_STREAMING_ENABLE is 1.
 		FPGA_MP3_ENABLE = 13,
 
-		// Allows data to be streamed to MAS3507D?
+		// Allows data to be streamed to MAS3507D.
 		// This needs to be set before the register at 0x1f6400ae will return the streaming status.
 		FPGA_STREAMING_ENABLE = 14,
 

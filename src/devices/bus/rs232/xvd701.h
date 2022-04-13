@@ -8,24 +8,24 @@
 #include "screen.h"
 #include "pl_mpeg/pl_mpeg.h"
 
-enum jvc_xvd701_media_type : uint32_t
-{
-	JVC_MEDIA_VCD = 0,
-	JVC_MEDIA_DVD = 1,
-};
-
-enum jvc_xvd701_playback_status : uint32_t
-{
-	STATUS_STOP = 0,
-	STATUS_PLAYING = 1,
-	STATUS_PAUSE = 2,
-};
-
 class jvc_xvd701_device : public device_t,
 		public device_serial_interface,
 		public device_rs232_port_interface
 {
 public:
+	enum jvc_xvd701_media_type : uint32_t
+	{
+		JVC_MEDIA_VCD = 0,
+		JVC_MEDIA_DVD = 1,
+	};
+
+	enum jvc_xvd701_playback_status : uint32_t
+	{
+		STATUS_STOP = 0,
+		STATUS_PLAYING = 1,
+		STATUS_PAUSE = 2,
+	};
+
 	jvc_xvd701_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock);
 
 	virtual WRITE_LINE_MEMBER( input_txd ) override { device_serial_interface::rx_w(state); }

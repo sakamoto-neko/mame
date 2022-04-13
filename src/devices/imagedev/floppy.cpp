@@ -320,15 +320,12 @@ void floppy_image_device::setup_led_cb(led_cb cb)
 
 void floppy_image_device::fs_enum::add(const floppy_image_format_t &type, u32 image_size, const char *name, const char *description)
 {
-	if(m_manager->can_format())
-		m_fid->m_create_fs.emplace_back(fs_info(m_manager, &type, image_size, name, description));
-	if(m_manager->can_read())
-		m_fid->m_io_fs.emplace_back(fs_info(m_manager, &type, image_size, name, description));
+	m_fid->m_fs.emplace_back(fs_info(m_manager, &type, image_size, name, description));
 }
 
 void floppy_image_device::fs_enum::add_raw(const char *name, u32 key, const char *description)
 {
-	m_fid->m_create_fs.emplace_back(fs_info(name, key, description));
+	m_fid->m_fs.emplace_back(fs_info(name, key, description));
 }
 
 void floppy_image_device::register_formats()
@@ -844,6 +841,9 @@ void floppy_image_device::init_fs(const fs_info *fs, const fs::meta_data &meta)
 	} else {
 		fs::unformatted_image::format(fs->m_key, image.get());
 	}
+
+	// intializing a file system makes the floppy dirty
+	image_dirty = true;
 }
 
 /* write protect, active high

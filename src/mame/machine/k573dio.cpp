@@ -82,6 +82,9 @@ DEFINE_DEVICE_TYPE(KONAMI_573_DIGITAL_IO_BOARD, k573dio_device, "k573_dio", "Kon
 
 void k573dio_device::amap(address_map &map)
 {
+	// TODO: Split address maps between DDR Solo Bass Mix's FPGA code and the normal FPGA code.
+	// For example, DDR Solo Bass Mix's FPGA code returns 0x7654 for unused registers like mp3_counter_high_r.
+
 	map(0x00, 0x01).r(FUNC(k573dio_device::a00_r));
 	map(0x02, 0x03).r(FUNC(k573dio_device::a02_r));
 	map(0x04, 0x05).r(FUNC(k573dio_device::a04_r));
@@ -188,10 +191,6 @@ void k573dio_device::device_add_mconfig(machine_config &config)
 	}
 
 	TIMER(config, "network_timer").configure_periodic(FUNC(k573dio_device::network_update_callback), attotime::from_hz(300));
-}
-
-void k573dio_device::device_timer(emu_timer &timer, device_timer_id id, int param)
-{
 }
 
 void k573dio_device::explus_speed_normal()
@@ -371,9 +370,6 @@ void k573dio_device::ram_read_adr_low_w(uint16_t data)
 
 uint16_t k573dio_device::mp3_counter_high_r()
 {
-	if (is_ddrsbm_fpga)
-		return 0x7654; // Fixed value for DDR Solo Bass Mix's FPGA code only
-
 	return (fpga_counter & 0xffff0000) >> 16;
 }
 

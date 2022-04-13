@@ -72,7 +72,7 @@ enum
 	SACHEN_SA009, SACHEN_SA0036, SACHEN_SA0037,
 	SACHEN_SA72007, SACHEN_SA72008, SACHEN_SA9602B,
 	SACHEN_TCA01, SACHEN_TCU01, SACHEN_TCU02, SACHEN_3013, SACHEN_3014,
-	SACHEN_74LS374, SACHEN_74LS374_ALT, SACHEN_SHERO,
+	SACHEN_74LS374, SACHEN_74LS374_ALT, SACHEN_SHERO, SACHEN_ZGDH,
 	// Sunsoft
 	SUNSOFT_1, SUNSOFT_2, SUNSOFT_3, SUNSOFT_4,
 	SUNSOFT_DCS, SUNSOFT_5, SUNSOFT_FME7,
@@ -86,7 +86,7 @@ enum
 	TXC_MJBLOCK, TXC_STRIKEW, TXC_TW,
 	// Multigame Carts
 	BMC_64IN1NR, BMC_190IN1, BMC_A65AS, BMC_A88S1, BMC_F15, BMC_F600, BMC_L6IN1,
-	BMC_GN45, BMC_HIK8IN1, BMC_SFC12, BMC_JY208, BMC_JY302, BMC_KC885,
+	BMC_GN45, BMC_HIK8IN1, BMC_SFC12, BMC_JY208, BMC_JY302, BMC_KC885, BMC_KL06,
 	BMC_S24IN1SC03, BMC_T262, BMC_TELETUBBIES,
 	BMC_WS, BMC_SUPERBIG_7IN1, BMC_SUPERHIK_4IN1, BMC_BALLGAMES_11IN1,
 	BMC_MARIOPARTY_7IN1, BMC_GOLD_7IN1, BMC_SUPER_700IN1, BMC_FAMILY_4646,
@@ -95,7 +95,7 @@ enum
 	BMC_72IN1, BMC_SUPER_42IN1, BMC_76IN1,
 	BMC_31IN1, BMC_22GAMES, BMC_20IN1, BMC_5IN1_1993,
 	BMC_70IN1, BMC_500IN1, BMC_800IN1, BMC_1200IN1,
-	BMC_GKA, BMC_GKB, BMC_GKCXIN1, BMC_GN91B,
+	BMC_DS927, BMC_GKA, BMC_GKB, BMC_GKCXIN1, BMC_GN91B, BMC_GOLD260,
 	BMC_HP898F, BMC_VT5201, BMC_BENSHIENG,
 	BMC_CTC09, BMC_CTC_12IN1, BMC_60311C, BMC_80013B, BMC_810544C, BMC_82AB,
 	BMC_830425C, BMC_830506C, BMC_830928C, BMC_850437C, BMC_891227, BMC_970630C,
@@ -105,8 +105,7 @@ enum
 	BMC_S009, BMC_TH22913, BMC_TH2348, BMC_11160, BMC_G146,
 	BMC_2751, BMC_8157, BMC_00202650,
 	BMC_411120C, BMC_810305C, BMC_820720C, BMC_830118C,
-	BMC_830832C, BMC_YY841101C, BMC_YY841155C,
-	BMC_GOLD150, BMC_GOLD260,
+	BMC_830832C, BMC_831128C, BMC_YY841101C, BMC_YY841155C,
 	BMC_12IN1, BMC_4IN1RESET, BMC_42IN1RESET, BMC_LITTLECOM160,
 	BMC_K1029, BMC_K3006, BMC_K3033, BMC_K3036, BMC_K3046, BMC_K3071, BMC_SA005A,
 	BMC_TF2740, BMC_TJ03, BMC_RESETSXROM, BMC_RESETTXROM, BMC_TECHLINE9IN1,
@@ -267,7 +266,6 @@ protected:
 	device_nes_cart_interface(const machine_config &mconfig, device_t &device);
 
 	DECLARE_WRITE_LINE_MEMBER(set_irq_line);
-	void reset_cpu();
 
 	// internal state
 	uint8_t *m_prg;
@@ -315,7 +313,7 @@ public:
 	// PRG
 	inline int prg_8k_bank_num(int bank);
 	inline void update_prg_banks(int prg_bank_start, int prg_bank_end);
-	memory_bank *m_prg_bank_mem[4]{};
+	memory_bank *m_prg_bank_mem[4];
 	int m_prg_bank[4];
 	uint32_t m_prg_chunks;
 	uint32_t m_prg_mask;
@@ -338,7 +336,7 @@ public:
 	//because some of these change multiple times per scanline!
 	int m_chr_src[8]; //defines source of base pointer
 	int m_chr_orig[8]; //defines offset of 0x400 byte segment at base pointer
-	uint8_t *m_chr_access[8]{};  //source translated + origin -> valid pointer!
+	uint8_t *m_chr_access[8];  //source translated + origin -> valid pointer!
 
 	uint32_t m_vrom_chunks;
 	uint32_t m_vram_chunks;
@@ -372,7 +370,7 @@ public:
 	int m_nt_src[4];
 	int m_nt_orig[4];
 	int m_nt_writable[4];
-	uint8_t *m_nt_access[4]{};  //quick banking structure for a maximum of 4K of RAM/ROM/ExRAM
+	uint8_t *m_nt_access[4];  //quick banking structure for a maximum of 4K of RAM/ROM/ExRAM
 
 	void set_nt_page(int page, int source, int bank, int writable);
 	void set_nt_mirroring(int mirroring);
