@@ -2915,20 +2915,6 @@ void ksys573_state::ddr4ms(machine_config &config)
 
 // DrumMania
 
-void ksys573_state::drmn(machine_config &config)
-{
-	k573a(config);
-	cassx(config);
-}
-
-void ksys573_state::drmn2m(machine_config &config)
-{
-	k573d(config);
-	subdevice<k573dio_device>("k573dio")->output_callback().set(FUNC(ksys573_state::drmn_output_callback));
-
-	cassxzi(config);
-}
-
 void ksys573_state::msu_local(machine_config &config)
 {
 	KONAMI_573_MULTI_SESSION_UNIT(config, "k573msu", 0);
@@ -2956,6 +2942,24 @@ void ksys573_state::msu_remote(machine_config &config)
 	sio1->txd_handler().set(rs232_network, FUNC(rs232_port_device::write_txd));
 	sio1->dtr_handler().set(rs232_network, FUNC(rs232_port_device::write_dtr));
 	rs232_network.rxd_handler().set(*sio1, FUNC(psxsio1_device::write_rxd));
+}
+
+void ksys573_state::drmn(machine_config& config)
+{
+	k573a(config);
+	cassx(config);
+
+	msu_local(config);
+}
+
+void ksys573_state::drmn2m(machine_config& config)
+{
+	k573d(config);
+	subdevice<k573dio_device>("k573dio")->output_callback().set(FUNC(ksys573_state::drmn_output_callback));
+
+	cassxzi(config);
+
+	msu_local(config);
 }
 
 void ksys573_state::drmn4m(machine_config &config)
@@ -3010,6 +3014,7 @@ void ksys573_state::gtrfrk2ml(machine_config &config)
 	k573a(config);
 	cassyi(config);
 	pccard1_32mb(config); // HACK: The installation tries to check and erase 32mb but only flashes 16mb.
+	msu_remote(config);
 
 	// For Guitar Freaks 2nd Mix Link Ver 1 (memory cards) and Link Ver 2 (memory cards + controllers)
 	KONAMI_573_MEMORY_CARD_READER(config, "k573mcr", 0, m_sys573_jvs_host);
@@ -3020,6 +3025,7 @@ void ksys573_state::gtrfrk3m(machine_config &config)
 	k573d(config);
 	cassxzi(config);
 	pccard1_16mb(config);
+	msu_remote(config);
 
 	KONAMI_573_MEMORY_CARD_READER(config, "k573mcr", 0, m_sys573_jvs_host);
 }
