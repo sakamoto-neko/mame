@@ -1189,6 +1189,7 @@ files {
 	MAME_DIR .. "src/mame/includes/badlands.h",
 	MAME_DIR .. "src/mame/machine/badlands.cpp",
 	MAME_DIR .. "src/mame/video/badlands.cpp",
+	MAME_DIR .. "src/mame/drivers/badlands_ms.cpp",
 	MAME_DIR .. "src/mame/drivers/badlandsbl.cpp",
 	MAME_DIR .. "src/mame/drivers/bartop52.cpp",
 	MAME_DIR .. "src/mame/drivers/batman.cpp",
@@ -1557,8 +1558,6 @@ files {
 	MAME_DIR .. "src/mame/includes/fcrash.h",
 	MAME_DIR .. "src/mame/drivers/gng.cpp",
 	MAME_DIR .. "src/mame/drivers/gunsmoke.cpp",
-	MAME_DIR .. "src/mame/includes/gunsmoke.h",
-	MAME_DIR .. "src/mame/video/gunsmoke.cpp",
 	MAME_DIR .. "src/mame/drivers/higemaru.cpp",
 	MAME_DIR .. "src/mame/includes/higemaru.h",
 	MAME_DIR .. "src/mame/video/higemaru.cpp",
@@ -1693,8 +1692,6 @@ files {
 	MAME_DIR .. "src/mame/includes/boogwing.h",
 	MAME_DIR .. "src/mame/video/boogwing.cpp",
 	MAME_DIR .. "src/mame/drivers/brkthru.cpp",
-	MAME_DIR .. "src/mame/includes/brkthru.h",
-	MAME_DIR .. "src/mame/video/brkthru.cpp",
 	MAME_DIR .. "src/mame/drivers/btime.cpp",
 	MAME_DIR .. "src/mame/includes/btime.h",
 	MAME_DIR .. "src/mame/machine/btime.cpp",
@@ -2109,13 +2106,14 @@ createMAMEProjects(_target, _subtarget, "ibmpc")
 files {
 	MAME_DIR .. "src/mame/drivers/calchase.cpp",
 	MAME_DIR .. "src/mame/drivers/fruitpc.cpp",
+	MAME_DIR .. "src/mame/drivers/igspc.cpp",
 	MAME_DIR .. "src/mame/drivers/pangofun.cpp",
+	MAME_DIR .. "src/mame/drivers/paokaipc.cpp",
 	MAME_DIR .. "src/mame/drivers/pcat_dyn.cpp",
 	MAME_DIR .. "src/mame/drivers/pcat_nit.cpp",
 	MAME_DIR .. "src/mame/drivers/pcxt.cpp",
 	MAME_DIR .. "src/mame/drivers/quakeat.cpp",
 	MAME_DIR .. "src/mame/drivers/queen.cpp",
-	MAME_DIR .. "src/mame/drivers/igspc.cpp",
 }
 
 createMAMEProjects(_target, _subtarget, "igs")
@@ -2466,8 +2464,6 @@ files {
 	MAME_DIR .. "src/mame/video/gyruss.cpp",
 	MAME_DIR .. "src/mame/drivers/hcastle.cpp",
 	MAME_DIR .. "src/mame/drivers/hexion.cpp",
-	MAME_DIR .. "src/mame/includes/hexion.h",
-	MAME_DIR .. "src/mame/video/hexion.cpp",
 	MAME_DIR .. "src/mame/drivers/hornet.cpp",
 	MAME_DIR .. "src/mame/machine/konppc.cpp",
 	MAME_DIR .. "src/mame/machine/konppc.h",
@@ -3403,8 +3399,6 @@ files {
 createMAMEProjects(_target, _subtarget, "sanritsu")
 files {
 	MAME_DIR .. "src/mame/drivers/appoooh.cpp",
-	MAME_DIR .. "src/mame/includes/appoooh.h",
-	MAME_DIR .. "src/mame/video/appoooh.cpp",
 	MAME_DIR .. "src/mame/drivers/bankp.cpp",
 	MAME_DIR .. "src/mame/includes/bankp.h",
 	MAME_DIR .. "src/mame/video/bankp.cpp",
@@ -4366,6 +4360,7 @@ files {
 	MAME_DIR .. "src/mame/includes/slapfght.h",
 	MAME_DIR .. "src/mame/machine/slapfght.cpp",
 	MAME_DIR .. "src/mame/video/slapfght.cpp",
+	MAME_DIR .. "src/mame/drivers/slapfght_ms.cpp",
 	MAME_DIR .. "src/mame/drivers/snowbros.cpp",
 	MAME_DIR .. "src/mame/includes/snowbros.h",
 	MAME_DIR .. "src/mame/video/snowbros.cpp",
