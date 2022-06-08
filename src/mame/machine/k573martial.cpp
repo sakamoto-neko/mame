@@ -43,8 +43,9 @@ void k573martial_device::device_start()
 	m_io_counter = 0;
 	m_io_state_sum = 0;
 
-	m_timer_response = timer_alloc(TIMER_RESPONSE);
-	m_timer_io = timer_alloc(TIMER_IO);
+	m_timer_response = timer_alloc(FUNC(k573martial_device::send_response), this);
+	m_timer_io = timer_alloc(FUNC(k573martial_device::send_io_packet), this);
+	
 }
 
 void k573martial_device::device_reset()
@@ -58,23 +59,6 @@ void k573martial_device::device_reset()
 	m_io_state_sum = 0;
 }
 
-void k573martial_device::device_timer(emu_timer& timer, device_timer_id id, int param)
-{
-	switch (id)
-	{
-	case TIMER_RESPONSE:
-		send_response();
-		break;
-
-	case TIMER_IO:
-		send_io_packet();
-		break;
-
-	default:
-		break;
-	}
-}
-
 void k573martial_device::tra_callback()
 {
 	output_rxd(transmit_register_get_data_bit());
@@ -85,7 +69,7 @@ void k573martial_device::tra_complete()
 	m_timer_response->adjust(attotime::from_hz(BAUDRATE));
 }
 
-void k573martial_device::send_response()
+TIMER_CALLBACK_MEMBER(k573martial_device::send_response)
 {
 	if (!m_response.empty() && is_transmit_register_empty())
 	{
@@ -95,7 +79,7 @@ void k573martial_device::send_response()
 	}
 }
 
-void k573martial_device::send_io_packet()
+TIMER_CALLBACK_MEMBER(k573martial_device::send_io_packet)
 {
 	if (is_transmit_register_empty()) {
 		if (m_io_counter >= 6) {

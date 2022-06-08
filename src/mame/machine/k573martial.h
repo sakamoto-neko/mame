@@ -28,11 +28,13 @@ public:
 protected:
 	virtual void device_start() override;
 	virtual void device_reset() override;
-	virtual void device_timer(emu_timer &timer, device_timer_id id, int param) override;
 
 	virtual void tra_callback() override;
 	virtual void tra_complete() override;
 	virtual void rcv_complete() override;
+
+	TIMER_CALLBACK_MEMBER(send_response);
+	TIMER_CALLBACK_MEMBER(send_io_packet);
 
 private:
 	static constexpr int TIMER_RESPONSE = 1;
@@ -58,9 +60,6 @@ private:
 	enum : uint8_t {
 		NODE_CMD_INIT = 0x00,
 	};
-
-	void send_response();
-	void send_io_packet();
 
 	uint8_t calculate_crc8(std::deque<uint8_t>::iterator start, std::deque<uint8_t>::iterator end);
 

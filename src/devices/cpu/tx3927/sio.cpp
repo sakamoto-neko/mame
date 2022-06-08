@@ -32,7 +32,7 @@ tx3927_sio::tx3927_sio(const machine_config& mconfig, const char* tag, device_t*
 
 void tx3927_sio::device_start()
 {
-	m_timer = timer_alloc(0);
+	m_timer = timer_alloc(FUNC(tx3927_sio::sio_tick), this);
 }
 
 void tx3927_sio::device_reset()
@@ -64,7 +64,7 @@ void tx3927_sio::device_resolve_objects()
 	m_dtr_handler.resolve_safe();
 }
 
-void tx3927_sio::device_timer(emu_timer& timer, device_timer_id tid, int param)
+TIMER_CALLBACK_MEMBER(tx3927_sio::sio_tick)
 {
 	transmit_clock(false);
 	sio_timer_adjust();

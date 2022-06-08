@@ -26,17 +26,16 @@ public:
 protected:
 	virtual void device_start() override;
 	virtual void device_reset() override;
-	virtual void device_timer(emu_timer &timer, device_timer_id id, int param) override;
 
 	virtual void tra_callback() override;
 	virtual void tra_complete() override;
 	virtual void rcv_complete() override;
 
+	TIMER_CALLBACK_MEMBER(send_response);
+
 private:
 	static constexpr int TIMER_RESPONSE = 1;
 	static constexpr int BAUDRATE = 19200;
-
-	void send_response();
 
 	emu_timer *m_timer_response;
 	uint8_t m_buffer[2];

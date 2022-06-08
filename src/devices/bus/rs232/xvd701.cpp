@@ -88,7 +88,7 @@ void jvc_xvd701_device::device_start()
 	output_ri(0);
 	output_cts(0);
 
-	m_timer_response = timer_alloc(TIMER_RESPONSE);
+	m_timer_response = timer_alloc(FUNC(jvc_xvd701_device::send_response), this);
 
 	if (m_data_folder == nullptr)
 		m_data_folder = "";
@@ -107,19 +107,6 @@ void jvc_xvd701_device::device_reset()
 	m_plm = nullptr;
 	m_rgb_data = nullptr;
 	m_wait_timer = 0;
-}
-
-void jvc_xvd701_device::device_timer(emu_timer &timer, device_timer_id id, int param)
-{
-	switch (id)
-	{
-	case TIMER_RESPONSE:
-		send_response();
-		break;
-
-	default:
-		break;
-	}
 }
 
 void jvc_xvd701_device::tra_callback()
@@ -155,7 +142,7 @@ void jvc_xvd701_device::create_packet(unsigned char status, const unsigned char 
 	m_timer_response->adjust(attotime::from_msec(100));
 }
 
-void jvc_xvd701_device::send_response()
+TIMER_CALLBACK_MEMBER(jvc_xvd701_device::send_response)
 {
 	if (m_response_index < sizeof(m_response) && is_transmit_register_empty())
 	{

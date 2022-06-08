@@ -79,8 +79,9 @@ public:
 protected:
 	// device-level overrides
 	virtual void device_start() override;
-	virtual void device_timer(emu_timer &timer, device_timer_id id, int param) override;
 	virtual void device_post_load() override;
+
+	TIMER_CALLBACK_MEMBER( sio_tick );
 
 private:
 	void sio_interrupt();
@@ -146,7 +147,7 @@ protected:
 	virtual void device_reset() override;
 	virtual void device_post_load() override;
 
-	virtual void device_timer(emu_timer& timer, device_timer_id id, int param) override;
+	TIMER_CALLBACK_MEMBER( sio_tick );
 
 	void sio_timer_adjust();
 

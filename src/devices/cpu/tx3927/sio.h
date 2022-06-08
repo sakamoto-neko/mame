@@ -25,13 +25,13 @@ public:
 	virtual void device_reset() override;
 	virtual void device_resolve_objects() override;
 
-	virtual void device_timer(emu_timer& timer, device_timer_id id, int param) override;
-
 	DECLARE_WRITE_LINE_MEMBER(write_rxd);
 	DECLARE_WRITE_LINE_MEMBER(write_cts);
 
 	uint32_t read(offs_t offset, uint32_t mem_mask);
 	void write(offs_t offset, uint32_t data, uint32_t mem_mask);
+
+	TIMER_CALLBACK_MEMBER(sio_tick);
 
 private:
 	enum : u32 {

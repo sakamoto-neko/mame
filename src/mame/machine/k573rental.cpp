@@ -40,20 +40,7 @@ void k573rental_device::device_start()
 	std::fill(std::begin(m_buffer), std::end(m_buffer), 0);
 	m_response.clear();
 
-	m_timer_response = timer_alloc(TIMER_RESPONSE);
-}
-
-void k573rental_device::device_timer(emu_timer& timer, device_timer_id id, int param)
-{
-	switch (id)
-	{
-	case TIMER_RESPONSE:
-		send_response();
-		break;
-
-	default:
-		break;
-	}
+	m_timer_response = timer_alloc(FUNC(k573rental_device::send_response), this);
 }
 
 void k573rental_device::device_reset()
@@ -72,7 +59,7 @@ void k573rental_device::tra_complete()
 	m_timer_response->adjust(attotime::from_hz(BAUDRATE));
 }
 
-void k573rental_device::send_response()
+TIMER_CALLBACK_MEMBER(k573rental_device::send_response)
 {
 	if (!m_response.empty() && is_transmit_register_empty())
 	{
