@@ -6587,8 +6587,8 @@ GAME( 2004, gtfrk11m,  sys573,   gtfrk11m,   gtrfrks,   ksys573_state, empty_ini
 GAME( 2004, pcnfrk10m, sys573,   drmn10m,    drmn,      ksys573_state, empty_init,    ROT0,  "Konami", "Percussion Freaks 10th Mix eAmusement (G*D40 VER. ACA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
 GAME( 2004, drmn10m,   pcnfrk10m,drmn10m,    drmn,      ksys573_state, empty_init,    ROT0,  "Konami", "DrumMania 10th Mix (G*D40 VER. JAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
 
-GAME( 2021, ddr5ms,    ddr5m,    ddr5m,      ddrsolo2,  ksys573_state, empty_init,    ROT0,  "hack",   "Dance Dance Revolution 5th Mix Solo (hack)", MACHINE_IMPERFECT_SOUND )
-GAME( 2018, ddrexpro,  ddrextrm, ddr5m,      ddr,       ksys573_state, empty_init,    ROT0,  "hack",   "Dance Dance Revolution Extreme Pro (hack, v2)", MACHINE_IMPERFECT_SOUND )
-GAME( 2019, ddrexproc, ddrextrm, ddr5m,      ddr,       ksys573_state, empty_init,    ROT0,  "hack",   "Dance Dance Revolution Extreme Clarity (hack)", MACHINE_IMPERFECT_SOUND )
-GAME( 2019, ddrexplus, ddrextrm, ddr5m,      ddr,       ksys573_state, empty_init,    ROT0,  "hack",   "Dance Dance Revolution Extreme Plus (hack)", MACHINE_IMPERFECT_SOUND )
-GAME( 200?, ddrmegamix,ddrextrm, ddr5m,      ddr,       ksys573_state, empty_init,    ROT0,  "hack",   "Dance Dance Revolution Megamix (hack)", MACHINE_IMPERFECT_SOUND )
+GAME( 2021, ddr5ms,    ddr5m,    ddr5m,      ddrsolo2,  ksys573_state, init_ddr,      ROT0,  "hack",   "Dance Dance Revolution 5th Mix Solo (hack)", MACHINE_IMPERFECT_SOUND )
+GAME( 2018, ddrexpro,  ddrextrm, ddr5m,      ddr,       ksys573_state, init_ddr,      ROT0,  "hack",   "Dance Dance Revolution Extreme Pro (hack, v2)", MACHINE_IMPERFECT_SOUND )
+GAME( 2019, ddrexproc, ddrextrm, ddr5m,      ddr,       ksys573_state, init_ddr,      ROT0,  "hack",   "Dance Dance Revolution Extreme Clarity (hack)", MACHINE_IMPERFECT_SOUND )
+GAME( 2019, ddrexplus, ddrextrm, ddr5m,      ddr,       ksys573_state, init_ddr,      ROT0,  "hack",   "Dance Dance Revolution Extreme Plus (hack)", MACHINE_IMPERFECT_SOUND )
+GAME( 200?, ddrmegamix,ddrextrm, ddr5m,      ddr,       ksys573_state, init_ddr,      ROT0,  "hack",   "Dance Dance Revolution Megamix (hack)", MACHINE_IMPERFECT_SOUND )
