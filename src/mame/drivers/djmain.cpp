@@ -227,8 +227,11 @@ uint32_t djmain_state::turntable_r(offs_t offset, uint32_t mem_mask)
 	{
 		uint8_t pos;
 		int delta;
+		int turntable_switch;
 
-		pos = ((m_turntable_switch->read() & (0x0f << (4 * m_turntable_select))) == 0 ? m_turntable_analog : m_turntable_digital)[m_turntable_select].read_safe(0);
+		turntable_switch = m_turntable_switch ? m_turntable_switch->read() : 0;
+		pos = ((turntable_switch & (0x0f << (4 * m_turntable_select))) == 0 ? m_turntable_analog : m_turntable_digital)[m_turntable_select].read_safe(0);
+
 		delta = pos - m_turntable_last_pos[m_turntable_select];
 		if (delta < -128)
 			delta += 256;
