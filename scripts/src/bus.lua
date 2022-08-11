@@ -2914,8 +2914,6 @@ if (BUSES["MIDI"]~=null) then
 		MAME_DIR .. "src/devices/bus/midi/midiinport.h",
 		MAME_DIR .. "src/devices/bus/midi/midioutport.cpp",
 		MAME_DIR .. "src/devices/bus/midi/midioutport.h",
-		MAME_DIR .. "src/devices/bus/midi/midikbd.cpp",
-		MAME_DIR .. "src/devices/bus/midi/midikbd.h",
 	}
 end
 

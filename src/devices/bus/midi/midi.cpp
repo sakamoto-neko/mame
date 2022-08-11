@@ -45,12 +45,10 @@ device_midi_port_interface::~device_midi_port_interface()
 }
 
 #include "bus/midi/midiinport.h"
-#include "bus/midi/midikbd.h"
 
 device_slot_interface &midiin_slot(device_slot_interface &device)
 {
 	device.option_add("midiin", MIDIIN_PORT);
-	device.option_add("midikbd", MIDI_KBD);
 	device.set_default_option("midiin");
 	return device;
 }
