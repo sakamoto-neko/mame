@@ -553,6 +553,7 @@ end
 --------------------------------------------------
 -- DEC PDP-8
 --@src/devices/cpu/pdp8/pdp8.h,CPUS["PDP8"] = true
+--@src/devices/cpu/pdp8/hd6120.h,CPUS["PDP8"] = true
 --------------------------------------------------
 
 if CPUS["PDP8"] then
@@ -1090,16 +1091,30 @@ if CPUS["MCS51"] then
 		MAME_DIR .. "src/devices/cpu/mcs51/mcs51.cpp",
 		MAME_DIR .. "src/devices/cpu/mcs51/mcs51.h",
 		MAME_DIR .. "src/devices/cpu/mcs51/mcs51ops.hxx",
-		MAME_DIR .. "src/devices/cpu/mcs51/axc51-core.cpp",
-		MAME_DIR .. "src/devices/cpu/mcs51/axc51-core.h",
 	}
 end
 
 if opt_tool(CPUS, "MCS51") then
 	table.insert(disasm_files , MAME_DIR .. "src/devices/cpu/mcs51/mcs51dasm.cpp")
 	table.insert(disasm_files , MAME_DIR .. "src/devices/cpu/mcs51/mcs51dasm.h")
-	table.insert(disasm_files , MAME_DIR .. "src/devices/cpu/mcs51/axc51-core_dasm.cpp")
-	table.insert(disasm_files , MAME_DIR .. "src/devices/cpu/mcs51/axc51-core_dasm.h")
+end
+
+--------------------------------------------------
+-- Appotech AXC-51 (extended Intel 8051)
+--@src/devices/cpu/axc51/axc51.h,CPUS["AXC51"] = true
+--------------------------------------------------
+
+if CPUS["AXC51"] then
+	files {
+		MAME_DIR .. "src/devices/cpu/axc51/axc51.cpp",
+		MAME_DIR .. "src/devices/cpu/axc51/axc51.h",
+		MAME_DIR .. "src/devices/cpu/axc51/axc51ops.hxx",
+	}
+end
+
+if opt_tool(CPUS, "AXC51") then
+	table.insert(disasm_files , MAME_DIR .. "src/devices/cpu/axc51/axc51dasm.cpp")
+	table.insert(disasm_files , MAME_DIR .. "src/devices/cpu/acx51/axc51dasm.h")
 end
 
 --------------------------------------------------
@@ -2394,6 +2409,8 @@ end
 --@src/devices/cpu/tms1000/tms1000c.h,CPUS["TMS1000"] = true
 --@src/devices/cpu/tms1000/tms1100.h,CPUS["TMS1000"] = true
 --@src/devices/cpu/tms1000/tms1400.h,CPUS["TMS1000"] = true
+--@src/devices/cpu/tms1000/tms2100.h,CPUS["TMS1000"] = true
+--@src/devices/cpu/tms1000/tms2400.h,CPUS["TMS1000"] = true
 --@src/devices/cpu/tms1000/tms0970.h,CPUS["TMS1000"] = true
 --@src/devices/cpu/tms1000/tms0980.h,CPUS["TMS1000"] = true
 --@src/devices/cpu/tms1000/tms0270.h,CPUS["TMS1000"] = true
@@ -2412,6 +2429,10 @@ if CPUS["TMS1000"] then
 		MAME_DIR .. "src/devices/cpu/tms1000/tms1100.h",
 		MAME_DIR .. "src/devices/cpu/tms1000/tms1400.cpp",
 		MAME_DIR .. "src/devices/cpu/tms1000/tms1400.h",
+		MAME_DIR .. "src/devices/cpu/tms1000/tms2100.cpp",
+		MAME_DIR .. "src/devices/cpu/tms1000/tms2100.h",
+		MAME_DIR .. "src/devices/cpu/tms1000/tms2400.cpp",
+		MAME_DIR .. "src/devices/cpu/tms1000/tms2400.h",
 		MAME_DIR .. "src/devices/cpu/tms1000/tms0970.cpp",
 		MAME_DIR .. "src/devices/cpu/tms1000/tms0970.h",
 		MAME_DIR .. "src/devices/cpu/tms1000/tms0980.cpp",
@@ -2742,6 +2763,8 @@ if (CPUS["Z80"]~=null or CPUS["KC80"]~=null) then
 		MAME_DIR .. "src/devices/cpu/z80/ez80.h",
 		MAME_DIR .. "src/devices/cpu/z80/lz8420m.cpp",
 		MAME_DIR .. "src/devices/cpu/z80/lz8420m.h",
+		MAME_DIR .. "src/devices/cpu/z80/mc8123.cpp",
+		MAME_DIR .. "src/devices/cpu/z80/mc8123.h",
 		MAME_DIR .. "src/devices/cpu/z80/r800.cpp",
 		MAME_DIR .. "src/devices/cpu/z80/r800.h",
 	}
@@ -3610,6 +3633,8 @@ if CPUS["M68HC16"] then
 	files {
 		MAME_DIR .. "src/devices/cpu/m68hc16/cpu16.cpp",
 		MAME_DIR .. "src/devices/cpu/m68hc16/cpu16.h",
+		MAME_DIR .. "src/devices/cpu/m68hc16/m68hc16z.cpp",
+		MAME_DIR .. "src/devices/cpu/m68hc16/m68hc16z.h",
 	}
 end
 

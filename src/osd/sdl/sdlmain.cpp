@@ -103,14 +103,6 @@ const options_entry sdl_options::s_option_entries[] =
 
 	// joystick mapping
 	{ nullptr,                               nullptr,        core_options::option_type::HEADER,     "SDL JOYSTICK MAPPING" },
-	{ SDLOPTION_JOYINDEX "1",                OSDOPTVAL_AUTO, core_options::option_type::STRING,     "name of joystick mapped to joystick #1" },
-	{ SDLOPTION_JOYINDEX "2",                OSDOPTVAL_AUTO, core_options::option_type::STRING,     "name of joystick mapped to joystick #2" },
-	{ SDLOPTION_JOYINDEX "3",                OSDOPTVAL_AUTO, core_options::option_type::STRING,     "name of joystick mapped to joystick #3" },
-	{ SDLOPTION_JOYINDEX "4",                OSDOPTVAL_AUTO, core_options::option_type::STRING,     "name of joystick mapped to joystick #4" },
-	{ SDLOPTION_JOYINDEX "5",                OSDOPTVAL_AUTO, core_options::option_type::STRING,     "name of joystick mapped to joystick #5" },
-	{ SDLOPTION_JOYINDEX "6",                OSDOPTVAL_AUTO, core_options::option_type::STRING,     "name of joystick mapped to joystick #6" },
-	{ SDLOPTION_JOYINDEX "7",                OSDOPTVAL_AUTO, core_options::option_type::STRING,     "name of joystick mapped to joystick #7" },
-	{ SDLOPTION_JOYINDEX "8",                OSDOPTVAL_AUTO, core_options::option_type::STRING,     "name of joystick mapped to joystick #8" },
 	{ SDLOPTION_SIXAXIS,                     "0",            core_options::option_type::BOOLEAN,    "use special handling for PS3 Sixaxis controllers" },
 
 #if (USE_XINPUT)
@@ -125,26 +117,6 @@ const options_entry sdl_options::s_option_entries[] =
 	{ SDLOPTION_LIGHTGUNINDEX "7",           OSDOPTVAL_AUTO, core_options::option_type::STRING,     "name of lightgun mapped to lightgun #7" },
 	{ SDLOPTION_LIGHTGUNINDEX "8",           OSDOPTVAL_AUTO, core_options::option_type::STRING,     "name of lightgun mapped to lightgun #8" },
 #endif
-
-	{ nullptr,                               nullptr,        core_options::option_type::HEADER,     "SDL MOUSE MAPPING" },
-	{ SDLOPTION_MOUSEINDEX "1",              OSDOPTVAL_AUTO, core_options::option_type::STRING,     "name of mouse mapped to mouse #1" },
-	{ SDLOPTION_MOUSEINDEX "2",              OSDOPTVAL_AUTO, core_options::option_type::STRING,     "name of mouse mapped to mouse #2" },
-	{ SDLOPTION_MOUSEINDEX "3",              OSDOPTVAL_AUTO, core_options::option_type::STRING,     "name of mouse mapped to mouse #3" },
-	{ SDLOPTION_MOUSEINDEX "4",              OSDOPTVAL_AUTO, core_options::option_type::STRING,     "name of mouse mapped to mouse #4" },
-	{ SDLOPTION_MOUSEINDEX "5",              OSDOPTVAL_AUTO, core_options::option_type::STRING,     "name of mouse mapped to mouse #5" },
-	{ SDLOPTION_MOUSEINDEX "6",              OSDOPTVAL_AUTO, core_options::option_type::STRING,     "name of mouse mapped to mouse #6" },
-	{ SDLOPTION_MOUSEINDEX "7",              OSDOPTVAL_AUTO, core_options::option_type::STRING,     "name of mouse mapped to mouse #7" },
-	{ SDLOPTION_MOUSEINDEX "8",              OSDOPTVAL_AUTO, core_options::option_type::STRING,     "name of mouse mapped to mouse #8" },
-
-	{ nullptr,                               nullptr,        core_options::option_type::HEADER,     "SDL KEYBOARD MAPPING" },
-	{ SDLOPTION_KEYBINDEX "1",               OSDOPTVAL_AUTO, core_options::option_type::STRING,     "name of keyboard mapped to keyboard #1" },
-	{ SDLOPTION_KEYBINDEX "2",               OSDOPTVAL_AUTO, core_options::option_type::STRING,     "name of keyboard mapped to keyboard #2" },
-	{ SDLOPTION_KEYBINDEX "3",               OSDOPTVAL_AUTO, core_options::option_type::STRING,     "name of keyboard mapped to keyboard #3" },
-	{ SDLOPTION_KEYBINDEX "4",               OSDOPTVAL_AUTO, core_options::option_type::STRING,     "name of keyboard mapped to keyboard #4" },
-	{ SDLOPTION_KEYBINDEX "5",               OSDOPTVAL_AUTO, core_options::option_type::STRING,     "name of keyboard mapped to keyboard #5" },
-	{ SDLOPTION_KEYBINDEX "6",               OSDOPTVAL_AUTO, core_options::option_type::STRING,     "name of keyboard mapped to keyboard #6" },
-	{ SDLOPTION_KEYBINDEX "7",               OSDOPTVAL_AUTO, core_options::option_type::STRING,     "name of keyboard mapped to keyboard #7" },
-	{ SDLOPTION_KEYBINDEX "8",               OSDOPTVAL_AUTO, core_options::option_type::STRING,     "name of keyboard mapped to keyboard #8" },
 
 	// SDL low level driver options
 	{ nullptr,                               nullptr,         core_options::option_type::HEADER,    "SDL LOW-LEVEL DRIVER OPTIONS" },
@@ -437,21 +409,10 @@ void sdl_osd_interface::init(running_machine &machine)
 	}
 
 	stemp = options().video_driver();
-	if (stemp != nullptr)
+	if (stemp != nullptr && strcmp(stemp, OSDOPTVAL_AUTO) != 0)
 	{
-		if (strcmp(stemp, OSDOPTVAL_AUTO) != 0)
-		{
-			osd_printf_verbose("Setting SDL videodriver '%s' ...\n", stemp);
-			osd_setenv(SDLENV_VIDEODRIVER, stemp, 1);
-		}
-		else
-		{
-#if defined(__linux__)
-			// bgfx does not work with wayland
-			osd_printf_verbose("Setting SDL videodriver '%s' ...\n", "x11");
-			osd_setenv(SDLENV_VIDEODRIVER, "x11", 1);
-#endif
-		}
+		osd_printf_verbose("Setting SDL videodriver '%s' ...\n", stemp);
+		osd_setenv(SDLENV_VIDEODRIVER, stemp, 1);
 	}
 
 	stemp = options().render_driver();
@@ -510,6 +471,11 @@ void sdl_osd_interface::init(running_machine &machine)
 		osd_printf_error("Could not initialize SDL %s\n", SDL_GetError());
 		exit(-1);
 	}
+
+	// bgfx does not work with wayland
+	if ((strcmp(SDL_GetCurrentVideoDriver(), "wayland") == 0) && ((strcmp(options().video(), "auto") == 0) || (strcmp(options().video(), "bgfx") == 0)))
+		fatalerror("Error: BGFX video does not work with wayland videodriver. Please change either of the options.");
+
 	osd_sdl_info();
 
 	defines_verbose();

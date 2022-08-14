@@ -8,8 +8,12 @@
 #ifndef NL_CORE_OBJECT_ARRAY_H_
 #define NL_CORE_OBJECT_ARRAY_H_
 
+#include "base_objects.h"
+#include "logic.h"
+
 #include "../nltypes.h"
 
+#include "../plib/pfmtlog.h"
 #include "../plib/plists.h"
 #include "../plib/pstring.h"
 
@@ -133,7 +137,7 @@ namespace netlist
 
 	private:
 		template <std::size_t P>
-		constexpr const value_type &e() const { return (*this)[P](); }
+		constexpr value_type e() const { return (*this)[P](); }
 	};
 
 	template<std::size_t N>
@@ -174,7 +178,7 @@ namespace netlist
 		}
 
 		template<typename T, std::size_t NT>
-		void push(const T &v, const std::array<netlist_time, NT> &t)
+		void push(const T &v, const std::array<const netlist_time, NT> &t)
 		{
 			static_assert(NT >= N, "Not enough timing entries provided");
 

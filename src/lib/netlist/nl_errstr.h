@@ -8,13 +8,53 @@
 #ifndef NL_ERRSTR_H_
 #define NL_ERRSTR_H_
 
+#include "plib/pexception.h"
 #include "plib/pfmtlog.h"
 
 namespace netlist
 {
 
-	static constexpr const char sHINT_NO_DEACTIVATE[] = ".HINT_NO_DEACTIVATE"; // NOLINT(cppcoreguidelines-avoid-c-arrays, modernize-avoid-c-arrays)
-	static constexpr const char sHINT_NC[] = ".HINT_NC"; // NOLINT(cppcoreguidelines-avoid-c-arrays, modernize-avoid-c-arrays)
+	static constexpr const char sHINT_NO_DEACTIVATE[]
+		= ".HINT_NO_DEACTIVATE"; // NOLINT(cppcoreguidelines-avoid-c-arrays, modernize-avoid-c-arrays)
+	static constexpr const char sHINT_NC[]
+		= ".HINT_NC"; // NOLINT(cppcoreguidelines-avoid-c-arrays, modernize-avoid-c-arrays)
+
+	// -------------------------------------------------------------------------
+	// Exceptions
+	// -------------------------------------------------------------------------
+
+	/// \brief Generic netlist exception.
+	///  The exception is used in all events which are considered fatal.
+
+	class nl_exception : public plib::pexception
+	{
+	public:
+		/// \brief Constructor.
+		///  Allows a descriptive text to be passed to the exception
+
+		explicit nl_exception(const pstring &text //!< text to be passed
+							  )
+		: plib::pexception(text)
+		{
+		}
+
+		/// \brief Constructor.
+		///  Allows to use \ref plib::pfmt logic to be used in exception
+
+		template <typename... Args>
+		explicit nl_exception(const pstring &fmt, //!< format to be used
+							  Args &&...args      //!< arguments to be passed
+							  )
+		: plib::pexception(plib::pfmt(fmt)(std::forward<Args>(args)...))
+		{
+		}
+	};
+
+	// -------------------------------------------------------------------------
+	// Error messages
+	// -------------------------------------------------------------------------
+
+	// clang-format off
 
 	// nl_base.cpp
 
@@ -108,6 +148,7 @@ namespace netlist
 	PERRMSGV(MW_TERMINAL_1_WITHOUT_CONNECTIONS,     1, "Found terminal {1} without connections")
 
 	PERRMSGV(ME_TERMINAL_1_WITHOUT_NET,             1, "Found terminal {1} without a net")
+	PERRMSGV(ME_TERMINALS_1_2_WITHOUT_NET,           2, "Found terminals {1} and {2} without a net")
 	PERRMSGV(MF_TERMINALS_WITHOUT_NET,              0, "Found terminals without a net")
 	PERRMSGV(ME_TRISTATE_NO_PROXY_FOUND_2,          2,
 		"Tristate output {1} on device {2} is not connected to a proxy. You "
@@ -186,9 +227,19 @@ namespace netlist
 
 	PERRMSGV(MF_FILE_OPEN_ERROR,                    1, "Error opening file: {1}")
 
-
-
+	// clang-format on
 } // namespace netlist
 
+// -------------------------------------------------------------------------
+//  Asserts
+// -------------------------------------------------------------------------
+
+#define nl_assert(x)                                                           \
+	do                                                                         \
+	{                                                                          \
+		if (NL_DEBUG)                                                          \
+			passert_always(x);                                                 \
+	} while (0)
+#define nl_assert_always(x, msg) passert_always_msg(x, msg)
 
 #endif // NL_ERRSTR_H_

@@ -19,6 +19,7 @@
 	"Schmitt",
 	"Schottky",
 	"Zener",
+	"Thevenin",
 	// Company names
 	"Fairchild",
 	"Signetics",
@@ -31,8 +32,30 @@
 	"nmos",
 	"opamp",
 	"opamps",
-	"pmos",
 	"picosecond",
+	"pmos",
+	// Physics
+	"atto",
+	"centi",
+	"deca",
+	"femto",
+	"giga",
+	"hecto",
+	"peta",
+	"tera",
+	"yocto",
+	"yotta",
+	"zepto",
+	"zetta",
+	// Software
+	"kicad",
+	// C library functions / definitions
+	"feenableexcept",
+	"fedisableexcept",
+	// asm
+	"rdtsc",
+	"rdtscp",
+	"cpuid",
 	// Specific project terms
 	"MAME",
 	"Couriersud",
@@ -43,9 +66,11 @@
 	"nvcc",
 	"lfsr",
 	"gmres",
+	"nlmod_",
 	// FIXME: Remove everything below here again
 	//        Excluded for now ... Still over 1000 in the log
 	"plib",    // namespace
+	"isnull",
 	"pstring",
 	"passert",
 	"putf",
@@ -56,6 +81,8 @@
 	"idrn",
 	"preprocessor",
 	"ppreprocessor",
+	"psource",
+	"psemaphore",
 	"modacc",
 	"Ainv",
 	"anetlist",

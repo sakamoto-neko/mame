@@ -901,6 +901,18 @@ end
 
 --------------------------------------------------
 --
+--@src/lib/formats/cp68_dsk.h,FORMATS["CP68_DSK"] = true
+--------------------------------------------------
+
+if opt_tool(FORMATS, "CP68_DSK") then
+	files {
+		MAME_DIR.. "src/lib/formats/cp68_dsk.cpp",
+		MAME_DIR.. "src/lib/formats/cp68_dsk.h",
+	}
+end
+
+--------------------------------------------------
+--
 --@src/lib/formats/uniflex_dsk.h,FORMATS["UNIFLEX_DSK"] = true
 --------------------------------------------------
 
@@ -2133,6 +2145,18 @@ if opt_tool(FORMATS, "FS_ORIC_JASMIN") then
 	files {
 		MAME_DIR.. "src/lib/formats/fs_oric_jasmin.cpp",
 		MAME_DIR.. "src/lib/formats/fs_oric_jasmin.h",
+	}
+end
+
+--------------------------------------------------
+--
+--@src/lib/formats/fs_cbmdos.h,FORMATS["FS_CBMDOS"] = true
+--------------------------------------------------
+
+if opt_tool(FORMATS, "FS_CBMDOS") then
+	files {
+		MAME_DIR.. "src/lib/formats/fs_cbmdos.cpp",
+		MAME_DIR.. "src/lib/formats/fs_cbmdos.h",
 	}
 end
 

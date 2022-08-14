@@ -400,13 +400,14 @@ void nl_convert_spice_t::convert(const pstring &contents)
 	}
 
 	out("NETLIST_START(dummy)\n");
+	out("{\n");
 	add_term("0", "GND");
 	add_term("GND", "GND"); // For Kicad
 
 	convert_block(nl);
 	dump_nl();
 	// FIXME: Parameter
-	out("NETLIST_END()\n");
+	out("}\n");
 }
 
 static pstring rem(const std::vector<pstring> &vps, std::size_t start)
@@ -417,7 +418,7 @@ static pstring rem(const std::vector<pstring> &vps, std::size_t start)
 	return r;
 }
 
-static int npoly(const pstring &s)
+static int get_poly_count(const pstring &s)
 {
 	// Brute force
 	if (s=="POLY(1)")
@@ -451,13 +452,14 @@ void nl_convert_spice_t::process_line(const pstring &line)
 				{
 					m_subckt = tt[1] + "_";
 					out("NETLIST_START({})\n", tt[1]);
+					out("{\n");
 					for (std::size_t i=2; i<tt.size(); i++)
 						add_ext_alias(tt[i]);
 				}
 				else if (tt[0] == ".ENDS")
 				{
 					dump_nl();
-					out("NETLIST_END()\n");
+					out("}\n");
 					m_subckt = "";
 				}
 				else if (tt[0] == ".MODEL")
@@ -531,7 +533,7 @@ void nl_convert_spice_t::process_line(const pstring &line)
 				break;
 			case 'E':
 			{
-				auto n=npoly(tt[3]);
+				auto n=get_poly_count(tt[3]);
 				if (n<0)
 				{
 					add_device("VCVS", tt[0], get_sp_val(tt[5]));
@@ -550,26 +552,26 @@ void nl_convert_spice_t::process_line(const pstring &line)
 						out("// IGNORED {}: {}\n", tt[0], line);
 						break;
 					}
-					pstring lastnet = tt[1];
+					pstring last_net = tt[1];
 					for (std::size_t i=0; i < static_cast<std::size_t>(n); i++)
 					{
 						pstring devname = plib::pfmt("{}{}")(tt[0], i);
-						pstring nextnet = (i<static_cast<std::size_t>(n)-1) ? plib::pfmt("{}a{}")(tt[1], i) : tt[2];
+						pstring next_net = (i<static_cast<std::size_t>(n)-1) ? plib::pfmt("{}a{}")(tt[1], i) : tt[2];
 						auto net2 = plib::psplit(plib::replace_all(plib::replace_all(tt[sce+i],")",""),"(",""),',');
 						add_device("VCVS", devname, get_sp_val(tt[scoeff+i]));
-						add_term(lastnet, devname, 0);
-						add_term(nextnet, devname, 1);
+						add_term(last_net, devname, 0);
+						add_term(next_net, devname, 1);
 						add_term(net2[0], devname, 2);
 						add_term(net2[1], devname, 3);
 						//# add_device_extra(devname, "PARAM({}, {})", devname + ".G", tt[scoeff+i]);
-						lastnet = nextnet;
+						last_net = next_net;
 					}
 				}
 			}
 				break;
 			case 'F':
 				{
-					auto n=npoly(tt[3]);
+					auto n=get_poly_count(tt[3]);
 					unsigned sce(4);
 					unsigned scoeff(5 + static_cast<unsigned>(n));
 					if (n<0)
@@ -764,6 +766,7 @@ void nl_convert_eagle_t::convert(const pstring &contents)
 	tok.set_token_source(&tokstor);
 
 	out("NETLIST_START(dummy)\n");
+	out("{\n");
 	add_term("GND", "GND");
 	add_term("VCC", "VCC");
 	tokenizer::token_t token = tok.get_token();
@@ -773,7 +776,7 @@ void nl_convert_eagle_t::convert(const pstring &contents)
 		{
 			dump_nl();
 			// FIXME: Parameter
-			out("NETLIST_END()\n");
+			out("}\n");
 			return;
 		}
 
@@ -918,6 +921,7 @@ void nl_convert_rinf_t::convert(const pstring &contents)
 	auto lm = read_lib_map(s_lib_map);
 
 	out("NETLIST_START(dummy)\n");
+	out("{\n");
 	add_term("GND", "GND");
 	add_term("VCC", "VCC");
 	tokenizer::token_t token = tok.get_token();
@@ -927,7 +931,7 @@ void nl_convert_rinf_t::convert(const pstring &contents)
 		{
 			dump_nl();
 			// FIXME: Parameter
-			out("NETLIST_END()\n");
+			out("}\n");
 			return;
 		}
 
