@@ -600,7 +600,6 @@ public:
 	void drmn2m(machine_config &config);
 	void gtrfrk3m(machine_config &config);
 	void mamboagg(machine_config &config);
-	void mamboagga(machine_config &config);
 	void gtrfrks(machine_config &config);
 	void gchgchmp(machine_config &config);
 	void drmn4m(machine_config &config);
@@ -609,7 +608,6 @@ public:
 	void konami573x(machine_config &config);
 	void dmx(machine_config &config);
 	void drmn(machine_config &config);
-	void mrtlbeat(machine_config &config);
 	void kicknkick(machine_config &config);
 	void k573d(machine_config &config);
 	void k573k(machine_config &config);
@@ -626,6 +624,10 @@ public:
 	void cassyyi(machine_config &config);
 	void casszi(machine_config &config);
 	void cassxzi(machine_config &config);
+
+	void mrtlbeat(machine_config &config);
+	void msu_local(machine_config &config);
+	void msu_remote(machine_config &config);
 
 	uint8_t explus_speed_inc1();
 	uint8_t explus_speed_inc2();
@@ -726,6 +728,7 @@ private:
 	void cdrom_dma_write( uint32_t *ram, uint32_t n_address, int32_t n_size );
 	DECLARE_WRITE_LINE_MEMBER( sys573_vblank );
 
+	void zi_cassette_install(device_t* device);
 	void stepchmp_cassette_install(device_t* device);
 	void animechmp_cassette_install(device_t *device);
 	void salarymc_cassette_install(device_t *device);
@@ -2371,17 +2374,6 @@ void pnchmn_state::punchmania_output_callback(offs_t offset, uint8_t data)
 		m_pad_motor_direction[ 5 ] = data ? -1 : 0; // right bottom motor -
 		break;
 	}
-
-	if (m_punchcomm->exists() && offset >= 9 && offset <= 15 && offset != 11) {
-		uint8_t x = 0xc0 // Light update command
-			| uint8_t(pad_light[0] != 0)
-			| uint8_t(pad_light[1] != 0) << 1
-			| uint8_t(pad_light[2] != 0) << 2
-			| uint8_t(pad_light[3] != 0) << 3
-			| uint8_t(pad_light[4] != 0) << 4
-			| uint8_t(pad_light[5] != 0) << 5;
-		m_punchcomm->output(x);
-	}
 }
 
 void pnchmn_state::machine_start()
@@ -2944,6 +2936,25 @@ void ksys573_state::ddr4ms(machine_config &config)
 	KONAMI_573_MEMORY_CARD_READER(config, "k573mcr", 0, m_sys573_jvs_host);
 }
 
+// Martial Beat
+
+void ksys573_state::mrtlbeat(machine_config &config)
+{
+	k573d(config);
+	// m_k573dio->output_callback().set(FUNC(ddr_state::ddr_output_callback));
+
+	pccard2_32mb(config);
+	casszi(config);
+
+	rs232_port_device& rs232_network(RS232_PORT(config, "rs232_network", default_rs232_devices, nullptr));
+	auto sio1 = subdevice<psxsio1_device>("maincpu:sio1");
+	sio1->txd_handler().set(rs232_network, FUNC(rs232_port_device::write_txd));
+	sio1->dtr_handler().set(rs232_network, FUNC(rs232_port_device::write_dtr));
+	rs232_network.rxd_handler().set(*sio1, FUNC(psxsio1_device::write_rxd));
+	rs232_network.option_add("k573martial", KONAMI_573_MARTIAL_BEAT_IO);
+	rs232_network.set_default_option("k573martial");
+}
+
 // DrumMania
 
 void ksys573_state::msu_local(machine_config &config)
@@ -3185,8 +3196,6 @@ void pnchmn_state::pnchmn(machine_config &config)
 	pccard1_32mb(config);
 
 	subdevice<konami573_cassette_slot_device>("cassette")->set_option_machine_config( "game", [this] (device_t *device) { punchmania_cassette_install(device); } );
-
-	BITBANGER(config, m_punchcomm, 0);
 }
 
 void pnchmn_state::pnchmn2(machine_config &config)
@@ -3237,23 +3246,6 @@ void ksys573_state::mamboagga(machine_config &config)
 	rs232_network.rxd_handler().set(*sio1, FUNC(psxsio1_device::write_rxd));
 	rs232_network.option_add("k573rental", KONAMI_573_EAMUSE_RENTAL_DEVICE);
 	rs232_network.set_default_option("k573rental");
-}
-
-void ksys573_state::mrtlbeat(machine_config &config)
-{
-	k573d(config);
-	subdevice<k573dio_device>("k573dio")->output_callback().set(FUNC(ksys573_state::ddr_output_callback));
-
-	pccard2_32mb(config);
-	casszi(config);
-
-	rs232_port_device& rs232_network(RS232_PORT(config, "rs232_network", default_rs232_devices, nullptr));
-	auto sio1 = subdevice<psxsio1_device>("maincpu:sio1");
-	sio1->txd_handler().set(rs232_network, FUNC(rs232_port_device::write_txd));
-	sio1->dtr_handler().set(rs232_network, FUNC(rs232_port_device::write_dtr));
-	rs232_network.rxd_handler().set(*sio1, FUNC(psxsio1_device::write_rxd));
-	rs232_network.option_add("k573martial", KONAMI_573_MARTIAL_BEAT_IO);
-	rs232_network.set_default_option("k573martial");
 }
 
 void ksys573_state::kicknkick(machine_config &config)
@@ -6650,7 +6642,7 @@ GAME( 2001, drmn6m,    pcnfrk6m, drmn4m,     drmn,      ksys573_state, empty_ini
 GAME( 2001, gtrfrk7m,  sys573,   gtrfrk7m,   gtrfrks,   ksys573_state, empty_init,    ROT0,  "Konami", "Guitar Freaks 7th Mix (G*B17 VER. JAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
 GAME( 2001, ddrmax,    sys573,   ddr5m,      ddr,       ddr_state,     empty_init,    ROT0,  "Konami", "DDRMAX - Dance Dance Revolution 6th Mix (G*B19 VER. JAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.9 */
 GAME( 2002, ddrmax2,   sys573,   ddr5m,      ddr,       ddr_state,     empty_init,    ROT0,  "Konami", "DDRMAX2 - Dance Dance Revolution 7th Mix (G*B20 VER. JAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
-GAME( 2002, mrtlbeat,  sys573,   ddr5m,      ddr,       ddr_state,     empty_init,    ROT0,  "Konami", "Martial Beat (G*B47 VER. JBA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.9 */
+GAME( 2002, mrtlbeat,  sys573,   mrtlbeat,   mrtlbeat,  ksys573_state, empty_init,    ROT0,  "Konami", "Martial Beat (G*B47 VER. JBA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.9 */
 GAME( 2002, gbbchmp,   sys573,   gbbchmp,    hyperbbc,  ksys573_state, init_serlamp,  ROT0,  "Konami", "Great Bishi Bashi Champ (GBA48 VER. JAB)", MACHINE_IMPERFECT_SOUND )
 GAME( 2002, pcnfrk7m,  sys573,   drmn4m,     drmn,      ksys573_state, empty_init,    ROT0,  "Konami", "Percussion Freaks 7th Mix (G*C07 VER. AAA)", MACHINE_IMPERFECT_SOUND ) /* BOOT VER 1.95 */
 GAME( 2002, drmn7m,    pcnfrk7m, drmn4m,     drmn,      ksys573_state, empty_init,    ROT0,  "Konami", "DrumMania 7th Mix power-up ver. (G*C07 VER. JBA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
@@ -6671,8 +6663,8 @@ GAME( 2004, gtfrk11m,  sys573,   gtfrk11m,   gtrfrks,   ksys573_state, empty_ini
 GAME( 2004, pcnfrk10m, sys573,   drmn10m,    drmn,      ksys573_state, empty_init,    ROT0,  "Konami", "Percussion Freaks 10th Mix eAmusement (G*D40 VER. ACA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
 GAME( 2004, drmn10m,   pcnfrk10m,drmn10m,    drmn,      ksys573_state, empty_init,    ROT0,  "Konami", "DrumMania 10th Mix (G*D40 VER. JAA)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) /* BOOT VER 1.95 */
 
-GAME( 2021, ddr5ms,    ddr5m,    ddr5m,      ddrsolo2,  ksys573_state, init_ddr,      ROT0,  "hack",   "Dance Dance Revolution 5th Mix Solo (hack)", MACHINE_IMPERFECT_SOUND )
-GAME( 2018, ddrexpro,  ddrextrm, ddr5m,      ddr,       ddr_state,     init_ddr,      ROT0,  "hack",   "Dance Dance Revolution Extreme Pro (hack, v2)", MACHINE_IMPERFECT_SOUND )
-GAME( 2019, ddrexproc, ddrextrm, ddr5m,      ddr,       ddr_state,     init_ddr,      ROT0,  "hack",   "Dance Dance Revolution Extreme Clarity (hack)", MACHINE_IMPERFECT_SOUND )
-GAME( 2019, ddrexplus, ddrextrm, ddr5m,      ddr,       ddr_state,     init_ddr,      ROT0,  "hack",   "Dance Dance Revolution Extreme Plus (hack)", MACHINE_IMPERFECT_SOUND )
-GAME( 200?, ddrmegamix,ddrextrm, ddr5m,      ddr,       ddr_state,     init_ddr,      ROT0,  "hack",   "Dance Dance Revolution Megamix (hack)", MACHINE_IMPERFECT_SOUND )
+GAME( 2021, ddr5ms,    ddrs2k,   ddrs2k,     ddrsolo2,  ksys573_state, empty_init,    ROT0,  "hack",   "Dance Dance Revolution 5th Mix Solo (hack)", MACHINE_IMPERFECT_SOUND )
+GAME( 2018, ddrexpro,  sys573,   ddr5m,      ddr,       ddr_state,     empty_init,    ROT0,  "hack",   "Dance Dance Revolution Extreme Pro (hack, v2)", MACHINE_IMPERFECT_SOUND )
+GAME( 2019, ddrexproc, sys573,   ddr5m,      ddr,       ddr_state,     empty_init,    ROT0,  "hack",   "Dance Dance Revolution Extreme Clarity (hack)", MACHINE_IMPERFECT_SOUND )
+GAME( 2019, ddrexplus, sys573,   ddr5m,      ddr,       ddr_state,     empty_init,    ROT0,  "hack",   "Dance Dance Revolution Extreme Plus (hack)", MACHINE_IMPERFECT_SOUND )
+GAME( 200?, ddrmegamix,sys573,   ddr5m,      ddr,       ddr_state,     empty_init,    ROT0,  "hack",   "Dance Dance Revolution Megamix (hack)", MACHINE_IMPERFECT_SOUND )
