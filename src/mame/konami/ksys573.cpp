@@ -2764,6 +2764,12 @@ void ddr_state::ddrk(machine_config &config)
 {
 	k573k(config);
 	cassxi(config);
+
+	rs232_port_device& rs232_network(RS232_PORT(config, "rs232_network", default_rs232_devices, nullptr));
+	auto sio1 = subdevice<psxsio1_device>("maincpu:sio1");
+	sio1->txd_handler().set(rs232_network, FUNC(rs232_port_device::write_txd));
+	sio1->dtr_handler().set(rs232_network, FUNC(rs232_port_device::write_dtr));
+	rs232_network.rxd_handler().set(*sio1, FUNC(psxsio1_device::write_rxd));
 }
 
 void ddr_state::ddr2mc(machine_config &config)
