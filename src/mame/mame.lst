@@ -14646,6 +14646,7 @@ azurian                         // (c) 1982 Rait Electronics Ltd
 bagmanm2                        // (c) 1984 Valadon Automation / GIB
 bagmanmc                        // bootleg
 batman2                         // bootleg
+bigkonggx                       // bootleg
 blkhole                         // TDS (Tokyo Denshi Sekkei) & MINTS
 bmxstunts                       // (c) 1985 Jetsoft
 bmxstuntsa                      // (c) 1985 Jetsoft
@@ -32233,7 +32234,8 @@ unks10md                        // 200?.?? unknown Namco System 10 medal game (M
 unks10md2                       // 2005.02 unknown Namco System 10 medal game
 
 @source:namco/namcos11.cpp
-danceyes                        // 1996.10 Dancing Eyes (US, DC3/VER.C)
+danceyes                        // 1996.09 Dancing Eyes (World, DC2/VER.B)
+danceyesu                       // 1996.10 Dancing Eyes (US, DC3/VER.C)
 danceyesj                       // 1996.09 Dancing Eyes (Japan, DC1/VER.A)
 dunkmnia                        // 1996.05 Dunk Mania (World, DM2/VER.C)
 dunkmniajc                      // 1996.05 Dunk Mania (Japan, DM1/VER.C)
