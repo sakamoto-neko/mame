@@ -16934,6 +16934,7 @@ hideseek                        //
 higemaru                        // 9/1984 (c) 1984
 
 @source:misc/highvdeo.cpp
+bingopd
 brasil                          // (c) 2000 unknown
 cfever1k                        // (c) 2000 High Video
 cfever40                        // (c) 2000 High Video
@@ -16951,9 +16952,13 @@ newmcard                        // (c) 19?? unknown
 newtiger                        // (c) 200? unknown
 nyjoker                         //
 record                          // (c) 2000 High Video
+saladue
+saladuea
 tour4000                        // (c) 2000 High Video
 tour4010                        // (c) 2000 High Video
 unksmk                          //
+zoomania
+zoomaniaa
 
 @source:sega/hikaru.cpp
 airtrix                         // 2001.02? Air Trix (Rev A)
@@ -17721,8 +17726,9 @@ gtg2                            // (c) 1992 Strata/Incredible Technologies
 gtg2j                           // (c) 1991 Strata/Incredible Technologies
 gtg2t                           // (c) 1989 Strata/Incredible Technologies
 gtgj31                          // (c) 1990 Strata/Incredible Technologies
-gtgt                            // (c) 1990 Strata/Incredible Technologies
-gtgt1                           // (c) 1990 Strata/Incredible Technologies
+gtgt10                          // (c) 1990 Strata/Incredible Technologies
+gtgt20                          // (c) 1990 Strata/Incredible Technologies
+gtgt21                          // (c) 1990 Strata/Incredible Technologies
 hstennis                        // (c) 1990 Strata/Incredible Technologies
 hstennis10                      // (c) 1990 Strata/Incredible Technologies
 neckneck                        // (c) 1992 Bundra Games/Incredible Technologies
@@ -32620,6 +32626,7 @@ drbyocwt                        // 2001.?? Derby Owners Club World Edition (Rev 
 dybb99                          // 1999.11 Dynamite Baseball '99 (Rev B)
 dybbnao                         // 1998.12 Dynamite Baseball NAOMI
 dygolf                          // 2001.04.27 Dynamic Golf / Virtua Golf (Rev A)
+dygolfp                         // 2001.?? Dynamic Golf / Virtua Golf (prototype)
 f355                            // 1999.07 Ferrari F355 Challenge (deluxe, no link)
 f355p                           // 1999.05 Ferrari F355 Challenge (private show version)
 f355bios                        // 1999.08 F355 Challenge Twin/Deluxe (BIOS)
@@ -37898,7 +37905,6 @@ hyprdriv                        // (c) 1998 Midway Games
 mace                            // (c) 1996 Atari Games
 macea                           // (c) 1996 Atari Games
 sfrush                          // (c) 1996 Atari Games
-sfrusha                         // (c) 1996 Atari Games
 sfrushrk                        // (c) 1996 Atari Games
 sfrushrkw                       // (c) 1996 Atari Games
 sfrushrkwo                      // (c) 1996 Atari Games
@@ -44478,7 +44484,7 @@ z80clock                        // 2020 Tom Storey
 @source:homebrew/z80dev.cpp
 z80dev                          //
 
-@source:ne/z80ne.cpp
+@source:misc/z80ne.cpp
 z80ne                           // 1980 - Z80NE
 z80net                          // 1980 - Z80NE + LX388 Video Interface
 z80netb                         // 1980 - Z80NE + LX388 Video Interface + 16Kb BASIC
@@ -44846,3 +44852,6 @@ sc203                           // SC203 - Modular Z180 Computer
 
 @source:vtech/phusion.cpp
 phusion                         //
+
+@source:misc/mtu130.cpp
+mtu130
