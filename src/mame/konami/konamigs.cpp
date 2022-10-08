@@ -1056,7 +1056,7 @@ void gsan_state::gsan(machine_config &config)
 	// video hardware
 	SCREEN(config, m_screen, SCREEN_TYPE_RASTER);
 	m_screen->set_screen_update(FUNC(gsan_state::screen_update));
-	m_screen->set_raw(XTAL(36'000'000) / 3, 500, 0, 400, 400, 0, 300);
+	m_screen->set_raw(XTAL(33'000'000) / 3, 500, 0, 400, 400, 0, 300);
 	m_screen->screen_vblank().set(FUNC(gsan_state::vblank));
 
 	// sound hardware
