@@ -10,6 +10,7 @@
 #include "emu.h"
 #include "sio.h"
 
+#include <cstdarg>
 #include <iostream>
 
 #define LOG_STAT    (1U << 1)

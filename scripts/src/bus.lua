@@ -1242,6 +1242,8 @@ if (BUSES["ELECTRON"]~=null) then
 		MAME_DIR .. "src/devices/bus/electron/romboxp.h",
 		MAME_DIR .. "src/devices/bus/electron/sidewndr.cpp",
 		MAME_DIR .. "src/devices/bus/electron/sidewndr.h",
+		MAME_DIR .. "src/devices/bus/electron/voxbox.cpp",
+		MAME_DIR .. "src/devices/bus/electron/voxbox.h",
 		MAME_DIR .. "src/devices/bus/electron/m2105.cpp",
 		MAME_DIR .. "src/devices/bus/electron/m2105.h",
 	}
@@ -1799,6 +1801,10 @@ end
 
 if (BUSES["MSX_SLOT"]~=null) then
 	files {
+		MAME_DIR .. "src/devices/bus/msx_slot/ax230.cpp",
+		MAME_DIR .. "src/devices/bus/msx_slot/ax230.h",
+		MAME_DIR .. "src/devices/bus/msx_slot/bruc100.cpp",
+		MAME_DIR .. "src/devices/bus/msx_slot/bruc100.h",
 		MAME_DIR .. "src/devices/bus/msx_slot/bunsetsu.cpp",
 		MAME_DIR .. "src/devices/bus/msx_slot/bunsetsu.h",
 		MAME_DIR .. "src/devices/bus/msx_slot/cartridge.cpp",
@@ -1807,6 +1813,10 @@ if (BUSES["MSX_SLOT"]~=null) then
 		MAME_DIR .. "src/devices/bus/msx_slot/disk.h",
 		MAME_DIR .. "src/devices/bus/msx_slot/fs4600.cpp",
 		MAME_DIR .. "src/devices/bus/msx_slot/fs4600.h",
+		MAME_DIR .. "src/devices/bus/msx_slot/fsa1fm.cpp",
+		MAME_DIR .. "src/devices/bus/msx_slot/fsa1fm.h",
+		MAME_DIR .. "src/devices/bus/msx_slot/msx_write.cpp",
+		MAME_DIR .. "src/devices/bus/msx_slot/msx_write.h",
 		MAME_DIR .. "src/devices/bus/msx_slot/music.cpp",
 		MAME_DIR .. "src/devices/bus/msx_slot/music.h",
 		MAME_DIR .. "src/devices/bus/msx_slot/panasonic08.cpp",
@@ -1817,6 +1827,8 @@ if (BUSES["MSX_SLOT"]~=null) then
 		MAME_DIR .. "src/devices/bus/msx_slot/ram.h",
 		MAME_DIR .. "src/devices/bus/msx_slot/ram_mm.cpp",
 		MAME_DIR .. "src/devices/bus/msx_slot/ram_mm.h",
+		MAME_DIR .. "src/devices/bus/msx_slot/msx_rs232.cpp",
+		MAME_DIR .. "src/devices/bus/msx_slot/msx_rs232.h",
 		MAME_DIR .. "src/devices/bus/msx_slot/slot.cpp",
 		MAME_DIR .. "src/devices/bus/msx_slot/slot.h",
 		MAME_DIR .. "src/devices/bus/msx_slot/sony08.cpp",
@@ -1849,6 +1861,8 @@ if (BUSES["MSX_SLOT"]~=null) then
 		MAME_DIR .. "src/devices/bus/msx_cart/holy_quran.h",
 		MAME_DIR .. "src/devices/bus/msx_cart/ink.cpp",
 		MAME_DIR .. "src/devices/bus/msx_cart/ink.h",
+		MAME_DIR .. "src/devices/bus/msx_cart/kanji.cpp",
+		MAME_DIR .. "src/devices/bus/msx_cart/kanji.h",
 		MAME_DIR .. "src/devices/bus/msx_cart/konami.cpp",
 		MAME_DIR .. "src/devices/bus/msx_cart/konami.h",
 		MAME_DIR .. "src/devices/bus/msx_cart/korean.cpp",
@@ -3705,6 +3719,8 @@ if (BUSES["GAMEBOY"]~=null) then
 		MAME_DIR .. "src/devices/bus/gameboy/huc1.h",
 		MAME_DIR .. "src/devices/bus/gameboy/huc3.cpp",
 		MAME_DIR .. "src/devices/bus/gameboy/huc3.h",
+		MAME_DIR .. "src/devices/bus/gameboy/liebao.cpp",
+		MAME_DIR .. "src/devices/bus/gameboy/liebao.h",
 		MAME_DIR .. "src/devices/bus/gameboy/mbc.cpp",
 		MAME_DIR .. "src/devices/bus/gameboy/mbc.h",
 		MAME_DIR .. "src/devices/bus/gameboy/mbc2.cpp",
@@ -3719,6 +3735,8 @@ if (BUSES["GAMEBOY"]~=null) then
 		MAME_DIR .. "src/devices/bus/gameboy/mdslot.h",
 		MAME_DIR .. "src/devices/bus/gameboy/mmm01.cpp",
 		MAME_DIR .. "src/devices/bus/gameboy/mmm01.h",
+		MAME_DIR .. "src/devices/bus/gameboy/ntnew.cpp",
+		MAME_DIR .. "src/devices/bus/gameboy/ntnew.h",
 		MAME_DIR .. "src/devices/bus/gameboy/rom.cpp",
 		MAME_DIR .. "src/devices/bus/gameboy/rom.h",
 		MAME_DIR .. "src/devices/bus/gameboy/slmulti.cpp",
@@ -3914,6 +3932,31 @@ if (BUSES["EPSON_QX"]~=null) then
 		MAME_DIR .. "src/devices/bus/epson_qx/multifont.h",
 		MAME_DIR .. "src/devices/bus/epson_qx/option.cpp",
 		MAME_DIR .. "src/devices/bus/epson_qx/option.h",
+		MAME_DIR .. "src/devices/bus/epson_qx/sound_card.cpp",
+		MAME_DIR .. "src/devices/bus/epson_qx/sound_card.h",
+	}
+end
+
+---------------------------------------------------
+--
+--@src/devices/bus/epson_qx/keyboard/keyboard.h,BUSES["EPSON_QX_KEYBOARD"] = true
+---------------------------------------------------
+
+if (BUSES["EPSON_QX_KEYBOARD"]~=null) then
+	files {
+		MAME_DIR .. "src/devices/bus/epson_qx/keyboard/keyboard.cpp",
+		MAME_DIR .. "src/devices/bus/epson_qx/keyboard/keyboard.h",
+		MAME_DIR .. "src/devices/bus/epson_qx/keyboard/matrix.cpp",
+		MAME_DIR .. "src/devices/bus/epson_qx/keyboard/matrix.h",
+	}
+	dependency {
+		{ MAME_DIR .. "src/devices/bus/epson_qx/keyboard/keyboard.cpp", GEN_DIR .. "emu/layout/qx10ascii.lh" },
+		{ MAME_DIR .. "src/devices/bus/epson_qx/keyboard/keyboard.cpp", GEN_DIR .. "emu/layout/qx10hasci.lh" },
+	}
+
+	custombuildtask {
+		layoutbuildtask("emu/layout", "qx10ascii"),
+		layoutbuildtask("emu/layout", "qx10hasci"),
 	}
 end
 

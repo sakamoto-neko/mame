@@ -289,6 +289,7 @@ gamepark/gp32.cpp
 gridcomp/gridcomp.cpp
 grundy/newbrain.cpp
 h01x/h01x.cpp
+handheld/gameking.cpp
 handheld/gmaster.cpp
 handheld/hh_cop400.cpp
 handheld/hh_cops1.cpp
@@ -307,6 +308,7 @@ handheld/rzone.cpp
 handheld/scrablex.cpp
 handheld/talkingbb.cpp
 handheld/talkingfb.cpp
+handheld/teammate.cpp
 handheld/tispeak.cpp
 handheld/tispellb.cpp
 handheld/wildfire.cpp
@@ -415,13 +417,13 @@ intel/sdk86.cpp
 intergraph/interpro.cpp
 interton/vc4000.cpp
 isc/compucolor.cpp
-kawai/kawai_acr20.cpp
-kawai/kawai_k1.cpp
-kawai/kawai_k4.cpp
-kawai/kawai_k5.cpp
-kawai/kawai_ksp10.cpp
-kawai/kawai_r100.cpp
-kawai/kawai_sx240.cpp
+kawai/acr20.cpp
+kawai/k1.cpp
+kawai/k4.cpp
+kawai/k5.cpp
+kawai/ksp10.cpp
+kawai/r100.cpp
+kawai/sx240.cpp
 kaypro/kaypro.cpp
 koei/pasogo.cpp
 kontron/kdt6.cpp
@@ -524,6 +526,7 @@ ncd/ncd88k.cpp
 ncd/ncdmips.cpp
 ncd/ncdppc.cpp
 nec/apc.cpp
+nec/bungo.cpp
 nec/ews4800.cpp
 nec/pc100.cpp
 nec/pc6001.cpp
@@ -756,6 +759,7 @@ siemens/pg685.cpp
 sinclair/atm.cpp
 sinclair/elwro800.cpp
 sinclair/pentagon.cpp
+sinclair/pentevo.cpp
 sinclair/ql.cpp
 sinclair/scorpion.cpp
 sinclair/spec128.cpp
@@ -821,6 +825,7 @@ skeleton/digiblast.cpp
 skeleton/digijet.cpp
 skeleton/digilog320.cpp
 skeleton/digilog400.cpp
+skeleton/digitech_gsp5.cpp
 skeleton/dim68k.cpp
 skeleton/dm7000.cpp
 skeleton/dmv.cpp
@@ -841,7 +846,6 @@ skeleton/fk1.cpp
 skeleton/freedom120.cpp
 skeleton/fs3216.cpp
 skeleton/ft68m.cpp
-skeleton/gameking.cpp
 skeleton/gem_rp.cpp
 skeleton/gimix.cpp
 skeleton/gm1000.cpp
@@ -1173,6 +1177,7 @@ ussr/ie15.cpp
 ussr/im01.cpp
 ussr/intellect02.cpp
 ussr/irisha.cpp
+ussr/krokha.cpp
 ussr/lviv.cpp
 ussr/mikro80.cpp
 ussr/mikrosha.cpp
