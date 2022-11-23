@@ -32,6 +32,11 @@
  Vast Fame VF001 (FourCC 'VF01') additional data:
  * Command preload value (1 byte).
 
+ Kong Feng DSH-GGB81 (FourCC 'GB81') additional data:
+ * Cartridge/PCB type (1 byte):
+  - 0x00: DSH-GGB81
+  - 0x01: BC-R1616T3P
+
  The list of cartridge type FourCC values here is incomplete.
 
  ***************************************************************************/
@@ -50,7 +55,9 @@ enum : u32
 
 enum : u32
 {
+	TYPE_BBD        = 0x42424400,   // 'BBD\0'
 	TYPE_CAMERA     = 0x43414d52,   // 'CAMR'
+	TYPE_DSHGGB81   = 0x47423831,   // 'GB81'
 	TYPE_HUC1       = 0x48554331,   // 'HUC1'
 	TYPE_HUC3       = 0x48554333,   // 'HUC3'
 	TYPE_SLMULTI    = 0x4c424d43,   // 'LBMC'
