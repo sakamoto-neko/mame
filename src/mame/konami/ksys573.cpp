@@ -401,7 +401,6 @@ Notes: (all ICs shown)
 
 #include "k573martial.h"
 #include "k573rental.h"
-#include "kwindy2.h"
 
 #include "cpu/psx/psx.h"
 #include "bus/ata/ataintf.h"

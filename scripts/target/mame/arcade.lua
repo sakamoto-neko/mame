@@ -2533,8 +2533,6 @@ files {
 	MAME_DIR .. "src/mame/machine/k573npu.h",
 	MAME_DIR .. "src/mame/machine/k573rental.cpp",
 	MAME_DIR .. "src/mame/machine/k573rental.h",
-	MAME_DIR .. "src/mame/machine/kwindy2.cpp",
-	MAME_DIR .. "src/mame/machine/kwindy2.h",
 	MAME_DIR .. "src/mame/machine/k007452.cpp",
 	MAME_DIR .. "src/mame/machine/k007452.h",
 	MAME_DIR .. "src/mame/machine/zs01.cpp",
